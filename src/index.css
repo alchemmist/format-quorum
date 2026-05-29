@@ -1,0 +1,128 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--g-font-family-sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+}
+
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--g-color-base-background);
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--g-color-line-generic);
+  flex-shrink: 0;
+}
+
+.app-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--g-color-text-primary);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.editors-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  gap: 1px;
+  background: var(--g-color-line-generic);
+}
+
+.editor-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  background: var(--g-color-base-background);
+}
+
+.editor-pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--g-color-line-generic);
+  flex-shrink: 0;
+  min-height: 40px;
+}
+
+.editor-pane-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--g-color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.editor-pane-label.output {
+  color: var(--g-color-text-secondary);
+}
+
+.code-textarea {
+  flex: 1;
+  width: 100%;
+  padding: 16px;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: 'SF Mono', 'Fira Mono', 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  background: var(--g-color-base-background);
+  color: var(--g-color-text-primary);
+  tab-size: 4;
+  overflow-y: auto;
+}
+
+.code-textarea:read-only {
+  background: var(--g-color-base-simple-hover);
+  cursor: default;
+  color: var(--g-color-text-primary);
+}
+
+.code-textarea::placeholder {
+  color: var(--g-color-text-hint);
+}
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 16px;
+  border-top: 1px solid var(--g-color-line-generic);
+  flex-shrink: 0;
+  min-height: 28px;
+  background: var(--g-color-base-simple-hover);
+}
+
+.status-text {
+  font-size: 11px;
+  color: var(--g-color-text-secondary);
+}
+
+.status-text.error {
+  color: var(--g-color-text-danger);
+}
