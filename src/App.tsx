@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { ThemeProvider, Button, Spin } from '@gravity-ui/uikit'
+import CodeMirrorEditor from './CodeMirrorEditor'
 import demoCode from './demo-code'
 
 type Status =
@@ -86,16 +87,13 @@ export default function App() {
             <div className="editor-pane-header">
               <span className="editor-pane-label">Input</span>
             </div>
-            <textarea
-              className="code-textarea"
-              value={inputCode}
-              onChange={(e) => setInputCode(e.target.value)}
-              spellCheck={false}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              placeholder="Paste C++ code here..."
-            />
+            <div className="editor-pane-body">
+              <CodeMirrorEditor
+                value={inputCode}
+                onChange={setInputCode}
+                readOnly={false}
+              />
+            </div>
           </div>
 
           {/* Right pane — read-only output */}
@@ -103,13 +101,12 @@ export default function App() {
             <div className="editor-pane-header">
               <span className="editor-pane-label output">Output</span>
             </div>
-            <textarea
-              className="code-textarea"
-              value={outputCode}
-              readOnly
-              spellCheck={false}
-              placeholder="Formatted code will appear here..."
-            />
+            <div className="editor-pane-body">
+              <CodeMirrorEditor
+                value={outputCode}
+                readOnly={true}
+              />
+            </div>
           </div>
         </div>
 

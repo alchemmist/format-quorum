@@ -16,22 +16,23 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: var(--g-color-base-background);
+  background: #1a1a1f;
 }
 
 .app-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--g-color-line-generic);
+  padding: 10px 20px;
+  border-bottom: 1px solid #2d2d35;
   flex-shrink: 0;
+  background: #16161b;
 }
 
 .app-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  color: var(--g-color-text-primary);
+  color: #e2e2e2;
   letter-spacing: -0.01em;
   margin: 0;
 }
@@ -48,7 +49,7 @@ body {
   flex: 1;
   overflow: hidden;
   gap: 1px;
-  background: var(--g-color-line-generic);
+  background: #2d2d35;
 }
 
 .editor-pane {
@@ -56,55 +57,41 @@ body {
   flex-direction: column;
   flex: 1;
   overflow: hidden;
-  background: var(--g-color-base-background);
+  background: #1a1a1f;
 }
 
 .editor-pane-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--g-color-line-generic);
+  padding: 6px 16px 6px 60px;
+  border-bottom: 1px solid #2d2d35;
   flex-shrink: 0;
-  min-height: 40px;
+  background: #16161b;
+  min-height: 34px;
 }
 
 .editor-pane-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
-  color: var(--g-color-text-secondary);
+  color: #4a4a5a;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
 }
 
-.editor-pane-label.output {
-  color: var(--g-color-text-secondary);
-}
-
-.code-textarea {
+.editor-pane-body {
   flex: 1;
-  width: 100%;
-  padding: 16px;
-  border: none;
-  outline: none;
-  resize: none;
-  font-family: 'SF Mono', 'Fira Mono', 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
-  font-size: 13px;
-  line-height: 1.6;
-  background: var(--g-color-base-background);
-  color: var(--g-color-text-primary);
-  tab-size: 4;
-  overflow-y: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-.code-textarea:read-only {
-  background: var(--g-color-base-simple-hover);
-  cursor: default;
-  color: var(--g-color-text-primary);
+.editor-pane-body > div {
+  flex: 1;
 }
 
-.code-textarea::placeholder {
-  color: var(--g-color-text-hint);
+/* CodeMirror container height fix */
+.editor-pane-body .cm-editor {
+  height: 100%;
 }
 
 .status-bar {
@@ -112,17 +99,17 @@ body {
   align-items: center;
   gap: 8px;
   padding: 4px 16px;
-  border-top: 1px solid var(--g-color-line-generic);
+  border-top: 1px solid #2d2d35;
   flex-shrink: 0;
-  min-height: 28px;
-  background: var(--g-color-base-simple-hover);
+  min-height: 26px;
+  background: #16161b;
 }
 
 .status-text {
   font-size: 11px;
-  color: var(--g-color-text-secondary);
+  color: #4a4a5a;
 }
 
 .status-text.error {
-  color: var(--g-color-text-danger);
+  color: #e05555;
 }
