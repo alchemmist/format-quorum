@@ -53,7 +53,7 @@ export default function App() {
     <ThemeProvider theme="dark">
       <div className="app-layout">
         <header className="app-header">
-          <h1 className="app-title">format-quorum</h1>
+          <h1 className="app-title">Format Quorum</h1>
           <div className="app-header-actions">
             <Button
               view="outlined"
