@@ -110,13 +110,11 @@ export default function App() {
           </div>
         </div>
 
-        {statusText && (
-          <div className="status-bar">
-            <span className={`status-text${status.kind === 'error' ? ' error' : ''}`}>
-              {statusText}
-            </span>
-          </div>
-        )}
+        <div className="status-bar">
+          <span className={`status-text${status.kind === 'error' ? ' error' : ''}`}>
+            {statusText}
+          </span>
+        </div>
       </div>
     </ThemeProvider>
   )
