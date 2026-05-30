@@ -2,6 +2,8 @@
 
 A minimal code formatting playground. Paste code, hit **Format**, see exactly what the formatter changed.
 
+![](demo.png)
+
 Supports **C++** via `clang-format` and **Python** via `ruff format`, each with an opinionated house style. Changed lines are highlighted in the output — toggle the diff on or off from the header.
 
 ---
