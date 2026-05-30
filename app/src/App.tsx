@@ -157,6 +157,19 @@ export default function App() {
             {statusText}
           </span>
         </div>
+
+        <a
+          className="feedback-fab"
+          href={language === 'cpp'
+            ? 'https://st.yandex-team.ru/LOGS-4271'
+            : 'https://st.yandex-team.ru/DUTYLOGS-3928'}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Leave your comment/suggestion"
+          aria-label="Leave your comment/suggestion"
+        >
+          😤
+        </a>
       </div>
     </ThemeProvider>
   )
