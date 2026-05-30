@@ -1,5 +1,10 @@
 *, *::before, *::after {
   box-sizing: border-box;
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
 }
 
 html, body, #root {
