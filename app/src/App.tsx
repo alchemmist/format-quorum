@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { ThemeProvider, Button, Spin, SegmentedRadioGroup } from '@gravity-ui/uikit'
+import { ThemeProvider, Button, Spin, Select } from '@gravity-ui/uikit'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 
 // @ts-ignore — Vite raw import
@@ -73,14 +73,15 @@ export default function App() {
           <h1 className="app-title">Format Quorum</h1>
 
           <div className="app-header-center">
-            <SegmentedRadioGroup
-              value={language}
-              onUpdate={handleLanguageChange}
+            <Select
+              value={[language]}
+              onUpdate={(val) => handleLanguageChange(val[0])}
               size="s"
+              width={120}
             >
-              <SegmentedRadioGroup.Option value="cpp">C++</SegmentedRadioGroup.Option>
-              <SegmentedRadioGroup.Option value="python">Python</SegmentedRadioGroup.Option>
-            </SegmentedRadioGroup>
+              <Select.Option value="cpp">C++</Select.Option>
+              <Select.Option value="python">Python</Select.Option>
+            </Select>
           </div>
 
           <div className="app-header-actions">

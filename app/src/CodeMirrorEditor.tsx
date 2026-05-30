@@ -23,7 +23,7 @@ const quietTheme = EditorView.theme(
     '.cm-content': { caretColor: '#9da5b3', padding: '12px 0' },
     '.cm-gutters': {
       backgroundColor: BG,
-      borderRight: '1px solid #23232a',
+      borderRight: 'none',
       color: '#3e3e52',
     },
     '.cm-activeLineGutter': { backgroundColor: BG, color: '#5a5a7a' },
@@ -102,6 +102,7 @@ export default function CodeMirrorEditor({
         highlightActiveLine: true,
         bracketMatching: true,
         history: !readOnly,
+        foldGutter: false,
       }}
     />
   )
