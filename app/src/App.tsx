@@ -1,7 +1,16 @@
 import { useState, useCallback } from 'react'
-import { ThemeProvider, Button, Spin } from '@gravity-ui/uikit'
-import CodeMirrorEditor from './CodeMirrorEditor'
-import demoCode from './demo-code'
+import { ThemeProvider, Button, Spin, SegmentedRadioGroup } from '@gravity-ui/uikit'
+import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
+
+// @ts-ignore — Vite raw import
+import demoCpp from './demo.cpp?raw'
+// @ts-ignore — Vite raw import
+import demoPy from './demo.py?raw'
+
+const demos: Record<Language, string> = {
+  cpp:    demoCpp as string,
+  python: demoPy as string,
+}
 
 type Status =
   | { kind: 'idle' }
@@ -10,9 +19,17 @@ type Status =
   | { kind: 'done' }
 
 export default function App() {
-  const [inputCode, setInputCode] = useState<string>(demoCode)
+  const [language, setLanguage]   = useState<Language>('cpp')
+  const [inputCode, setInputCode] = useState<string>(demos.cpp)
   const [outputCode, setOutputCode] = useState<string>('')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
+
+  const handleLanguageChange = useCallback((lang: string) => {
+    setLanguage(lang as Language)
+    setInputCode(demos[lang as Language])
+    setOutputCode('')
+    setStatus({ kind: 'idle' })
+  }, [])
 
   const handleFormat = useCallback(async () => {
     setStatus({ kind: 'loading' })
@@ -20,7 +37,7 @@ export default function App() {
       const res = await fetch('/api/format', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: inputCode }),
+        body: JSON.stringify({ code: inputCode, language }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -32,13 +49,13 @@ export default function App() {
     } catch (e) {
       setStatus({ kind: 'error', message: String(e) })
     }
-  }, [inputCode])
+  }, [inputCode, language])
 
   const handleReset = useCallback(() => {
-    setInputCode(demoCode)
+    setInputCode(demos[language])
     setOutputCode('')
     setStatus({ kind: 'idle' })
-  }, [])
+  }, [language])
 
   const statusText =
     status.kind === 'loading'
@@ -54,13 +71,20 @@ export default function App() {
       <div className="app-layout">
         <header className="app-header">
           <h1 className="app-title">Format Quorum</h1>
-          <div className="app-header-actions">
-            <Button
-              view="outlined"
+
+          <div className="app-header-center">
+            <SegmentedRadioGroup
+              value={language}
+              onUpdate={handleLanguageChange}
               size="s"
-              onClick={handleReset}
-              title="Reset to demo.cpp"
             >
+              <SegmentedRadioGroup.Option value="cpp">C++</SegmentedRadioGroup.Option>
+              <SegmentedRadioGroup.Option value="python">Python</SegmentedRadioGroup.Option>
+            </SegmentedRadioGroup>
+          </div>
+
+          <div className="app-header-actions">
+            <Button view="outlined" size="s" onClick={handleReset}>
               Reset
             </Button>
             <Button
@@ -82,7 +106,6 @@ export default function App() {
         </header>
 
         <div className="editors-container">
-          {/* Left pane — editable input */}
           <div className="editor-pane">
             <div className="editor-pane-header">
               <span className="editor-pane-label">Input</span>
@@ -90,13 +113,13 @@ export default function App() {
             <div className="editor-pane-body">
               <CodeMirrorEditor
                 value={inputCode}
+                language={language}
                 onChange={setInputCode}
                 readOnly={false}
               />
             </div>
           </div>
 
-          {/* Right pane — read-only output */}
           <div className="editor-pane">
             <div className="editor-pane-header">
               <span className="editor-pane-label output">Output</span>
@@ -104,6 +127,7 @@ export default function App() {
             <div className="editor-pane-body">
               <CodeMirrorEditor
                 value={outputCode}
+                language={language}
                 readOnly={true}
               />
             </div>

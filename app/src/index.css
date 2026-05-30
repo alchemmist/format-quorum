@@ -25,6 +25,7 @@ body {
 }
 
 .app-header {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -40,6 +41,12 @@ body {
   color: #e2e2e2;
   letter-spacing: -0.01em;
   margin: 0;
+}
+
+.app-header-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .app-header-actions {
