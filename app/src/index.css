@@ -125,3 +125,27 @@ body {
 .status-text.error {
   color: #e05555;
 }
+
+/* ── Diff highlighting ─────────────────────────────────────────────────────── */
+
+/* Changed line: thin amber bar on the left, very faint background tint */
+.cm-diff-changed-line {
+  box-shadow: inset 2px 0 0 rgba(210, 160, 60, 0.7);
+  background-color: rgba(210, 160, 60, 0.045);
+}
+
+/* ── Diff toggle checkbox in header ────────────────────────────────────────── */
+
+.diff-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.diff-toggle-label {
+  font-size: 12px;
+  color: #6a6a7a;
+  letter-spacing: 0.02em;
+}

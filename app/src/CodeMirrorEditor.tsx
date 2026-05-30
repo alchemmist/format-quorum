@@ -1,10 +1,13 @@
+import { useEffect, useRef, useMemo } from 'react'
 import CodeMirror from '@uiw/react-codemirror'
+import type { ReactCodeMirrorRef } from '@uiw/react-codemirror'
 import { cpp } from '@codemirror/lang-cpp'
 import { python } from '@codemirror/lang-python'
 import { EditorView } from '@codemirror/view'
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { tags } from '@lezer/highlight'
 import type { Extension } from '@codemirror/state'
+import { createDiffExtension, setDiffEffect, type DiffRange } from './useDiff'
 
 export type Language = 'cpp' | 'python'
 
@@ -13,6 +16,9 @@ interface CodeMirrorEditorProps {
   language: Language
   onChange?: (value: string) => void
   readOnly?: boolean
+  /** Pass diffRanges to enable diff highlighting on this editor instance */
+  diffRanges?: DiffRange[]
+  showDiff?: boolean
 }
 
 const BG = '#16161b'
@@ -87,14 +93,55 @@ export default function CodeMirrorEditor({
   language,
   onChange,
   readOnly = false,
+  diffRanges,
+  showDiff = false,
 }: CodeMirrorEditorProps) {
+  const cmRef = useRef<ReactCodeMirrorRef>(null)
+  const hasDiff = diffRanges !== undefined
+
+  // Create one diff field per editor instance (stable across re-renders)
+  const diffExtRef = useRef<Extension | null>(null)
+  if (hasDiff && diffExtRef.current === null) {
+    diffExtRef.current = createDiffExtension()
+  }
+
+  // Stable extensions array — only rebuilds when language changes
+  const extensions = useMemo<Extension[]>(() => {
+    const exts: Extension[] = [langExtension[language]]
+    if (hasDiff && diffExtRef.current !== null) {
+      exts.push(diffExtRef.current)
+    }
+    return exts
+    // diffExtRef.current is stable; hasDiff and language are the real deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language, hasDiff])
+
+  // Keep a ref to latest ranges/show so we can dispatch from onCreateEditor
+  const diffStateRef = useRef({ ranges: diffRanges ?? [], show: showDiff })
+  diffStateRef.current = { ranges: diffRanges ?? [], show: showDiff }
+
+  const dispatchDiff = (view: EditorView) => {
+    view.dispatch({
+      effects: setDiffEffect.of(diffStateRef.current),
+    })
+  }
+
+  // Dispatch effect whenever ranges or showDiff flag change
+  useEffect(() => {
+    if (!hasDiff) return
+    const view = cmRef.current?.view
+    if (!view) return
+    dispatchDiff(view)
+  }, [diffRanges, showDiff, hasDiff]) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <CodeMirror
+      ref={cmRef}
       value={value}
       onChange={onChange}
       readOnly={readOnly}
       theme={baseTheme}
-      extensions={[langExtension[language]]}
+      extensions={extensions}
       height="100%"
       style={{ height: '100%', fontSize: '13px' }}
       basicSetup={{
@@ -103,6 +150,9 @@ export default function CodeMirrorEditor({
         bracketMatching: true,
         history: !readOnly,
         foldGutter: false,
+      }}
+      onCreateEditor={(view) => {
+        if (hasDiff) dispatchDiff(view)
       }}
     />
   )

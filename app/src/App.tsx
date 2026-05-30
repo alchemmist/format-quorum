@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react'
-import { ThemeProvider, Button, Spin, Select } from '@gravity-ui/uikit'
+import { useState, useCallback, useMemo } from 'react'
+import { ThemeProvider, Button, Spin, Select, Checkbox } from '@gravity-ui/uikit'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
+import { computeDiff } from './useDiff'
 
 // @ts-ignore — Vite raw import
 import demoCpp from './demo.cpp?raw'
@@ -23,6 +24,12 @@ export default function App() {
   const [inputCode, setInputCode] = useState<string>(demos.cpp)
   const [outputCode, setOutputCode] = useState<string>('')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
+  const [showDiff, setShowDiff] = useState<boolean>(true)
+
+  const diffRanges = useMemo(
+    () => outputCode ? computeDiff(inputCode, outputCode) : [],
+    [inputCode, outputCode],
+  )
 
   const handleLanguageChange = useCallback((lang: string) => {
     setLanguage(lang as Language)
@@ -85,6 +92,14 @@ export default function App() {
           </div>
 
           <div className="app-header-actions">
+            <label className="diff-toggle">
+              <Checkbox
+                checked={showDiff}
+                onUpdate={setShowDiff}
+                size="m"
+              />
+              <span className="diff-toggle-label">Diff</span>
+            </label>
             <Button view="outlined" size="s" onClick={handleReset}>
               Reset
             </Button>
@@ -130,6 +145,8 @@ export default function App() {
                 value={outputCode}
                 language={language}
                 readOnly={true}
+                diffRanges={diffRanges}
+                showDiff={showDiff}
               />
             </div>
           </div>
