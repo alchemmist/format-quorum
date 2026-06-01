@@ -124,6 +124,14 @@ export default function App() {
               />
               <span className="diff-toggle-label">Diff</span>
             </label>
+            <a
+              className="config-link-btn"
+              href={language === 'cpp' ? '/clang-format' : '/ruff.toml'}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Config
+            </a>
             <Button view="outlined" size="s" onClick={handleReset}>
               Reset
             </Button>

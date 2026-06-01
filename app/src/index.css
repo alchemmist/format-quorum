@@ -56,6 +56,27 @@ body {
   margin-left: auto;
 }
 
+.config-link-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--g-color-text-primary, #e2e2e2);
+  border: 1px solid var(--g-color-line-generic, #3d3d45);
+  border-radius: 6px;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.config-link-btn:hover {
+  border-color: var(--g-color-line-generic-hover, #5a5a66);
+  background: rgba(255, 255, 255, 0.04);
+}
+
 .editors-container {
   display: flex;
   flex: 1;

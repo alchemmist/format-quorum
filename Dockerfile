@@ -9,8 +9,6 @@ RUN npm ci
 
 # copy source and config files needed for the build
 COPY app/ .
-COPY .clang-format ../
-COPY ruff.toml      ../
 
 RUN npm run build
 # result: /build/dist/
@@ -35,9 +33,6 @@ COPY app/server.js .
 # built frontend
 COPY --from=builder /build/dist ./dist
 
-# formatter configs (server.js references them relative to itself)
-COPY .clang-format ./
-COPY ruff.toml     ./
 
 EXPOSE 3000
 

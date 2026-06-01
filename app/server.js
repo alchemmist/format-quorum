@@ -15,19 +15,12 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 // Binary paths — override via env vars for Docker / CI
-const CLANG_FORMAT        = process.env.CLANG_FORMAT_BIN  ?? '/usr/bin/clang-format';
-const CLANG_FORMAT_CONFIG = process.env.CLANG_FORMAT_CONFIG ?? join(__dirname, '.clang-format');
+const CLANG_FORMAT        = process.env.CLANG_FORMAT_BIN    ?? '/opt/homebrew/bin/clang-format';
+const CLANG_FORMAT_CONFIG = process.env.CLANG_FORMAT_CONFIG ?? join(__dirname, 'public', 'clang-format');
 
-const RUFF        = process.env.RUFF_BIN    ?? 'ruff';
-const RUFF_CONFIG = process.env.RUFF_CONFIG ?? join(__dirname, 'ruff.toml');
+const RUFF        = process.env.RUFF_BIN    ?? '/opt/homebrew/bin/ruff';
+const RUFF_CONFIG = process.env.RUFF_CONFIG ?? join(__dirname, 'public', 'ruff.toml');
 
-app.get('/api/config/clang-format', (_req, res) => {
-  res.sendFile(CLANG_FORMAT_CONFIG);
-});
-
-app.get('/api/config/ruff', (_req, res) => {
-  res.sendFile(RUFF_CONFIG);
-});
 
 app.post('/api/format', async (req, res) => {
   const { code, language = 'cpp' } = req.body;
