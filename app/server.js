@@ -61,7 +61,7 @@ app.post('/api/format', async (req, res) => {
 // Serve built frontend (production)
 const DIST = join(__dirname, 'dist');
 app.use(express.static(DIST));
-app.get('*', (_req, res) => {
+app.use((_req, res) => {
   res.sendFile(join(DIST, 'index.html'));
 });
 
