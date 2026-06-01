@@ -1,0 +1,18 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: format-quorum:latest
+    container_name: format-quorum
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+    networks:
+      - personal-site_default
+
+networks:
+  personal-site_default:
+    external: true

@@ -14,11 +14,12 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-const CLANG_FORMAT        = '/opt/homebrew/bin/clang-format';
-const CLANG_FORMAT_CONFIG = join(__dirname, '..', '.clang-format');
+// Binary paths — override via env vars for Docker / CI
+const CLANG_FORMAT        = process.env.CLANG_FORMAT_BIN  ?? '/usr/bin/clang-format';
+const CLANG_FORMAT_CONFIG = process.env.CLANG_FORMAT_CONFIG ?? join(__dirname, '.clang-format');
 
-const RUFF        = '/opt/homebrew/bin/ruff';
-const RUFF_CONFIG = join(__dirname, '..', 'ruff.toml');
+const RUFF        = process.env.RUFF_BIN    ?? 'ruff';
+const RUFF_CONFIG = process.env.RUFF_CONFIG ?? join(__dirname, 'ruff.toml');
 
 app.post('/api/format', async (req, res) => {
   const { code, language = 'cpp' } = req.body;
@@ -57,7 +58,14 @@ app.post('/api/format', async (req, res) => {
   }
 });
 
-const PORT = 3001;
+// Serve built frontend (production)
+const DIST = join(__dirname, 'dist');
+app.use(express.static(DIST));
+app.get('*', (_req, res) => {
+  res.sendFile(join(DIST, 'index.html'));
+});
+
+const PORT = process.env.PORT ?? 3000;
 app.listen(PORT, () => {
   console.log(`Format server running on http://localhost:${PORT}`);
 });
