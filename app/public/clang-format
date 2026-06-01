@@ -17,6 +17,7 @@ ContinuationIndentWidth: 4
 # https://stackoverflow.com/questions/39779985/how-to-control-clang-format-indentation-of-chained-method-calls
 PenaltyIndentedWhitespace: 1
 BinPackArguments: false
+Cpp11BracedListStyle: false
 
 BreakBeforeBraces: Custom
 BreakInheritanceList: BeforeComma
