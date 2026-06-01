@@ -9,7 +9,7 @@ SpaceBeforeParensOptions:
     AfterLambdaCaptureList: true
 
 IndentWidth: 4
-ColumnLimit: 0
+ColumnLimit: 100
 MaxEmptyLinesToKeep: 2
 AccessModifierOffset: -4
 ConstructorInitializerIndentWidth: 4
@@ -28,11 +28,11 @@ AlwaysBreakBeforeMultilineStrings: true
 AlwaysBreakTemplateDeclarations: true
 
 BraceWrapping:
-    AfterClass: true
-    AfterStruct: true
-    AfterEnum: true
-    AfterUnion: true
-    AfterFunction: true
+    AfterClass: false
+    AfterStruct: false
+    AfterEnum: false
+    AfterUnion: false
+    AfterFunction: false
     AfterControlStatement: MultiLine
     SplitEmptyFunction: false
     SplitEmptyRecord: false
@@ -46,6 +46,7 @@ IndentPPDirectives: BeforeHash
 
 AllowAllArgumentsOnNextLine: false
 
+AllowShortEnumsOnASingleLine: false
 AllowShortLambdasOnASingleLine: None
 AllowShortFunctionsOnASingleLine: false
 
