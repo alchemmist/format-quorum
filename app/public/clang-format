@@ -1,12 +1,7 @@
 Language: Cpp
 Standard: Latest
 
-# YT-specific
-ContextIndependentContinuationIndent: true
-AllowMultilineLambdaCaptureList: true
-SpaceBeforeParens: Custom
-SpaceBeforeParensOptions:
-    AfterLambdaCaptureList: true
+SpaceBeforeParens: ControlStatements
 
 IndentWidth: 4
 ColumnLimit: 100
@@ -67,8 +62,6 @@ WhitespaceSensitiveMacros:
 
 SpaceInEmptyBlock: true
 
-WrapNamespaceBodyWithEmptyLines: Always
 FixNamespaceComments: true
 ShortNamespaceLines: 0
-ForbidBreakAfter: [YT_LOG_DEBUG, YT_LOG_ERROR, YT_LOG_FATAL, YT_LOG_INFO, YT_LOG_TRACE, YT_LOG_WARNING, Format]
 LambdaBodyIndentation: Signature
