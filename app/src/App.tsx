@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { ThemeProvider, Button, Spin, Select, Checkbox } from '@gravity-ui/uikit'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import { computeDiff } from './useDiff'
@@ -19,9 +19,14 @@ type Status =
   | { kind: 'error'; message: string }
   | { kind: 'done' }
 
+function langFromPath(): Language {
+  const seg = window.location.pathname.replace(/^\//, '')
+  return seg === 'python' ? 'python' : 'cpp'
+}
+
 export default function App() {
-  const [language, setLanguage]   = useState<Language>('cpp')
-  const [inputCode, setInputCode] = useState<string>(demos.cpp)
+  const [language, setLanguage]   = useState<Language>(langFromPath)
+  const [inputCode, setInputCode] = useState<string>(() => demos[langFromPath()])
   const [outputCode, setOutputCode] = useState<string>('')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [showDiff, setShowDiff] = useState<boolean>(true)
@@ -30,6 +35,25 @@ export default function App() {
     () => outputCode ? computeDiff(inputCode, outputCode) : [],
     [inputCode, outputCode],
   )
+
+  useEffect(() => {
+    const path = `/${language}`
+    if (window.location.pathname !== path) {
+      window.history.pushState(null, '', path)
+    }
+  }, [language])
+
+  useEffect(() => {
+    const onPop = () => {
+      const lang = langFromPath()
+      setLanguage(lang)
+      setInputCode(demos[lang])
+      setOutputCode('')
+      setStatus({ kind: 'idle' })
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
 
   const handleLanguageChange = useCallback((lang: string) => {
     setLanguage(lang as Language)
