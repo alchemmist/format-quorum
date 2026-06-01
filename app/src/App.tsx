@@ -188,6 +188,14 @@ export default function App() {
           <span className={`status-text${status.kind === 'error' ? ' error' : ''}`}>
             {statusText}
           </span>
+          <a
+            className="github-link"
+            href="https://github.com/alchemmist/format-quorum"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            github
+          </a>
         </div>
 
         <a

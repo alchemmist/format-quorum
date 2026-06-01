@@ -138,6 +138,17 @@ body {
   background: #16161b;
 }
 
+.github-link {
+  margin-left: auto;
+  font-size: 11px;
+  color: #3a3a4a;
+  text-decoration: none;
+}
+
+.github-link:hover {
+  color: #5a5a6a;
+}
+
 .status-text {
   font-size: 11px;
   color: #4a4a5a;
