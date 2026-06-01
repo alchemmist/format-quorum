@@ -21,6 +21,14 @@ const CLANG_FORMAT_CONFIG = process.env.CLANG_FORMAT_CONFIG ?? join(__dirname, '
 const RUFF        = process.env.RUFF_BIN    ?? 'ruff';
 const RUFF_CONFIG = process.env.RUFF_CONFIG ?? join(__dirname, 'ruff.toml');
 
+app.get('/api/config/clang-format', (_req, res) => {
+  res.sendFile(CLANG_FORMAT_CONFIG);
+});
+
+app.get('/api/config/ruff', (_req, res) => {
+  res.sendFile(RUFF_CONFIG);
+});
+
 app.post('/api/format', async (req, res) => {
   const { code, language = 'cpp' } = req.body;
   if (typeof code !== 'string') {
