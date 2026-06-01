@@ -12,6 +12,8 @@
 
 // ── Concepts ──────────────────────────────────────────────────────────────────
 
+namespace concepts {
+
 template<typename T>
 concept Scorable = requires(T t) {
     { t.score } -> std::convertible_to<double>;
@@ -22,6 +24,8 @@ template<typename T>
 concept Printable = requires(T t) {
     { t.name } -> std::convertible_to<std::string_view>;
 };
+
+} // namespace concepts
 
 // ── Macros ────────────────────────────────────────────────────────────────────
 
@@ -35,6 +39,8 @@ concept Printable = requires(T t) {
 
 // ── Enums & structs ───────────────────────────────────────────────────────────
 
+namespace core {
+
 DEFINE_STATUS_ENUM(Status, Ok=0, NotFound, Error);
 
 struct Item {
@@ -45,7 +51,7 @@ struct Item {
 
 // ── Templates ─────────────────────────────────────────────────────────────────
 
-template<Scorable T>
+template<concepts::Scorable T>
 struct ScoredView {
     std::span<const T> items;
 
@@ -58,7 +64,7 @@ struct ScoredView {
 };
 
 template<typename T>
-requires Scorable<T> && Printable<T>
+requires concepts::Scorable<T> && concepts::Printable<T>
 class Registry {
 public:
     explicit Registry(std::string label) : label_(std::move(label)) {}
@@ -97,13 +103,13 @@ private:
 // ── Lambdas & ranges ──────────────────────────────────────────────────────────
 
 auto make_filter(double min_score) {
-    return [min_score]<Scorable T>(const T& item) noexcept {
+    return [min_score]<concepts::Scorable T>(const T& item) noexcept {
         return item.score>=min_score;
     };
 }
 
 template<std::ranges::input_range R>
-requires Scorable<std::ranges::range_value_t<R>>
+requires concepts::Scorable<std::ranges::range_value_t<R>>
 auto summarize(R&& range) -> std::string {
     auto scores=std::forward<R>(range)
         | std::views::transform([](const auto& t){ return t.score; })
@@ -112,11 +118,13 @@ auto summarize(R&& range) -> std::string {
     return std::format("count={} sum={:.2f} avg={:.2f}",scores.size(),sum,scores.empty()?0.0:sum/scores.size());
 }
 
+} // namespace core
+
 // ── main ──────────────────────────────────────────────────────────────────────
 
 int main() {
-    Registry<Item> reg("items");
-    std::vector<Item> items={{1,"alpha",0.9},{2,"beta",0.4},{3,"gamma",1.2},{4,"delta",-0.1},{5,"epsilon",0.75}};
+    core::Registry<core::Item> reg("items");
+    std::vector<core::Item> items={{1,"alpha",0.9},{2,"beta",0.4},{3,"gamma",1.2},{4,"delta",-0.1},{5,"epsilon",0.75}};
 
     for (auto& item : items) {
         if (item.id>=0) reg.insert(item.id,item);
@@ -125,15 +133,15 @@ int main() {
     reg.print_all();
 
     auto best=reg.top(3);
-    auto good=items|std::views::filter(make_filter(0.5))|std::ranges::to<std::vector>();
+    auto good=items|std::views::filter(core::make_filter(0.5))|std::ranges::to<std::vector>();
 
     std::println("top-3:");
     for (const auto& b : best) {
         std::println("  {} -> {:.3f}",b.name,b.score);
     }
 
-    std::println("summary (all): {}",summarize(items));
-    std::println("summary (good): {}",summarize(good));
+    std::println("summary (all): {}",core::summarize(items));
+    std::println("summary (good): {}",core::summarize(good));
 
     return best.empty()||best.front().score<=0.0 ? 1 : 0;
 }
