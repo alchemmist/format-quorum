@@ -42,6 +42,9 @@ def build_default()->Pipeline:
         Rule(r',(\S)',r', \1',priority=5),
     )
 
+def process_batch(pipeline:Pipeline,texts:list[str],verbose:bool=False)->list[str]:
+    return [pipeline.run(t) for t in texts if (verbose and print(f"processing: {t!r}",file=sys.stderr)) or True]
+
 def main(argv:list[str])->int:
     text=' '.join(argv) if argv else 'x=1,y=2,  z =  3'
     pipeline=build_default()
