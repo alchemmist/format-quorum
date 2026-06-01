@@ -1,4 +1,5 @@
 import { StateEffect, StateField } from '@codemirror/state'
+import type { Text } from '@codemirror/state'
 import { Decoration, EditorView } from '@codemirror/view'
 import type { DecorationSet } from '@codemirror/view'
 import type { Extension } from '@codemirror/state'
@@ -61,7 +62,7 @@ export const setDiffEffect = StateEffect.define<{ ranges: DiffRange[]; show: boo
 
 const lineMark = Decoration.line({ class: 'cm-diff-changed-line' })
 
-function buildDecoSet(ranges: DiffRange[], doc: ReturnType<typeof EditorView.prototype.state>['doc']): DecorationSet {
+function buildDecoSet(ranges: DiffRange[], doc: Text): DecorationSet {
   const marks: ReturnType<typeof lineMark.range>[] = []
   for (const r of ranges) {
     const lineNo = r.lineIdx + 1
