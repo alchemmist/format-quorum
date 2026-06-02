@@ -66,3 +66,5 @@ SpaceInEmptyBlock: true
 FixNamespaceComments: true
 ShortNamespaceLines: 0
 LambdaBodyIndentation: Signature
+
+InsertBraces: true
