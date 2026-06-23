@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"node server.js\" \"vite\"",
-    "server": "node server.js",
+    "dev": "concurrently -n back,front -c blue,green \"npm run dev:back\" \"vite\"",
+    "dev:back": "cd ../backend && .venv/bin/uvicorn main:app --port 3001 --reload",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

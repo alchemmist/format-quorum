@@ -14,29 +14,29 @@ RUN npm run build
 # result: /build/dist/
 
 
-# ── Stage 2: runtime ─────────────────────────────────────────────────────────
-FROM node:22-bookworm-slim AS runtime
+# ── Stage 2: Python runtime ──────────────────────────────────────────────────
+FROM python:3.12-slim AS runtime
 
-# install clang-format 22 and ruff via pip (apt.llvm.org has no clang-format-22 package).
-# The clang-format wheel ships a bundled binary at /usr/local/bin/clang-format.
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates python3 python3-pip && \
-    pip install --no-cache-dir --break-system-packages clang-format==22.1.5 ruff && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+# clang-format (base version) and ruff are installed via pip; the clang-format
+# wheel ships a bundled binary at /usr/local/bin/clang-format.
+RUN pip install --no-cache-dir clang-format==22.1.5
 
 WORKDIR /app
 
-# install only production JS deps
-COPY app/package.json app/package-lock.json* ./
-RUN npm ci --omit=dev
+# Python backend deps
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# server source
-COPY app/server.js .
+# backend source + formatter configs
+COPY backend/ .
 
 # built frontend
-COPY --from=builder /build/dist ./dist
+COPY --from=builder /build/dist ./frontend
 
+ENV FRONTEND_DIST=/app/frontend \
+    PORT=3000
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+# shell form so ${PORT} is expanded at runtime
+CMD uvicorn main:app --host 0.0.0.0 --port ${PORT}

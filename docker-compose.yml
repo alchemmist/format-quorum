@@ -10,7 +10,8 @@ services:
       - "3000:3000"
     environment:
       PORT: "3000"
+      FRONTEND_DIST: /app/frontend
       CLANG_FORMAT_BIN: /usr/local/bin/clang-format
-      CLANG_FORMAT_CONFIG: /app/dist/clang-format
+      CLANG_FORMAT_CONFIG: /app/configs/clang-format
       RUFF_BIN: ruff
-      RUFF_CONFIG: /app/dist/ruff.toml
+      RUFF_CONFIG: /app/configs/ruff.toml
