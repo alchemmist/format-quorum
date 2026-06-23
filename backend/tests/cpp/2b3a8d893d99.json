@@ -1,0 +1,10 @@
+{
+  "id": "2b3a8d893d99",
+  "name": "PR: template closing > on its own line (like a wrapped ) )",
+  "language": "cpp",
+  "input": "template <typename TFirstRowType, typename TSecondRowType, typename TThirdRowType, typename TFourthRowType>\nclass TRowsProcessor {};",
+  "expected": "template <\n    typename TFirstRowType,\n    typename TSecondRowType,\n    typename TThirdRowType,\n    typename TFourthRowType\n>\nclass TRowsProcessor { };",
+  "muted": true,
+  "note": "comment-18340323: wanted the closing '>' of a wrapped template on its own line, analogous to how '()' wraps. Not configurable in clang-format. https://a.yandex-team.ru/review/13704587/details#comment-18340323",
+  "created_at": "2026-06-23T16:10:17.899099+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "d99872d43db7",
+  "name": "PR: blank line after namespace open and before close",
+  "language": "cpp",
+  "input": "namespace NFoo {\nint Foo();\nint Bar();\n}",
+  "expected": "namespace NFoo {\n\nint Foo();\nint Bar();\n\n} // namespace NFoo",
+  "muted": false,
+  "note": "PR thread #35: wanted one blank line after '{' and before '}' of a namespace — not configurable in clang-format. https://a.yandex-team.ru/review/13704587",
+  "created_at": "2026-06-23T16:10:17.880523+00:00"
+}

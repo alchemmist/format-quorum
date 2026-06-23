@@ -1,0 +1,10 @@
+{
+  "id": "a803e3570fe7",
+  "name": "P2: return type stays on the function-name line",
+  "language": "cpp",
+  "input": "std::vector<TString> ComputeReducedSessionsForRequest(const TRequest& request, int limitValue, bool flag);",
+  "expected": "std::vector<TString> ComputeReducedSessionsForRequest(\n    const TRequest& request, int limitValue, bool flag\n);",
+  "muted": false,
+  "note": "LOGS-5799 problem 2 (fixed): wrap after '(' by args. https://st.yandex-team.ru/LOGS-5799",
+  "created_at": "2026-06-23T16:10:17.777756+00:00"
+}

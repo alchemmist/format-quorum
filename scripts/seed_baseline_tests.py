@@ -191,6 +191,16 @@ CASES = [
   True,
   f"comment-18340933: wanted '{{' on the next line for constructors that have an initializer "
   f"list. clang-format can't make brace-wrapping conditional on that. {PR}/details#comment-18340933"),
+ ("PR: compound requirement stays on one line ({ expr } -> Type)", "cpp", "want",
+  "template <typename TMessage>\nconcept CMsg = requires(TMessage msg) {\n"
+  "    requires CProtoMessage<TMessage>;\n    { msg.GetSign() } -> std::same_as<NProtoBuf::int64>;\n"
+  "    { msg.GetWriteTimestamp() } -> std::same_as<NProtoBuf::uint64>;\n};",
+  "template <typename TMessage>\nconcept CMsg = requires (TMessage msg) {\n"
+  "    requires CProtoMessage<TMessage>;\n    { msg.GetSign() } -> std::same_as<NProtoBuf::int64>;\n"
+  "    { msg.GetWriteTimestamp() } -> std::same_as<NProtoBuf::uint64>;\n};",
+  True,
+  f"comment-18195479 (PR problem 7, requires example): clang-format 18 adds needless breaks "
+  f"inside '{{ expr }} -> Type' even with AllowShortCompoundRequirementOnASingleLine (needs 19+). {PR}/details#comment-18195479"),
 
  # ─────────────────────────── Python: single quotes ─────────────────────────
  ("Py quotes: double string becomes single", "python", "lock",
