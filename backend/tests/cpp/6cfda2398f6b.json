@@ -1,10 +1,10 @@
 {
-  "id": "0c86e43ac418",
+  "id": "6cfda2398f6b",
   "name": "Style: 4-space indentation",
   "language": "cpp",
   "input": "int main() {\nreturn 0;\n}",
   "expected": "int main() {\n    return 0;\n}",
   "muted": false,
-  "note": "IndentWidth: 4. https://a.yandex-team.ru/review/13704587/details",
-  "created_at": "2026-06-23T10:46:54.772040+00:00"
+  "note": "IndentWidth: 4. https://a.yandex-team.ru/review/13704587",
+  "created_at": "2026-06-23T11:04:11.592916+00:00"
 }

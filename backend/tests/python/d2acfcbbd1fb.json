@@ -1,0 +1,10 @@
+{
+  "id": "d2acfcbbd1fb",
+  "name": "Py: long call wraps at line length 88",
+  "language": "python",
+  "input": "result = compute_something(first_argument, second_argument, third_argument, fourth_one)",
+  "expected": "result = compute_something(first_argument, second_argument, third_argument, fourth_one)\n",
+  "muted": false,
+  "note": "line-length = 88.",
+  "created_at": "2026-06-23T11:04:12.090251+00:00"
+}

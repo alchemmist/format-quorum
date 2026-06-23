@@ -1,10 +1,10 @@
 {
-  "id": "43b709ee22e8",
+  "id": "7e94720ef109",
   "name": "P1: class opening brace stays on the header line",
   "language": "cpp",
   "input": "class TFoo\n{\npublic:\n    int X;\n};",
   "expected": "class TFoo {\npublic:\n    int X;\n};",
   "muted": false,
-  "note": "LOGS-5799 problem 1 (fixed). BraceWrapping.AfterClass: false. https://st.yandex-team.ru/LOGS-5799",
-  "created_at": "2026-06-23T10:46:54.789293+00:00"
+  "note": "LOGS-5799 problem 1 (fixed). https://st.yandex-team.ru/LOGS-5799",
+  "created_at": "2026-06-23T11:04:11.893522+00:00"
 }

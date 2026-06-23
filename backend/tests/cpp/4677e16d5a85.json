@@ -1,0 +1,10 @@
+{
+  "id": "4677e16d5a85",
+  "name": "Style: chained method calls indentation",
+  "language": "cpp",
+  "input": "const auto result = builder.WithFirstOption(1).WithSecondOption(2).WithThirdOption(3).Build();",
+  "expected": "const auto result = builder.WithFirstOption(1).WithSecondOption(2).WithThirdOption(3).Build();",
+  "muted": false,
+  "note": "PR thread #8: ')->Run()' breaking was discussed. Locks current behaviour. https://a.yandex-team.ru/review/13704587",
+  "created_at": "2026-06-23T11:04:11.875939+00:00"
+}

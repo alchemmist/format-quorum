@@ -1,0 +1,10 @@
+{
+  "id": "3bd36bdf8d5d",
+  "name": "Style: braces auto-inserted into a brace-less if",
+  "language": "cpp",
+  "input": "if (x)\n    DoIt();",
+  "expected": "if (x) {\n    DoIt();\n}",
+  "muted": false,
+  "note": "InsertBraces: true — agreed instead of a separate clang-tidy pass. https://st.yandex-team.ru/LOGS-4271",
+  "created_at": "2026-06-23T11:04:11.554570+00:00"
+}

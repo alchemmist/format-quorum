@@ -1,0 +1,10 @@
+{
+  "id": "16a9031c8bd8",
+  "name": "Py quotes: double string becomes single",
+  "language": "python",
+  "input": "x = \"hello\"",
+  "expected": "x = 'hello'\n",
+  "muted": false,
+  "note": "ruff quote-style = single.",
+  "created_at": "2026-06-23T11:04:12.038544+00:00"
+}
