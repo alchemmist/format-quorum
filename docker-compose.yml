@@ -16,9 +16,12 @@ services:
       RUFF_BIN: ruff
       RUFF_CONFIG: /app/configs/ruff.toml
       VERSIONS_DIR: /app/clang_versions
+      TESTS_DIR: /app/tests
     volumes:
       # persist dynamically-installed clang-format versions across restarts
       - clang_versions:/app/clang_versions
+      # tests are git-backed: bind-mount the repo dir so UI edits land in git
+      - ./backend/tests:/app/tests
 
 volumes:
   clang_versions:

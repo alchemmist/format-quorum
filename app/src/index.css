@@ -261,3 +261,174 @@ body {
   color: #6a6a7a;
   letter-spacing: 0.02em;
 }
+
+/* ── View toggle (Playground / Tests) ────────────────────────────────────── */
+.view-toggle {
+  display: flex;
+  gap: 4px;
+  margin-left: 16px;
+}
+
+/* ── Tests view ──────────────────────────────────────────────────────────── */
+.tests-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  background: #1a1a1f;
+}
+
+.tests-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #2d2d35;
+  background: #16161b;
+  flex-shrink: 0;
+}
+
+.tests-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tests-add-btn {
+  margin-left: auto;
+}
+
+.tests-error,
+.test-run-error {
+  display: block;
+  padding: 8px 16px;
+}
+
+.tests-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.tests-empty {
+  display: block;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.test-row {
+  border-bottom: 1px solid #23232b;
+}
+
+.test-row-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.test-row-head:hover {
+  background: #1d1d23;
+}
+
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #4a4a5a;
+}
+
+.status-dot.status-pass {
+  background: #3caa3c;
+}
+
+.status-dot.status-fail {
+  background: #d24b4b;
+}
+
+.status-dot.status-muted {
+  background: #d9a521;
+}
+
+.test-name {
+  font-size: 13px;
+  color: #c5c5d2;
+}
+
+.test-row-spacer {
+  flex: 1;
+}
+
+.test-row-body {
+  padding: 4px 16px 16px;
+  background: #16161b;
+}
+
+.test-panes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.test-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.test-pane-title {
+  padding-left: 2px;
+}
+
+.test-pane-editor {
+  height: 220px;
+  border: 1px solid #2d2d35;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.test-pane-editor .cm-editor {
+  height: 100%;
+}
+
+.test-note {
+  display: block;
+  margin-top: 10px;
+}
+
+/* ── Add-test dialog ─────────────────────────────────────────────────────── */
+.add-form-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.add-form-top > :first-child {
+  flex: 1;
+}
+
+.add-form-panes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.add-form-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.add-form-editor {
+  height: 260px;
+  border: 1px solid #2d2d35;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.add-form-editor .cm-editor {
+  height: 100%;
+}

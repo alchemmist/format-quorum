@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react'
 import { ThemeProvider, Button, Spin, Select, Checkbox } from '@gravity-ui/uikit'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import ClangVersionControl from './ClangVersionControl'
+import TestsView from './TestsView'
 import { computeDiff } from './useDiff'
 
 // @ts-ignore — Vite raw import
@@ -32,6 +33,7 @@ export default function App() {
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [showDiff, setShowDiff] = useState<boolean>(true)
   const [clangVersion, setClangVersion] = useState<string | undefined>(undefined)
+  const [view, setView] = useState<'playground' | 'tests'>('playground')
 
   const diffRanges = useMemo(
     () => outputCode ? computeDiff(inputCode, outputCode) : [],
@@ -109,62 +111,90 @@ export default function App() {
         <header className="app-header">
           <h1 className="app-title">Format Quorum</h1>
 
-          <div className="app-header-center">
-            <Select
-              value={[language]}
-              onUpdate={(val) => handleLanguageChange(val[0])}
+          <div className="view-toggle">
+            <Button
+              view={view === 'playground' ? 'action' : 'flat'}
               size="s"
-              width={120}
+              onClick={() => setView('playground')}
             >
-              <Select.Option value="cpp">C++</Select.Option>
-              <Select.Option value="python">Python</Select.Option>
-            </Select>
-            {language === 'cpp' && (
-              <ClangVersionControl
-                value={clangVersion}
-                onChange={setClangVersion}
-              />
-            )}
-          </div>
-
-          <div className="app-header-actions">
-            <label className="diff-toggle">
-              <Checkbox
-                checked={showDiff}
-                onUpdate={setShowDiff}
-                size="m"
-              />
-              <span className="diff-toggle-label">Diff</span>
-            </label>
-            <a
-              className="config-link-btn"
-              href={language === 'cpp' ? '/clang-format' : '/ruff.toml'}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Config
-            </a>
-            <Button view="outlined" size="s" onClick={handleReset}>
-              Reset
+              Playground
             </Button>
             <Button
-              view="action"
+              view={view === 'tests' ? 'action' : 'flat'}
               size="s"
-              onClick={handleFormat}
-              disabled={status.kind === 'loading'}
+              onClick={() => setView('tests')}
             >
-              {status.kind === 'loading' ? (
-                <>
-                  <Spin size="xs" />
-                  &nbsp;Formatting
-                </>
-              ) : (
-                'Format'
-              )}
+              Tests
             </Button>
           </div>
+
+          {view === 'playground' && (
+            <div className="app-header-center">
+              <Select
+                value={[language]}
+                onUpdate={(val) => handleLanguageChange(val[0])}
+                size="s"
+                width={120}
+              >
+                <Select.Option value="cpp">C++</Select.Option>
+                <Select.Option value="python">Python</Select.Option>
+              </Select>
+              {language === 'cpp' && (
+                <ClangVersionControl
+                  value={clangVersion}
+                  onChange={setClangVersion}
+                />
+              )}
+            </div>
+          )}
+
+          {view === 'playground' && (
+            <div className="app-header-actions">
+              <label className="diff-toggle">
+                <Checkbox
+                  checked={showDiff}
+                  onUpdate={setShowDiff}
+                  size="m"
+                />
+                <span className="diff-toggle-label">Diff</span>
+              </label>
+              <a
+                className="config-link-btn"
+                href={language === 'cpp' ? '/clang-format' : '/ruff.toml'}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Config
+              </a>
+              <Button view="outlined" size="s" onClick={handleReset}>
+                Reset
+              </Button>
+              <Button
+                view="action"
+                size="s"
+                onClick={handleFormat}
+                disabled={status.kind === 'loading'}
+              >
+                {status.kind === 'loading' ? (
+                  <>
+                    <Spin size="xs" />
+                    &nbsp;Formatting
+                  </>
+                ) : (
+                  'Format'
+                )}
+              </Button>
+            </div>
+          )}
         </header>
 
+        {view === 'tests' ? (
+          <TestsView
+            playgroundInput={inputCode}
+            playgroundOutput={outputCode}
+            playgroundLanguage={language}
+          />
+        ) : (
         <div className="editors-container">
           <div className="editor-pane">
             <div className="editor-pane-header">
@@ -195,6 +225,7 @@ export default function App() {
             </div>
           </div>
         </div>
+        )}
 
         <div className="status-bar">
           <span className={`status-text${status.kind === 'error' ? ' error' : ''}`}>
