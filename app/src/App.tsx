@@ -256,9 +256,7 @@ export default function App() {
 
         <a
           className="feedback-fab"
-          href={language === 'cpp'
-            ? 'https://st.yandex-team.ru/LOGS-4271'
-            : 'https://st.yandex-team.ru/DUTYLOGS-3928'}
+          href="https://st.yandex-team.ru/LOGS-5799"
           target="_blank"
           rel="noopener noreferrer"
           title="Leave your comment/suggestion"
@@ -271,6 +269,11 @@ export default function App() {
           open={configOpen}
           initialLang={language}
           onClose={() => setConfigOpen(false)}
+          onSaved={() => {
+            // reflect the new config in the playground right away, like a
+            // test run refreshes its "Actual" column
+            if (outputCode) handleFormat()
+          }}
         />
       </div>
     </ThemeProvider>
