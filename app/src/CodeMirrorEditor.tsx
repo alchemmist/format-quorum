@@ -4,7 +4,7 @@ import type { ReactCodeMirrorRef } from '@uiw/react-codemirror'
 import { cpp } from '@codemirror/lang-cpp'
 import { python } from '@codemirror/lang-python'
 import { EditorView } from '@codemirror/view'
-import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
+import { HighlightStyle, syntaxHighlighting, indentUnit } from '@codemirror/language'
 import { tags } from '@lezer/highlight'
 import type { Extension } from '@codemirror/state'
 import { createDiffExtension, setDiffEffect, type DiffRange } from './useDiff'
@@ -83,7 +83,12 @@ const quietHighlightStyle = HighlightStyle.define([
   { tag: tags.derefOperator,             color: '#7a8090' },
 ])
 
-const baseTheme: Extension = [quietTheme, syntaxHighlighting(quietHighlightStyle)]
+const baseTheme: Extension = [
+  quietTheme,
+  syntaxHighlighting(quietHighlightStyle),
+  // indent with 4 spaces (not a tab) — for both auto-indent and the Tab key
+  indentUnit.of('    '),
+]
 
 const langExtension: Record<Language, Extension> = {
   cpp:    cpp(),
