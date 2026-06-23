@@ -17,11 +17,6 @@ services:
       RUFF_CONFIG: /app/configs/ruff.toml
       VERSIONS_DIR: /app/clang_versions
       TESTS_DIR: /app/tests
-      # Auth: "dev" trusts DEV_USER locally. In production run behind WebAuth/
-      # Awacs and set AUTH_MODE=webauth so the login comes from the trusted
-      # header (AUTH_LOGIN_HEADER, default X-Webauth-Login).
-      AUTH_MODE: dev
-      DEV_USER: dev
     volumes:
       # persist dynamically-installed clang-format versions across restarts
       - clang_versions:/app/clang_versions

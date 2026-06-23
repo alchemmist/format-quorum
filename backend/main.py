@@ -9,12 +9,11 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
-from auth import AUTH_MODE, get_current_login
 from formatters import (
     CLANG_FORMAT_BIN,
     CLANG_FORMAT_CONFIG,
@@ -81,13 +80,6 @@ def api_format(req: FormatRequest):
     except FormatError as exc:
         return JSONResponse({"error": str(exc)}, status_code=500)
     return {"formatted": formatted}
-
-
-# ── Auth (corporate account) ──────────────────────────────────────────────────
-@app.get("/api/me")
-def api_me(request: Request):
-    login = get_current_login(request)
-    return {"login": login, "authenticated": login is not None, "mode": AUTH_MODE}
 
 
 # ── clang-format version management ───────────────────────────────────────────
