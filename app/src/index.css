@@ -47,6 +47,52 @@ body {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.clang-version-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.version-add-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.version-error {
+  display: block;
+  margin-top: 10px;
+}
+
+.version-suggestions {
+  margin-top: 14px;
+}
+
+.version-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.version-list {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.version-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--g-color-line-generic, #2d2d35);
 }
 
 .app-header-actions {

@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { ThemeProvider, Button, Spin, Select, Checkbox } from '@gravity-ui/uikit'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
+import ClangVersionControl from './ClangVersionControl'
 import { computeDiff } from './useDiff'
 
 // @ts-ignore — Vite raw import
@@ -30,6 +31,7 @@ export default function App() {
   const [outputCode, setOutputCode] = useState<string>('')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [showDiff, setShowDiff] = useState<boolean>(true)
+  const [clangVersion, setClangVersion] = useState<string | undefined>(undefined)
 
   const diffRanges = useMemo(
     () => outputCode ? computeDiff(inputCode, outputCode) : [],
@@ -68,7 +70,11 @@ export default function App() {
       const res = await fetch('/api/format', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: inputCode, language }),
+        body: JSON.stringify({
+          code: inputCode,
+          language,
+          ...(language === 'cpp' && clangVersion ? { clangVersion } : {}),
+        }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -80,7 +86,7 @@ export default function App() {
     } catch (e) {
       setStatus({ kind: 'error', message: String(e) })
     }
-  }, [inputCode, language])
+  }, [inputCode, language, clangVersion])
 
   const handleReset = useCallback(() => {
     setInputCode(demos[language])
@@ -113,6 +119,12 @@ export default function App() {
               <Select.Option value="cpp">C++</Select.Option>
               <Select.Option value="python">Python</Select.Option>
             </Select>
+            {language === 'cpp' && (
+              <ClangVersionControl
+                value={clangVersion}
+                onChange={setClangVersion}
+              />
+            )}
           </div>
 
           <div className="app-header-actions">
