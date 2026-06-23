@@ -75,7 +75,7 @@ export default function App() {
         body: JSON.stringify({
           code: inputCode,
           language,
-          ...(language === 'cpp' && clangVersion ? { clangVersion } : {}),
+          ...(language === 'cpp' && clangVersion ? { clang_version: clangVersion } : {}),
         }),
       })
       const data = await res.json()

@@ -130,7 +130,7 @@ export default function TestsView({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           language: filter === 'all' ? undefined : filter,
-          clangVersion: runVersion,
+          clang_version: runVersion,
         }),
       })
       const data = await res.json()

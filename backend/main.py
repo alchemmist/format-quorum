@@ -12,7 +12,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from formatters import (
     CLANG_FORMAT_BIN,
@@ -62,12 +62,10 @@ app.add_middleware(
 
 
 class FormatRequest(BaseModel):
-    model_config = {"populate_by_name": True}
-
     code: str
     language: str = "cpp"
     # Optional clang-format version (X.Y.Z); defaults to the built-in version.
-    clang_version: str | None = Field(default=None, alias="clangVersion")
+    clang_version: str | None = None
 
 
 @app.post("/api/format")
@@ -130,10 +128,8 @@ class TestPatch(BaseModel):
 
 
 class RunRequest(BaseModel):
-    model_config = {"populate_by_name": True}
-
     language: str | None = None
-    clang_version: str | None = Field(default=None, alias="clangVersion")
+    clang_version: str | None = None
 
 
 @app.get("/api/tests")
