@@ -273,6 +273,13 @@ body {
   margin-left: 8px;
 }
 
+/* centered spinner+label inside buttons */
+.btn-spin {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 /* ── Config drawer (slides in from the left) ─────────────────────────────── */
 .drawer-overlay {
   position: fixed;

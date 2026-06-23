@@ -189,10 +189,10 @@ export default function App() {
                 disabled={status.kind === 'loading'}
               >
                 {status.kind === 'loading' ? (
-                  <>
+                  <span className="btn-spin">
                     <Spin size="xs" />
-                    &nbsp;Formatting
-                  </>
+                    Formatting
+                  </span>
                 ) : (
                   'Format'
                 )}

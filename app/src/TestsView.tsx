@@ -285,10 +285,10 @@ export default function TestsView({
       <div className="tests-toolbar">
         <Button view="action" size="m" onClick={runAll} disabled={running}>
           {running ? (
-            <>
+            <span className="btn-spin">
               <Spin size="xs" />
-              &nbsp;Running
-            </>
+              Running
+            </span>
           ) : (
             'Run all'
           )}

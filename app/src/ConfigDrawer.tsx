@@ -102,10 +102,10 @@ export default function ConfigDrawer({ open, initialLang, onClose, onSaved }: Pr
           {saved && <Text color="positive">saved ✓</Text>}
           <Button view="action" size="s" onClick={save} disabled={saving || loading}>
             {saving ? (
-              <>
+              <span className="btn-spin">
                 <Spin size="xs" />
-                &nbsp;Saving
-              </>
+                Saving
+              </span>
             ) : (
               'Save'
             )}

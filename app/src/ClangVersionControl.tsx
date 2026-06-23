@@ -152,10 +152,10 @@ export default function ClangVersionControl({ value, onChange }: Props) {
               disabled={adding}
             >
               {adding ? (
-                <>
+                <span className="btn-spin">
                   <Spin size="xs" />
-                  &nbsp;Trying
-                </>
+                  Trying
+                </span>
               ) : (
                 'Try add'
               )}
