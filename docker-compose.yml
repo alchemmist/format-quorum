@@ -6,15 +6,11 @@ services:
     image: format-quorum:latest
     container_name: format-quorum
     restart: unless-stopped
+    ports:
+      - "3000:3000"
     environment:
       PORT: "3000"
       CLANG_FORMAT_BIN: /usr/local/bin/clang-format
       CLANG_FORMAT_CONFIG: /app/dist/clang-format
       RUFF_BIN: ruff
       RUFF_CONFIG: /app/dist/ruff.toml
-    networks:
-      - personal-site_default
-
-networks:
-  personal-site_default:
-    external: true
