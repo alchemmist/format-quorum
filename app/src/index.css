@@ -385,6 +385,17 @@ body {
   gap: 6px;
 }
 
+.status-chip {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* active status filter: a ring in the chip's own colour */
+.status-chip.active {
+  box-shadow: 0 0 0 2px var(--g-color-base-background, #16161b),
+    0 0 0 3px currentColor;
+}
+
 .tests-add-btn {
   margin-left: auto;
 }

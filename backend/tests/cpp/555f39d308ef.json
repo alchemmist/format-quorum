@@ -3,7 +3,7 @@
   "name": "PR3: arrow operator stays attached to the closing )",
   "language": "cpp",
   "input": "void F() {\n    auto result = sessionBuilder.MakeReducedSessionProcessor(firstArgument, secondArgument, thirdArgument)->Run();\n}",
-  "expected": "void F() {\n    auto result =\n        sessionBuilder.MakeReducedSessionProcessor(firstArgument, secondArgument, thirdArgument)->Run();\n}",
+  "expected": "void F() {\n    auto result = sessionBuilder.MakeReducedSessionProcessor(\n        firstArgument, secondArgument, thirdArgument\n    )->Run();\n}",
   "muted": true,
   "note": "PR description problem 3 (🙈, never fixed) + comment-18183104: '`)->Run()`' becomes '`)` newline `->Run()`'. Wanted the arrow to stay with the ')'. Unfixable in clang-format. https://a.yandex-team.ru/review/13704587/details#comment-18183104",
   "created_at": "2026-06-23T16:10:17.897360+00:00"

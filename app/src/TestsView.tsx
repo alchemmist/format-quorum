@@ -81,6 +81,12 @@ export default function TestsView({
   const [filter, setFilter] = useState<'all' | Language>(
     initialFilter === 'cpp' || initialFilter === 'python' ? initialFilter : 'all',
   )
+  const initialStatus = getQueryParam('status')
+  const [statusFilter, setStatusFilter] = useState<'all' | Display>(
+    initialStatus === 'pass' || initialStatus === 'fail' || initialStatus === 'muted'
+      ? initialStatus
+      : 'all',
+  )
   const [versions, setVersions] = useState<string[]>([])
   const [runVersion, setRunVersion] = useState<string | undefined>(
     () => getQueryParam('version') ?? undefined,
@@ -122,6 +128,9 @@ export default function TestsView({
   useEffect(() => {
     setQueryParam('version', runVersion ?? null)
   }, [runVersion])
+  useEffect(() => {
+    setQueryParam('status', statusFilter === 'all' ? null : statusFilter)
+  }, [statusFilter])
 
   // once the tests are loaded, scroll to the test linked via ?test=<id>
   useEffect(() => {
@@ -133,7 +142,8 @@ export default function TestsView({
     }
   }, [tests, focusedId])
 
-  const visibleTests = useMemo(
+  // tests after the language filter — summary counts are computed over these
+  const langTests = useMemo(
     () => tests.filter((t) => filter === 'all' || t.language === filter),
     [tests, filter],
   )
@@ -142,14 +152,23 @@ export default function TestsView({
     let pass = 0
     let fail = 0
     let muted = 0
-    for (const t of visibleTests) {
+    for (const t of langTests) {
       const s = displayStatus(t, results[t.id])
       if (s === 'pass') pass++
       else if (s === 'fail') fail++
       else if (s === 'muted') muted++
     }
-    return { pass, fail, muted, total: visibleTests.length }
-  }, [visibleTests, results])
+    return { pass, fail, muted, total: langTests.length }
+  }, [langTests, results])
+
+  // the status chips additionally narrow the list (counts stay full)
+  const visibleTests = useMemo(
+    () =>
+      statusFilter === 'all'
+        ? langTests
+        : langTests.filter((t) => displayStatus(t, results[t.id]) === statusFilter),
+    [langTests, statusFilter, results],
+  )
 
   const runAll = useCallback(async () => {
     setRunning(true)
@@ -323,9 +342,19 @@ export default function TestsView({
         )}
 
         <div className="tests-summary">
-          <Label theme="success">{summary.pass} pass</Label>
-          <Label theme="danger">{summary.fail} fail</Label>
-          <Label theme="warning">{summary.muted} muted</Label>
+          {(['pass', 'fail', 'muted'] as const).map((s) => (
+            <Label
+              key={s}
+              theme={STATUS_THEME[s] as 'success' | 'danger' | 'warning'}
+              interactive
+              className={`status-chip${statusFilter === s ? ' active' : ''}`}
+              onClick={() =>
+                setStatusFilter((cur) => (cur === s ? 'all' : s))
+              }
+            >
+              {summary[s]} {s}
+            </Label>
+          ))}
           <Text color="secondary">/ {summary.total}</Text>
         </div>
 
