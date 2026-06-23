@@ -1,0 +1,10 @@
+{
+  "id": "acc8f01e187e",
+  "name": "P5: nested designated initializers indentation",
+  "language": "cpp",
+  "input": "TSomeLongConfigName cfg = {.FieldNumberOne = {{.A = 1, .B = 2}, {.A = 3, .B = 4}}, .FieldNumberTwo = {{.A = 5}}};",
+  "expected": "TSomeLongConfigName cfg = {\n    .FieldNumberOne =\n        {\n            {.A = 1, .B = 2},\n            {.A = 3, .B = 4},\n        },\n    .FieldNumberTwo = {{.A = 5}},\n};",
+  "muted": false,
+  "note": "LOGS-5799 problem 5 (open): nested brace-init levels barely indent. https://st.yandex-team.ru/LOGS-5799",
+  "created_at": "2026-06-23T10:46:54.826980+00:00"
+}
