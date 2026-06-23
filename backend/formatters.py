@@ -59,6 +59,10 @@ def format_cpp(code: str, clang_format_bin: str | None = None) -> str:
     return _run(
         [
             binary,
+            # Older clang-format versions error on config keys they don't know
+            # yet; downgrade those to warnings so one config works across
+            # versions.
+            "--Wno-error=unknown",
             "--assume-filename=input.cpp",
             f"--style=file:{CLANG_FORMAT_CONFIG}",
         ],

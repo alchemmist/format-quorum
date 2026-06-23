@@ -19,6 +19,9 @@ __pycache__
 *.pyc
 .ruff_cache
 
+# runtime-installed clang-format versions
+backend/clang_versions
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

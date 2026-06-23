@@ -15,3 +15,10 @@ services:
       CLANG_FORMAT_CONFIG: /app/configs/clang-format
       RUFF_BIN: ruff
       RUFF_CONFIG: /app/configs/ruff.toml
+      VERSIONS_DIR: /app/clang_versions
+    volumes:
+      # persist dynamically-installed clang-format versions across restarts
+      - clang_versions:/app/clang_versions
+
+volumes:
+  clang_versions:
