@@ -108,7 +108,8 @@ export default function ClangVersionControl({ value, onChange }: Props) {
         value={selected ? [selected] : []}
         onUpdate={(v) => onChange(v[0])}
         size="s"
-        width={130}
+        width={250}
+        label="clang-format"
         disabled={versions.length === 0}
         placeholder="version"
       >

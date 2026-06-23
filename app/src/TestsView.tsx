@@ -310,7 +310,8 @@ export default function TestsView({
             value={runVersion ? [runVersion] : []}
             onUpdate={(v) => setRunVersion(v[0])}
             size="m"
-            width={140}
+            width={200}
+            label="clang-format"
             title="clang-format version for the run"
           >
             {versions.map((v) => (
