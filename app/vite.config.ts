@@ -7,6 +7,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': 'http://localhost:3001',
+      '/clang-format': 'http://localhost:3001',
+      '/ruff.toml': 'http://localhost:3001',
     },
   },
 })

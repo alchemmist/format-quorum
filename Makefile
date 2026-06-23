@@ -1,8 +1,8 @@
 CLANG_FORMAT     ?= clang-format
-CLANG_FORMAT_CFG := app/public/clang-format
+CLANG_FORMAT_CFG := backend/configs/clang-format
 
 RUFF     ?= ruff
-RUFF_CFG := app/public/ruff.toml
+RUFF_CFG := backend/configs/ruff.toml
 
 FILE_CPP ?= app/src/demo.cpp
 FILE_PY  ?= app/src/demo.py

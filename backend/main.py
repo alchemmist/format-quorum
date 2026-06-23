@@ -14,7 +14,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
-from formatters import CLANG_FORMAT_BIN, FormatError, format_code
+from formatters import (
+    CLANG_FORMAT_BIN,
+    CLANG_FORMAT_CONFIG,
+    RUFF_CONFIG,
+    FormatError,
+    format_code,
+)
 from test_store import TestStore, run_all, run_test
 from versions import VersionManager
 
@@ -180,9 +186,22 @@ def api_tests_run_one(test_id: str, body: RunRequest):
     return run_test(rec, clang_bin)
 
 
+# ── Formatter configs (single source of truth) ────────────────────────────────
+# The "Config" link in the UI points here, so it always shows the config that
+# formatting actually uses.
+@app.get("/clang-format")
+def serve_clang_config():
+    return FileResponse(CLANG_FORMAT_CONFIG, media_type="text/plain")
+
+
+@app.get("/ruff.toml")
+def serve_ruff_config():
+    return FileResponse(RUFF_CONFIG, media_type="text/plain")
+
+
 # ── Static frontend (production) ──────────────────────────────────────────────
 # A single catch-all serves built assets and falls back to index.html so the
-# client-side routes (/cpp, /python) and the bundled config files all resolve.
+# client-side routes (/cpp, /python) resolve.
 @app.get("/{full_path:path}")
 def spa(full_path: str):
     if FRONTEND_DIST.is_dir():
