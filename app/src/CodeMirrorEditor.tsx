@@ -19,6 +19,8 @@ interface CodeMirrorEditorProps {
   /** Pass diffRanges to enable diff highlighting on this editor instance */
   diffRanges?: DiffRange[]
   showDiff?: boolean
+  /** Skip the language extension (e.g. for config files) */
+  plainText?: boolean
 }
 
 const BG = '#16161b'
@@ -95,6 +97,7 @@ export default function CodeMirrorEditor({
   readOnly = false,
   diffRanges,
   showDiff = false,
+  plainText = false,
 }: CodeMirrorEditorProps) {
   const cmRef = useRef<ReactCodeMirrorRef>(null)
   const hasDiff = diffRanges !== undefined
@@ -107,14 +110,14 @@ export default function CodeMirrorEditor({
 
   // Stable extensions array — only rebuilds when language changes
   const extensions = useMemo<Extension[]>(() => {
-    const exts: Extension[] = [langExtension[language]]
+    const exts: Extension[] = plainText ? [] : [langExtension[language]]
     if (hasDiff && diffExtRef.current !== null) {
       exts.push(diffExtRef.current)
     }
     return exts
     // diffExtRef.current is stable; hasDiff and language are the real deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [language, hasDiff])
+  }, [language, hasDiff, plainText])
 
   // Keep a ref to latest ranges/show so we can dispatch from onCreateEditor
   const diffStateRef = useRef({ ranges: diffRanges ?? [], show: showDiff })

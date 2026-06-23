@@ -3,6 +3,7 @@ import { ThemeProvider, Button, Spin, Select, Checkbox } from '@gravity-ui/uikit
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import ClangVersionControl from './ClangVersionControl'
 import TestsView from './TestsView'
+import ConfigDrawer from './ConfigDrawer'
 import { computeDiff } from './useDiff'
 import { getQueryParam, setQueryParam } from './url'
 
@@ -37,6 +38,8 @@ export default function App() {
   const [view, setView] = useState<'playground' | 'tests'>(
     () => (getQueryParam('view') === 'tests' ? 'tests' : 'playground'),
   )
+
+  const [configOpen, setConfigOpen] = useState(false)
 
   // keep the active view in the URL so a Tests link is shareable
   useEffect(() => {
@@ -137,6 +140,15 @@ export default function App() {
             </Button>
           </div>
 
+          <Button
+            view="outlined"
+            size="s"
+            className="config-open-btn"
+            onClick={() => setConfigOpen(true)}
+          >
+            Config
+          </Button>
+
           {view === 'playground' && (
             <div className="app-header-center">
               <Select
@@ -167,14 +179,6 @@ export default function App() {
                 />
                 <span className="diff-toggle-label">Diff</span>
               </label>
-              <a
-                className="config-link-btn"
-                href={language === 'cpp' ? '/clang-format' : '/ruff.toml'}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Config
-              </a>
               <Button view="outlined" size="s" onClick={handleReset}>
                 Reset
               </Button>
@@ -262,6 +266,12 @@ export default function App() {
         >
           😤
         </a>
+
+        <ConfigDrawer
+          open={configOpen}
+          initialLang={language}
+          onClose={() => setConfigOpen(false)}
+        />
       </div>
     </ThemeProvider>
   )

@@ -185,6 +185,9 @@ def api_tests_run_one(test_id: str, body: RunRequest):
 # ── Formatter configs (single source of truth) ────────────────────────────────
 # The "Config" link in the UI points here, so it always shows the config that
 # formatting actually uses.
+CONFIG_PATHS = {"cpp": CLANG_FORMAT_CONFIG, "python": RUFF_CONFIG}
+
+
 @app.get("/clang-format")
 def serve_clang_config():
     return FileResponse(CLANG_FORMAT_CONFIG, media_type="text/plain")
@@ -193,6 +196,38 @@ def serve_clang_config():
 @app.get("/ruff.toml")
 def serve_ruff_config():
     return FileResponse(RUFF_CONFIG, media_type="text/plain")
+
+
+class ConfigBody(BaseModel):
+    content: str
+
+
+@app.get("/api/config/{lang}")
+def api_get_config(lang: str):
+    path = CONFIG_PATHS.get(lang)
+    if path is None:
+        return JSONResponse({"error": f"unknown config: {lang}"}, status_code=400)
+    try:
+        return {
+            "language": lang,
+            "filename": "clang-format" if lang == "cpp" else "ruff.toml",
+            "content": Path(path).read_text(encoding="utf-8"),
+        }
+    except OSError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=500)
+
+
+@app.put("/api/config/{lang}")
+def api_put_config(lang: str, body: ConfigBody):
+    """Write the config straight to the file used for formatting."""
+    path = CONFIG_PATHS.get(lang)
+    if path is None:
+        return JSONResponse({"error": f"unknown config: {lang}"}, status_code=400)
+    try:
+        Path(path).write_text(body.content, encoding="utf-8")
+    except OSError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=500)
+    return {"ok": True}
 
 
 # ── Static frontend (production) ──────────────────────────────────────────────

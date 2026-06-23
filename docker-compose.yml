@@ -22,6 +22,8 @@ services:
       - clang_versions:/app/clang_versions
       # tests are git-backed: bind-mount the repo dir so UI edits land in git
       - ./backend/tests:/app/tests
+      # configs are git-backed too: editing them in the UI writes to the repo
+      - ./backend/configs:/app/configs
 
 volumes:
   clang_versions:
