@@ -200,9 +200,9 @@ CASES = [
  ("Py: magic trailing comma keeps the call expanded", "python", "lock",
   "f(\n    alpha,\n    beta,\n)", None, False,
   "skip-magic-trailing-comma = false → trailing comma keeps it multiline."),
- ("Py: long call wraps at line length 88", "python", "lock",
+ ("Py: long call wraps at the configured line length", "python", "lock",
   "result = compute_something(first_argument, second_argument, third_argument, fourth_one)",
-  None, False, "line-length = 88."),
+  None, False, "ruff line-length from ruff.toml."),
  ("P9: Python boolean operator wrap inside dict()", "python", "want",
   "config = dict(RedirBuilderSendNonBaobabClicks=is_images_click_log or is_video_click_log or is_baobab_click_log, Other=1)",
   "config = dict(\n    RedirBuilderSendNonBaobabClicks=is_images_click_log\n"

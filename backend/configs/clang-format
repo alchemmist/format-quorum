@@ -1,7 +1,15 @@
 Language: Cpp
 Standard: Latest
 
-SpaceBeforeParens: ControlStatements
+SortIncludes: Never
+
+SpaceBeforeParens: Custom
+SpaceBeforeParensOptions:
+  AfterControlStatements: true
+  AfterForeachMacros: true
+  AfterIfMacros: true
+  AfterRequiresInClause: true
+  AfterRequiresInExpression: true
 
 IndentWidth: 4
 ColumnLimit: 100
@@ -9,39 +17,42 @@ MaxEmptyLinesToKeep: 2
 AccessModifierOffset: -4
 ConstructorInitializerIndentWidth: 4
 ContinuationIndentWidth: 4
-# https://stackoverflow.com/questions/39779985/how-to-control-clang-format-indentation-of-chained-method-calls
-PenaltyIndentedWhitespace: 1
+
+PenaltyBreakAssignment: 100000
+
 BinPackArguments: false
+BinPackParameters: false
+
 Cpp11BracedListStyle: true
-BreakAfterOpenBracketBracedList: true
 
 BreakBeforeBraces: Custom
+BreakBeforeBinaryOperators: None
 BreakInheritanceList: BeforeComma
-BreakConstructorInitializers: BeforeComma
 BreakBeforeTernaryOperators: true
-BreakBeforeConceptDeclarations: true
 
 AlwaysBreakBeforeMultilineStrings: true
-AlwaysBreakTemplateDeclarations: true
+AlwaysBreakTemplateDeclarations: Yes
 
 BraceWrapping:
-    AfterClass: false
-    AfterStruct: false
-    AfterEnum: false
-    AfterUnion: false
-    AfterFunction: false
-    AfterControlStatement: MultiLine
-    SplitEmptyFunction: false
-    SplitEmptyRecord: false
+  AfterClass: false
+  AfterStruct: false
+  AfterEnum: false
+  AfterUnion: false
+  AfterFunction: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  AfterControlStatement: MultiLine
 
-AlignAfterOpenBracket: DontAlign
+# AlignAfterOpenBracket: DontAlign 
+AlignAfterOpenBracket: BlockIndent
 AlignOperands: DontAlign
-AlignEscapedNewlines: true
+AlignEscapedNewlines: Left
 
 IndentCaseLabels: true
 IndentPPDirectives: BeforeHash
 
-AllowAllArgumentsOnNextLine: false
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
 
 AllowShortEnumsOnASingleLine: false
 AllowShortLambdasOnASingleLine: None
@@ -54,17 +65,39 @@ SeparateDefinitionBlocks: Always
 PointerAlignment: Left
 
 WhitespaceSensitiveMacros:
-    - 'PP_STRINGIZE'
-    - 'DEFINE_ENUM'
-    - 'DEFINE_BIT_ENUM'
-    - 'DEFINE_BIT_ENUM_WITH_UNDERLYING_TYPE'
-    - 'DEFINE_ENUM_WITH_UNDERLYING_TYPE'
-    - 'YT_DEFINE_ERROR_ENUM'
+  - PP_STRINGIZE
+  - DEFINE_ENUM
+  - DEFINE_BIT_ENUM
+  - DEFINE_BIT_ENUM_WITH_UNDERLYING_TYPE
+  - DEFINE_ENUM_WITH_UNDERLYING_TYPE
+  - YT_DEFINE_ERROR_ENUM
+  - Y_SAVELOAD
+  - Y_SAVELOAD_DEFINE
+  - Y_SAVELOAD_JOB
+  - Y_SAVELOAD_IMPL
+  - Y_SAVELOAD_BEGIN
+  - Y_SAVELOAD_END
+  - Y_SAVELOAD_STRUCT
+  - Y_SAVELOAD_FIELDS
+  - Y_SAVELOAD_FIELD
 
 SpaceInEmptyBlock: true
 
 FixNamespaceComments: true
+PenaltyBreakComment: 1000000
 ShortNamespaceLines: 0
+
 LambdaBodyIndentation: Signature
 
 InsertBraces: true
+PenaltyBreakBeforeFirstCallParameter: 0
+
+AllowShortCompoundRequirementOnASingleLine: true
+BreakBeforeConceptDeclarations: Always
+PenaltyBreakTemplateDeclaration: 0
+
+BreakConstructorInitializers:  BeforeComma
+PenaltyIndentedWhitespace: 100000
+PenaltyReturnTypeOnItsOwnLine: 1000000
+
+AllowAllConstructorInitializersOnNextLine: true

@@ -1,0 +1,10 @@
+{
+  "id": "df7f5af1494f",
+  "name": "Style: pointer binds to the type (T* p)",
+  "language": "cpp",
+  "input": "int *p = nullptr;",
+  "expected": "int* p = nullptr;",
+  "muted": false,
+  "note": "PointerAlignment: Left. https://a.yandex-team.ru/review/13704587",
+  "created_at": "2026-06-23T11:59:55.804262+00:00"
+}

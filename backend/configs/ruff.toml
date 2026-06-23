@@ -1,15 +1,101 @@
-line-length = 88
+force-exclude = true
+exclude = [
+    "amon",
+    "rt/py_lib/deploy",
+    "createlib/qb3/parser/helpers_example/tests",
+    "amon/tests",
+    "createlib/qb3/parser/local_yt_test_example",
+    "createlib/qb3/parser/local_yt_test_example_proto",
+    "createlib/qb3/parser/local_yt_test_example_proto_v2",
+    "createlib/qb3/parser/protoseq_yson_converter",
+    "createlib/qb3/parser/skiff_proto_consistency_test",
+    "createlib/qb3/parser/structured_paths_checker",
+    "createlib/qb3/parser/test_helpers",
+    "createlib/qb3/tests/create",
+    "createlib/qb3/tests/old_create_tests",
+    "createlib/qb3/tools/merge",
+    "createlib/tests",
+    "data_com/merge_details_to_dataset",
+    "data_com/yt_tables",
+    "libra",
+    "libra/examples/libra_performance",
+    "libra/tests",
+    "libra/tests/diff_tool",
+    "libra_arc",
+    "libra_arc/noyql",
+    "libra_static",
+    "libra_static/proto_cast",
+    "market/collector",
+    "market/collector/tests/belt",
+    "market/collector/tests/tools",
+    "market/collector_lib",
+    "market/custom_statistics",
+    "market/yuid_testids",
+    "market/yuid_testids_blue",
+    "money_rt/lib/profiles/python",
+    "money_rt/packages/rt_money_config_generators/generators/log_generators_lib/app_options/action",
+    "money_rt/packages/rt_money_config_generators/generators/log_generators_lib/app_options/billables",
+    "money_rt/py_lib/compress",
+    "news/news_us_processes",
+    "news/news_us_processes/ignore_version",
+    "py_amon",
+    "py_amon/cbir",
+    "py_amon/common",
+    "py_amon/examples/parser_web",
+    "py_amon/images",
+    "py_amon/images_cbir_common",
+    "py_amon/ut",
+    "py_amon/ut/iterators_tests",
+    "py_amon/video",
+    "py_amon/web",
+    "rem_processes",
+    "rem_processes/tests",
+    "rem_processes/tests/daily",
+    "rem_processes/tests/fast",
+    "rem_processes/tests/misc",
+    "rem_processes/tests/multidate",
+    "request_aggregate_lib/proto_proxy/py",
+    "request_aggregate_lib/tests/data_dumps",
+    "request_aggregate_lib/tests/iterators",
+    "request_aggregate_lib/tests/join_graph",
+    "request_aggregate_lib/tests/join_graph_shuffle",
+    "request_aggregate_lib/tests/market_offer_click",
+    "rt/lib/surplus",
+    "rt/py_lib/compress",
+    "rt/py_lib/golovan",
+    "rt/py_lib/proto2yson",
+    "rt/py_lib/solomon",
+    "rt/py_lib/user_sessions_test",
+    "rt/tools/reshard_replicated_table",
+    "tools/get_last_resource",
+    "tools/run_yql_us_udf",
+    "tools/yt_combine_chunks",
+    "tools/yt_pack",
+    "tools/yt_transfer_yt",
+    "segmentation",
+    "tools/yt_data_sizes.py",
+    "tools/move_recalc_to_prod",
+    "tools/error_log_table_to_hist",
+    "hashed_diff/test.py",
+    "tools/yt_find_old_tables.py",
+    "reactor",
+]
+
+line-length = 80
 indent-width = 4
 
 [lint]
-select = ["E", "F", "I", "UP"]
+select = ["E", "F", "I", "UP", "COM812"]
 ignore = []
 
 [lint.isort]
-force-sort-within-sections = true
+from-first = false
+order-by-type = true
+no-sections = true
 
 [format]
 quote-style = "single"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
