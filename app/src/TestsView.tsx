@@ -3,12 +3,14 @@ import {
   Button,
   Checkbox,
   Dialog,
+  Icon,
   Label,
   Select,
   Spin,
   Text,
   TextInput,
 } from '@gravity-ui/uikit'
+import { Pencil, TrashBin } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import { computeDiff } from './useDiff'
 
@@ -80,7 +82,8 @@ export default function TestsView({
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
 
-  const [addOpen, setAddOpen] = useState(false)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState(emptyForm(playgroundLanguage))
   const [saving, setSaving] = useState(false)
 
@@ -173,29 +176,69 @@ export default function TestsView({
     })
   }, [])
 
-  const saveNew = useCallback(async () => {
+  const openCreate = useCallback(() => {
+    setEditingId(null)
+    setForm(emptyForm(filter === 'all' ? playgroundLanguage : filter))
+    setError(null)
+    setDialogOpen(true)
+  }, [filter, playgroundLanguage])
+
+  const openEdit = useCallback((test: TestCase) => {
+    setEditingId(test.id)
+    setForm({
+      name: test.name,
+      language: test.language,
+      input: test.input,
+      expected: test.expected,
+      muted: test.muted,
+      note: test.note ?? '',
+    })
+    setError(null)
+    setDialogOpen(true)
+  }, [])
+
+  const save = useCallback(async () => {
     setSaving(true)
     setError(null)
     try {
-      const res = await fetch('/api/tests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      })
+      const editing = editingId !== null
+      const res = await fetch(
+        editing ? `/api/tests/${editingId}` : '/api/tests',
+        {
+          method: editing ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form),
+        },
+      )
       const data = await res.json()
       if (!res.ok) {
         setError(data.error ?? 'Failed to save test')
         return
       }
-      setTests((prev) => [...prev, data])
-      setAddOpen(false)
-      setForm(emptyForm(playgroundLanguage))
+      setTests((prev) =>
+        editing ? prev.map((t) => (t.id === editingId ? data : t)) : [...prev, data],
+      )
+      // a saved test may now format differently; drop its stale result
+      if (editing) {
+        setResults((prev) => {
+          const next = { ...prev }
+          delete next[editingId!]
+          return next
+        })
+      }
+      setDialogOpen(false)
     } catch (e) {
       setError(String(e))
     } finally {
       setSaving(false)
     }
-  }, [form, playgroundLanguage])
+  }, [editingId, form])
+
+  const deleteFromDialog = useCallback(async () => {
+    if (editingId === null) return
+    await removeTest(editingId)
+    setDialogOpen(false)
+  }, [editingId, removeTest])
 
   return (
     <div className="tests-view">
@@ -245,15 +288,7 @@ export default function TestsView({
           <Text color="secondary">/ {summary.total}</Text>
         </div>
 
-        <Button
-          view="normal"
-          size="m"
-          className="tests-add-btn"
-          onClick={() => {
-            setForm(emptyForm(filter === 'all' ? playgroundLanguage : filter))
-            setAddOpen(true)
-          }}
-        >
+        <Button view="normal" size="m" className="tests-add-btn" onClick={openCreate}>
           + Add test
         </Button>
       </div>
@@ -296,14 +331,15 @@ export default function TestsView({
                   </Checkbox>
                 </span>
                 <Button
-                  view="flat-danger"
+                  view="flat"
                   size="s"
+                  title="Edit test"
                   onClick={(e) => {
                     e.stopPropagation()
-                    removeTest(test.id)
+                    openEdit(test)
                   }}
                 >
-                  Delete
+                  <Icon data={Pencil} size={16} />
                 </Button>
               </div>
 
@@ -340,8 +376,8 @@ export default function TestsView({
         })}
       </div>
 
-      <Dialog open={addOpen} onClose={() => setAddOpen(false)} size="l">
-        <Dialog.Header caption="Add test" />
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} size="l">
+        <Dialog.Header caption={editingId ? 'Edit test' : 'Add test'} />
         <Dialog.Body>
           <div className="add-form-top">
             <TextInput
@@ -380,6 +416,16 @@ export default function TestsView({
             >
               Grab from playground
             </Button>
+            {editingId && (
+              <Button
+                view="flat-danger"
+                size="m"
+                title="Delete test"
+                onClick={deleteFromDialog}
+              >
+                <Icon data={TrashBin} size={16} />
+              </Button>
+            )}
           </div>
 
           <div className="add-form-panes">
@@ -417,10 +463,10 @@ export default function TestsView({
           />
         </Dialog.Body>
         <Dialog.Footer
-          onClickButtonCancel={() => setAddOpen(false)}
+          onClickButtonCancel={() => setDialogOpen(false)}
           textButtonCancel="Cancel"
-          onClickButtonApply={saveNew}
-          textButtonApply={saving ? 'Saving…' : 'Save test'}
+          onClickButtonApply={save}
+          textButtonApply={saving ? 'Saving…' : editingId ? 'Save changes' : 'Save test'}
           propsButtonApply={{ disabled: saving || !form.name.trim() }}
         />
       </Dialog>
