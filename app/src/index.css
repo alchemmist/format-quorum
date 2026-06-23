@@ -366,8 +366,8 @@ body {
 }
 
 .test-panes {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
 }
 
@@ -375,6 +375,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  /* let the column keep its 1fr width instead of growing to the code width;
+     long lines then scroll horizontally inside the editor */
+  min-width: 0;
 }
 
 .test-pane-title {
@@ -420,6 +423,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .add-form-editor {
