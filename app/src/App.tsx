@@ -40,11 +40,20 @@ export default function App() {
   )
 
   const [configOpen, setConfigOpen] = useState(false)
+  const [me, setMe] = useState<string | null>(null)
 
   // keep the active view in the URL so a Tests link is shareable
   useEffect(() => {
     setQueryParam('view', view === 'tests' ? 'tests' : null)
   }, [view])
+
+  // who am I (corporate login via the auth proxy; "dev" locally)
+  useEffect(() => {
+    fetch('/api/me')
+      .then((r) => r.json())
+      .then((d) => setMe(d.login ?? null))
+      .catch(() => {})
+  }, [])
 
   const diffRanges = useMemo(
     () => outputCode ? computeDiff(inputCode, outputCode) : [],
@@ -199,6 +208,10 @@ export default function App() {
               </Button>
             </div>
           )}
+
+          <span className="user-badge" title="Signed in as">
+            👤 {me ?? 'guest'}
+          </span>
         </header>
 
         {view === 'tests' ? (

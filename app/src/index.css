@@ -44,9 +44,6 @@ body {
 }
 
 .app-header-center {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -271,6 +268,14 @@ body {
 
 .config-open-btn {
   margin-left: 8px;
+}
+
+.user-badge {
+  margin-left: auto;
+  font-size: 12px;
+  color: #9da5b3;
+  white-space: nowrap;
+  padding-left: 8px;
 }
 
 /* ── Config drawer (slides in from the left) ─────────────────────────────── */
