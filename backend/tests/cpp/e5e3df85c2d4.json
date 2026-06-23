@@ -1,0 +1,10 @@
+{
+  "id": "e5e3df85c2d4",
+  "name": "Style: access modifier sits at -4 (AccessModifierOffset)",
+  "language": "cpp",
+  "input": "class TFoo {\npublic:\n    int X;\n\nprivate:\n    int Y;\n};",
+  "expected": "class TFoo {\npublic:\n    int X;\n\nprivate:\n    int Y;\n};",
+  "muted": false,
+  "note": "AccessModifierOffset: -4. https://a.yandex-team.ru/review/13704587",
+  "created_at": "2026-06-23T13:33:43.493928+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "57cd82db49a0",
+  "name": "Py: long call wraps at the configured line length",
+  "language": "python",
+  "input": "result = compute_something(first_argument, second_argument, third_argument, fourth_one)",
+  "expected": "result = compute_something(\n    first_argument, second_argument, third_argument, fourth_one\n)\n",
+  "muted": false,
+  "note": "ruff line-length from ruff.toml.",
+  "created_at": "2026-06-23T13:33:43.981298+00:00"
+}

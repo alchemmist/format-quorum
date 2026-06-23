@@ -1,0 +1,10 @@
+{
+  "id": "e8277e6e6caf",
+  "name": "P8: nested template/call arguments indentation",
+  "language": "cpp",
+  "input": "TableReader_ = new NYT::TTableReader<NProtoBuf::Message>(new NYT::TLenvalProtoTableReader(Client_->CreateRawReader(TablePaths_.at(CurrentTableIdx_), NYT::TFormat::Protobuf({ProtoMessagePrototype_->GetDescriptor()}, false))));",
+  "expected": "TableReader_ = new NYT::TTableReader<NProtoBuf::Message>(\n    new NYT::TLenvalProtoTableReader(\n        Client_->CreateRawReader(\n            TablePaths_.at(CurrentTableIdx_),\n            NYT::TFormat::Protobuf({ProtoMessagePrototype_->GetDescriptor()}, false))));",
+  "muted": false,
+  "note": "LOGS-5799 problem 8 (open). https://st.yandex-team.ru/LOGS-5799",
+  "created_at": "2026-06-23T13:33:43.870438+00:00"
+}

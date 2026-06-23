@@ -1,0 +1,10 @@
+{
+  "id": "822c84d1c362",
+  "name": "Style: concept declaration breaks before the concept",
+  "language": "cpp",
+  "input": "template <typename T>\nconcept TScorable = requires(T t) { { t.Score() } -> std::convertible_to<double>; };",
+  "expected": "template <typename T>\nconcept TScorable = requires (T t) {\n    {\n        t.Score()\n    } -> std::convertible_to<double>;\n};",
+  "muted": false,
+  "note": "BreakBeforeConceptDeclarations: true. https://a.yandex-team.ru/review/13704587",
+  "created_at": "2026-06-23T13:33:43.744187+00:00"
+}
