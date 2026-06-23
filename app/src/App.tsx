@@ -4,6 +4,7 @@ import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import ClangVersionControl from './ClangVersionControl'
 import TestsView from './TestsView'
 import { computeDiff } from './useDiff'
+import { getQueryParam, setQueryParam } from './url'
 
 // @ts-ignore — Vite raw import
 import demoCpp from './demo.cpp?raw'
@@ -33,7 +34,14 @@ export default function App() {
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [showDiff, setShowDiff] = useState<boolean>(true)
   const [clangVersion, setClangVersion] = useState<string | undefined>(undefined)
-  const [view, setView] = useState<'playground' | 'tests'>('playground')
+  const [view, setView] = useState<'playground' | 'tests'>(
+    () => (getQueryParam('view') === 'tests' ? 'tests' : 'playground'),
+  )
+
+  // keep the active view in the URL so a Tests link is shareable
+  useEffect(() => {
+    setQueryParam('view', view === 'tests' ? 'tests' : null)
+  }, [view])
 
   const diffRanges = useMemo(
     () => outputCode ? computeDiff(inputCode, outputCode) : [],
@@ -54,6 +62,7 @@ export default function App() {
       setInputCode(demos[lang])
       setOutputCode('')
       setStatus({ kind: 'idle' })
+      setView(getQueryParam('view') === 'tests' ? 'tests' : 'playground')
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)

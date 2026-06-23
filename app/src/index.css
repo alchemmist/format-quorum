@@ -356,6 +356,26 @@ body {
   color: #c5c5d2;
 }
 
+.test-id {
+  font-family: 'SF Mono', 'JetBrains Mono', Consolas, monospace;
+  font-size: 11px;
+  color: #5a6272;
+  padding: 1px 5px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.test-id:hover {
+  color: #9da5b3;
+  background: #23232b;
+}
+
+.test-row.focused {
+  background: #1b1f2a;
+  box-shadow: inset 3px 0 0 #4a6ea8;
+}
+
 .test-row-spacer {
   flex: 1;
 }

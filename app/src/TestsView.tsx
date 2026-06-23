@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Button,
   Checkbox,
@@ -12,6 +12,7 @@ import {
 } from '@gravity-ui/uikit'
 import { Pencil, TrashBin } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
+import { getQueryParam, setQueryParam, testShareUrl } from './url'
 import { computeDiff } from './useDiff'
 
 export interface TestCase {
@@ -73,14 +74,24 @@ export default function TestsView({
   playgroundOutput,
   playgroundLanguage,
 }: Props) {
+  const initialFilter = getQueryParam('filter')
   const [tests, setTests] = useState<TestCase[]>([])
   const [results, setResults] = useState<Record<string, RunResult>>({})
   const [running, setRunning] = useState(false)
-  const [filter, setFilter] = useState<'all' | Language>('all')
+  const [filter, setFilter] = useState<'all' | Language>(
+    initialFilter === 'cpp' || initialFilter === 'python' ? initialFilter : 'all',
+  )
   const [versions, setVersions] = useState<string[]>([])
-  const [runVersion, setRunVersion] = useState<string | undefined>(undefined)
-  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [runVersion, setRunVersion] = useState<string | undefined>(
+    () => getQueryParam('version') ?? undefined,
+  )
+  const [focusedId, setFocusedId] = useState<string | null>(() => getQueryParam('test'))
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState<Set<string>>(
+    () => new Set(getQueryParam('test') ? [getQueryParam('test') as string] : []),
+  )
   const [error, setError] = useState<string | null>(null)
+  const didScrollRef = useRef(false)
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -98,10 +109,29 @@ export default function TestsView({
       .then((r) => r.json())
       .then((d) => {
         setVersions(d.versions ?? [])
-        setRunVersion(d.default ?? undefined)
+        // don't override a version that came from the URL
+        setRunVersion((prev) => prev ?? d.default ?? undefined)
       })
       .catch(() => {})
   }, [loadTests])
+
+  // keep the run parameters in the URL so the link is shareable
+  useEffect(() => {
+    setQueryParam('filter', filter === 'all' ? null : filter)
+  }, [filter])
+  useEffect(() => {
+    setQueryParam('version', runVersion ?? null)
+  }, [runVersion])
+
+  // once the tests are loaded, scroll to the test linked via ?test=<id>
+  useEffect(() => {
+    if (didScrollRef.current || !focusedId || tests.length === 0) return
+    const el = document.getElementById(`test-${focusedId}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      didScrollRef.current = true
+    }
+  }, [tests, focusedId])
 
   const visibleTests = useMemo(
     () => tests.filter((t) => filter === 'all' || t.language === filter),
@@ -174,6 +204,16 @@ export default function TestsView({
       next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
+  }, [])
+
+  // copy a shareable deep link to one test and focus it
+  const shareTest = useCallback((id: string) => {
+    navigator.clipboard?.writeText(testShareUrl(id)).catch(() => {})
+    setFocusedId(id)
+    setQueryParam('test', id)
+    setExpanded((prev) => new Set(prev).add(id))
+    setCopiedId(id)
+    window.setTimeout(() => setCopiedId((c) => (c === id ? null : c)), 1500)
   }, [])
 
   const openCreate = useCallback(() => {
@@ -310,10 +350,26 @@ export default function TestsView({
           const status = displayStatus(test, result)
           const isOpen = expanded.has(test.id)
           return (
-            <div key={test.id} className={`test-row status-${status}`}>
+            <div
+              key={test.id}
+              id={`test-${test.id}`}
+              className={`test-row status-${status}${
+                test.id === focusedId ? ' focused' : ''
+              }`}
+            >
               <div className="test-row-head" onClick={() => toggleExpand(test.id)}>
                 <span className={`status-dot status-${status}`} />
                 <span className="test-name">{test.name}</span>
+                <span
+                  className="test-id"
+                  title="Copy a shareable link to this test"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    shareTest(test.id)
+                  }}
+                >
+                  {copiedId === test.id ? 'link copied ✓' : `#${test.id}`}
+                </span>
                 <Label theme="unknown" size="xs">
                   {test.language === 'cpp' ? 'C++' : 'Python'}
                 </Label>

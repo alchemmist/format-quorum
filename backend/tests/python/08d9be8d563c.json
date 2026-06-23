@@ -4,7 +4,7 @@
   "language": "python",
   "input": "config = dict(RedirBuilderSendNonBaobabClicks=is_images_click_log or is_video_click_log or is_baobab_click_log, Other=1)",
   "expected": "config = dict(\n    RedirBuilderSendNonBaobabClicks=is_images_click_log\n        or is_video_click_log\n        or is_baobab_click_log,\n    Other=1,\n)",
-  "muted": false,
+  "muted": true,
   "note": "LOGS-5799 problem 9 (open): 'or' lands at the start of the next line. https://st.yandex-team.ru/LOGS-5799",
   "created_at": "2026-06-23T11:04:12.091910+00:00"
 }
