@@ -108,14 +108,14 @@ export default function ClangVersionControl({ value, onChange }: Props) {
         value={selected ? [selected] : []}
         onUpdate={(v) => onChange(v[0])}
         size="s"
-        width={250}
+        width={190}
         label="clang-format"
         disabled={versions.length === 0}
         placeholder="version"
       >
         {versions.map((v) => (
           <Select.Option key={v} value={v}>
-            {v === state?.default ? `${v} (default)` : v}
+            {v}
           </Select.Option>
         ))}
       </Select>
@@ -195,7 +195,7 @@ export default function ClangVersionControl({ value, onChange }: Props) {
             </Text>
             {versions.map((v) => (
               <div key={v} className="version-list-item">
-                <Text>{v === state?.default ? `${v} (default)` : v}</Text>
+                <Text>{v}</Text>
                 {v !== state?.default && (
                   <Button
                     view="flat-danger"
