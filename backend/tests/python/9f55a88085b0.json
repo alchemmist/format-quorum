@@ -1,0 +1,10 @@
+{
+  "id": "9f55a88085b0",
+  "name": "Py quotes: dict keys and values become single-quoted",
+  "language": "python",
+  "input": "d = {\"a\": \"b\", \"c\": \"d\"}",
+  "expected": "d = {'a': 'b', 'c': 'd'}\n",
+  "muted": false,
+  "note": "ruff quote-style = single.",
+  "created_at": "2026-06-23T16:07:39.299256+00:00"
+}

@@ -170,6 +170,28 @@ CASES = [
   False, f"PR thread #35: wanted one blank line after '{{' and before '}}' of a namespace — "
   f"not configurable in clang-format. {PR}"),
 
+ # ─── PR review/13704587 — accepted compromises (muted, 🙈 unfixable) ──────────
+ ("PR3: arrow operator stays attached to the closing )", "cpp", "want",
+  "void F() {\n    auto result = sessionBuilder.MakeReducedSessionProcessor(firstArgument, secondArgument, thirdArgument)->Run();\n}",
+  "void F() {\n    auto result =\n        sessionBuilder.MakeReducedSessionProcessor(firstArgument, secondArgument, thirdArgument)->Run();\n}",
+  True,
+  f"PR description problem 3 (🙈, never fixed) + comment-18183104: '`)->Run()`' becomes "
+  f"'`)` newline `->Run()`'. Wanted the arrow to stay with the ')'. Unfixable in clang-format. {PR}/details#comment-18183104"),
+ ("PR: template closing > on its own line (like a wrapped ) )", "cpp", "want",
+  "template <typename TFirstRowType, typename TSecondRowType, typename TThirdRowType, typename TFourthRowType>\nclass TRowsProcessor {};",
+  "template <\n    typename TFirstRowType,\n    typename TSecondRowType,\n    typename TThirdRowType,\n"
+  "    typename TFourthRowType\n>\nclass TRowsProcessor { };",
+  True,
+  f"comment-18340323: wanted the closing '>' of a wrapped template on its own line, "
+  f"analogous to how '()' wraps. Not configurable in clang-format. {PR}/details#comment-18340323"),
+ ("PR: opening { on next line for ctors with an initializer list", "cpp", "want",
+  "struct TFoo {\n    TFoo(int firstValue, int secondValue) : First_(firstValue), Second_(secondValue) {\n        Init();\n    }\n    int First_, Second_;\n};",
+  "struct TFoo {\n    TFoo(int firstValue, int secondValue)\n        : First_(firstValue)\n"
+  "        , Second_(secondValue)\n    {\n        Init();\n    }\n\n    int First_, Second_;\n};",
+  True,
+  f"comment-18340933: wanted '{{' on the next line for constructors that have an initializer "
+  f"list. clang-format can't make brace-wrapping conditional on that. {PR}/details#comment-18340933"),
+
  # ─────────────────────────── Python: single quotes ─────────────────────────
  ("Py quotes: double string becomes single", "python", "lock",
   'x = "hello"', None, False, "ruff quote-style = single."),

@@ -1,0 +1,10 @@
+{
+  "id": "6a965043dac1",
+  "name": "Style: ternary breaks before the operator",
+  "language": "cpp",
+  "input": "const auto value = someConditionThatIsFairlyLong ? theFirstAlternativeValue : theSecondAlternativeValue;",
+  "expected": "const auto\n    value = someConditionThatIsFairlyLong ? theFirstAlternativeValue : theSecondAlternativeValue;",
+  "muted": false,
+  "note": "BreakBeforeTernaryOperators: true. https://a.yandex-team.ru/review/13704587",
+  "created_at": "2026-06-23T16:07:39.070227+00:00"
+}

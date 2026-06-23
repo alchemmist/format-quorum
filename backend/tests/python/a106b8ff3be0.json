@@ -1,0 +1,10 @@
+{
+  "id": "a106b8ff3be0",
+  "name": "Py quotes: single string stays single",
+  "language": "python",
+  "input": "x = 'hello'",
+  "expected": "x = 'hello'\n",
+  "muted": false,
+  "note": "ruff quote-style = single.",
+  "created_at": "2026-06-23T16:07:39.285035+00:00"
+}

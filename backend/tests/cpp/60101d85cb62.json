@@ -1,0 +1,10 @@
+{
+  "id": "60101d85cb62",
+  "name": "P7: empty () call is not split onto two lines",
+  "language": "cpp",
+  "input": "NAntifraud::NProto::TUndoChEventVerdict& undoCheventVerdict = *res.MutableUndoCheventVerdictMsg(\n);",
+  "expected": "NAntifraud::NProto::TUndoChEventVerdict& undoCheventVerdict = *res.MutableUndoCheventVerdictMsg();",
+  "muted": false,
+  "note": "LOGS-5799 problem 7: empty () used to split; clang-format 22 keeps it on one line. https://st.yandex-team.ru/LOGS-5799",
+  "created_at": "2026-06-23T16:07:39.163905+00:00"
+}
