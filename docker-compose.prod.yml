@@ -1,0 +1,49 @@
+# Production deployment: the app behind Caddy (automatic HTTPS) on
+# fq.alchemmist.xyz. Run on the server from the repo root:
+#
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Requires a DNS A record fq.alchemmist.xyz -> <server ip> and ports 80/443 open.
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: format-quorum:latest
+    restart: unless-stopped
+    environment:
+      PORT: "3000"
+      FRONTEND_DIST: /app/frontend
+      CLANG_FORMAT_BIN: /usr/local/bin/clang-format
+      CLANG_FORMAT_CONFIG: /app/configs/clang-format
+      RUFF_BIN: ruff
+      RUFF_CONFIG: /app/configs/ruff.toml
+      VERSIONS_DIR: /app/clang_versions
+      TESTS_DIR: /app/tests
+    volumes:
+      # installed clang-format versions persist across deploys
+      - clang_versions:/app/clang_versions
+      # tests and configs are served from the repo checkout; the deploy resets
+      # them to main, so curate them via git (UI edits on prod are temporary)
+      - ./backend/tests:/app/tests
+      - ./backend/configs:/app/configs
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  clang_versions:
+  caddy_data:
+  caddy_config:
