@@ -99,11 +99,20 @@ fq.py delete <id>
 fq.py run                            # run all; add --lang cpp / --version 19.1.7
 ```
 
-Read / write the formatter config (writes straight to the file formatting uses):
+Read / write (download / change / upload) the formatter config. `put-config`
+writes straight to the file formatting actually uses, so the change takes effect
+immediately for both the playground and test runs:
 ```bash
-fq.py get-config cpp                 # or: python
-cat new.clang-format | fq.py put-config cpp
+fq.py get-config cpp                 # download (or: python)
+fq.py get-config cpp > my.clang-format && $EDITOR my.clang-format
+fq.py put-config cpp -i my.clang-format   # upload (or pipe via stdin)
 ```
+
+> ⚠️ Unlike tests, **configs are git-backed (bind-mounted from the repo), not a
+> volume.** A `put-config` on prod takes effect right away but is **reset to
+> `main` on the next deploy** (`git reset --hard`). To make a config change
+> permanent, also commit it to `backend/configs/` (`clang-format` / `ruff.toml`)
+> in the repo.
 
 ## Bulk reseed
 
