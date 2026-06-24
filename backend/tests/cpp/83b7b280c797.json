@@ -1,0 +1,10 @@
+{
+  "id": "83b7b280c797",
+  "name": "Style: namespace gets a closing comment",
+  "language": "cpp",
+  "input": "namespace NFoo {\nint X;\n}",
+  "expected": "namespace NFoo {\nint X;\n} // namespace NFoo",
+  "muted": false,
+  "note": "FixNamespaceComments: true. https://a.yandex-team.ru/review/13704587",
+  "created_at": "2026-06-24T12:23:36.347326+00:00"
+}

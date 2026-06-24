@@ -138,13 +138,18 @@ CASES = [
   None, False,
   f"LOGS-5799 problem 4 (fixed): no ragged closing-bracket staircase. Anonymised. {LOGS5799}"),
 
- # ─── problem 7 (guard) — empty () not split, inside a method ─────────────────
- ("P7: empty () call is not split onto two lines", "cpp", "guard",
+ # ─── problem 7 (open) — empty () splits when the line overflows ──────────────
+ ("P7: empty () splits onto two lines when the line overflows", "cpp", "want",
   "namespace app {\nvoid TWidget::Finish(TResponse& response) {\n"
-  "NDomain::TVerdict& verdict = *response.MutableVerdictMessageFieldData(\n);\n}\n}",
-  None, False,
-  f"LOGS-5799 problem 7: empty () used to split; clang-format 22 keeps it on one "
-  f"line — guard. Anonymised. {LOGS5799}"),
+  "NDomain::NProto::TUndoVerdictResult& undoVerdictResult = *response.MutableUndoVerdictResultMsg();\n}\n}",
+  "namespace app {\nvoid TWidget::Finish(TResponse& response) {\n"
+  "    NDomain::NProto::TUndoVerdictResult& undoVerdictResult =\n"
+  "        *response.MutableUndoVerdictResultMsg();\n}\n} // namespace app",
+  False,
+  f"LOGS-5799 problem 7 (open): when the declaration exceeds the 100-col limit, the "
+  f"empty () is the only break point — '(' stays at the end of the line and ');' dangles "
+  f"on its own. Wanted: break after '=' and keep () together. The length matters: a "
+  f"shorter line fits and never reproduces it. Anonymised reconstruction. {LOGS5799}"),
 
  # ─── problem 3 (unfixable, muted) — break after '=' in a parenthesised expr ──
  ("P3: no line break after '=' in an assignment (muted)", "cpp", "want",
@@ -170,16 +175,15 @@ CASES = [
   f"LOGS-5799 problem 5 (open): nested brace-init levels align to the brace instead "
   f"of indenting cleanly. Anonymised reconstruction. {LOGS5799}"),
 
- # ─── problem 6 (open in this config) — lambda arguments indentation ─────────
- ("P6: lambda arguments keep a readable indentation", "cpp", "want",
+ # ─── problem 6 (fixed) — lambda argument bodies indent correctly ────────────
+ ("P6: lambda argument bodies indent correctly (fixed)", "cpp", "lock",
   "namespace app {\nvoid TWidget::Handle(const TVariant& value) {\n"
   "std::visit(TOverloaded{[](const TFirst& f) { return f.Value; }, [](const TSecond& s) { return s.Other; }}, value);\n}\n}",
-  "namespace app {\nvoid TWidget::Handle(const TVariant& value) {\n    std::visit(\n"
-  "        TOverloaded{\n            [](const TFirst& f) { return f.Value; },\n"
-  "            [](const TSecond& s) { return s.Other; },\n        },\n        value);\n}\n} // namespace app",
+  None,
   False,
-  f"LOGS-5799 problem 6: this config still aligns lambda args to the opening brace. "
-  f"Anonymised reconstruction. {LOGS5799}"),
+  f"LOGS-5799 problem 6 (fixed): a lambda passed as an argument (std::visit / "
+  f"TOverloaded) now indents its body under the lambda declaration instead of drifting "
+  f"to a wrong level. Anonymised reconstruction. {LOGS5799}"),
 
  # ─── problem 8 (open) — nested template/call argument indentation ───────────
  ("P8: nested template/call arguments indentation", "cpp", "want",
@@ -193,22 +197,22 @@ CASES = [
   f"Anonymised reconstruction. {LOGS5799}"),
 
  # ─── PR review/13704587 — still-open threads (want) ─────────────────────────
- ("PR: multiline if — operator at line start, ) { de-indented", "cpp", "want",
+ ("PR: multiline if wraps the brace onto its own line (option в2)", "cpp", "lock",
   "namespace app {\nvoid TWidget::Process(TState* state) {\n"
   "if (!pendingMessages->empty() && pendingMessages->begin()->WriteTimestamp <= notificationWriteTimestamp) {\nHandle(state);\n}\n}\n}",
-  "namespace app {\nvoid TWidget::Process(TState* state) {\n    if (\n"
-  "        !pendingMessages->empty()\n"
-  "        && pendingMessages->begin()->WriteTimestamp <= notificationWriteTimestamp\n"
-  "    ) {\n        Handle(state);\n    }\n}\n} // namespace app",
+  None,
   False,
-  f"PR thread #31: preferred multiline-if style (operator leading, ')' de-indented). "
-  f"Anonymised reconstruction. {PR}"),
- ("PR: blank line after namespace open and before close", "cpp", "want",
+  f"PR problem 7, option в2 (adopted): when an if condition wraps across lines the "
+  f"opening '{{' moves to its own line while the operator stays trailing and ')' stays "
+  f"attached. comment-18341038 wanted ') {{' de-indented — this is that result. "
+  f"Anonymised reconstruction. {PR}/details#comment-18341038"),
+ ("PR: blank line after namespace open and before close (muted)", "cpp", "want",
   "namespace app {\nint Foo();\nint Bar();\n}",
   "namespace app {\n\nint Foo();\nint Bar();\n\n} // namespace app",
-  False,
-  f"PR thread #35: wanted one blank line after '{{' and before '}}' of a namespace — "
-  f"not configurable in clang-format. {PR}"),
+  True,
+  f"comment-18341258: a reviewer wanted one blank line right after '{{' and before '}}' "
+  f"of a namespace; clang-format cannot insert a literal blank line (the only offered "
+  f"alternative was wrapping the brace). Unfixable, muted. {PR}/details#comment-18341258"),
 
  # ─── PR review/13704587 — accepted compromises (muted, 🙈 unfixable) ─────────
  ("PR3: arrow operator stays attached to the closing )", "cpp", "want",
@@ -281,13 +285,16 @@ CASES = [
   "result = compute_something(first_argument, second_argument, third_argument, fourth_one)",
   None, False, "ruff line-length from ruff.toml."),
  # P9 (open) — Python boolean operator wrap, in a real-ish dict() context
- ("P9: Python boolean operator wrap inside dict()", "python", "want",
+ ("P9: Python boolean operator wrap inside dict() (muted)", "python", "want",
   "def build_config():\n    return dict(RedirBuilderSendNonBaobabClicks=is_images_click_log or is_video_click_log or is_baobab_click_log, Other=1)",
-  "def build_config():\n    return dict(\n        RedirBuilderSendNonBaobabClicks=is_images_click_log\n"
-  "            or is_video_click_log\n            or is_baobab_click_log,\n        Other=1,\n    )",
-  False,
-  f"LOGS-5799 problem 9 (open): 'or' lands at the start of the next line at the same "
-  f"level as keys. Anonymised reconstruction. {LOGS5799}"),
+  "def build_config():\n    return dict(\n        RedirBuilderSendNonBaobabClicks=(\n"
+  "            is_images_click_log or is_video_click_log or is_baobab_click_log\n"
+  "        ),\n        Other=1,\n    )",
+  True,
+  f"LOGS-5799 problem 9 (unfixable, 🙈): 'or'/'and' land at the start of the next line "
+  f"at the same level as the dict keys — inside dict(...) it reads like a separate key. "
+  f"ruff won't reindent (Black issue 4123). Desired shows the manual workaround: wrap "
+  f"the value in parens. Anonymised reconstruction. {LOGS5799}"),
 ]
 
 

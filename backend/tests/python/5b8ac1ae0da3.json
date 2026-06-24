@@ -1,0 +1,10 @@
+{
+  "id": "5b8ac1ae0da3",
+  "name": "P9: Python boolean operator wrap inside dict() (muted)",
+  "language": "python",
+  "input": "def build_config():\n    return dict(RedirBuilderSendNonBaobabClicks=is_images_click_log or is_video_click_log or is_baobab_click_log, Other=1)",
+  "expected": "def build_config():\n    return dict(\n        RedirBuilderSendNonBaobabClicks=(\n            is_images_click_log or is_video_click_log or is_baobab_click_log\n        ),\n        Other=1,\n    )",
+  "muted": true,
+  "note": "LOGS-5799 problem 9 (unfixable, 🙈): 'or'/'and' land at the start of the next line at the same level as the dict keys — inside dict(...) it reads like a separate key. ruff won't reindent (Black issue 4123). Desired shows the manual workaround: wrap the value in parens. Anonymised reconstruction. https://st.yandex-team.ru/LOGS-5799",
+  "created_at": "2026-06-24T12:23:36.884978+00:00"
+}

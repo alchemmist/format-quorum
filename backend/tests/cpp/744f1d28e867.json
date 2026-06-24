@@ -1,0 +1,10 @@
+{
+  "id": "744f1d28e867",
+  "name": "Style: inheritance list breaks before the comma",
+  "language": "cpp",
+  "input": "class TDerived : public TBaseOne, public TBaseTwo, public TBaseThree, public TBaseFour {};",
+  "expected": "class TDerived\n    : public TBaseOne\n    , public TBaseTwo\n    , public TBaseThree\n    , public TBaseFour { };",
+  "muted": false,
+  "note": "BreakInheritanceList: BeforeComma. https://a.yandex-team.ru/review/13704587",
+  "created_at": "2026-06-24T12:23:36.629639+00:00"
+}

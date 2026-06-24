@@ -1,0 +1,10 @@
+{
+  "id": "0711d36e96fb",
+  "name": "Style: chained method calls indentation",
+  "language": "cpp",
+  "input": "const auto result = builder.WithFirstOption(1).WithSecondOption(2).WithThirdOption(3).Build();",
+  "expected": "const auto result = builder.WithFirstOption(1).WithSecondOption(2).WithThirdOption(3).Build();",
+  "muted": false,
+  "note": "Locks current chained-call behaviour (PR thread #8). https://a.yandex-team.ru/review/13704587",
+  "created_at": "2026-06-24T12:23:36.665388+00:00"
+}

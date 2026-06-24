@@ -1,0 +1,10 @@
+{
+  "id": "9a437e20dd38",
+  "name": "PR: template closing > on its own line (like a wrapped ) )",
+  "language": "cpp",
+  "input": "namespace app {\ntemplate <typename TStateRequestMessage, typename TStateDiffMessage, typename TOutputStateMessage, typename TValidatorContext>\nclass TStateValidator {};\n}",
+  "expected": "namespace app {\ntemplate <\n    typename TStateRequestMessage,\n    typename TStateDiffMessage,\n    typename TOutputStateMessage,\n    typename TValidatorContext\n>\nclass TStateValidator { };\n} // namespace app",
+  "muted": true,
+  "note": "comment-18340323: wanted the closing '>' of a wrapped template on its own line, analogous to '()'. Anonymised reconstruction. https://a.yandex-team.ru/review/13704587/details#comment-18340323",
+  "created_at": "2026-06-24T12:23:36.813956+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "2f5028b6e32c",
+  "name": "Style: empty block keeps a space {}",
+  "language": "cpp",
+  "input": "void F() {}",
+  "expected": "void F() {\n}",
+  "muted": false,
+  "note": "SpaceInEmptyBlock: true. https://a.yandex-team.ru/review/13704587",
+  "created_at": "2026-06-24T12:23:36.462136+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "cc2adc21383e",
+  "name": "Py: magic trailing comma keeps the call expanded",
+  "language": "python",
+  "input": "f(\n    alpha,\n    beta,\n)",
+  "expected": "f(\n    alpha,\n    beta,\n)\n",
+  "muted": false,
+  "note": "skip-magic-trailing-comma = false → trailing comma keeps it multiline.",
+  "created_at": "2026-06-24T12:23:36.878117+00:00"
+}

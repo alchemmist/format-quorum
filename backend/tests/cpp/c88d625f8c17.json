@@ -1,0 +1,10 @@
+{
+  "id": "c88d625f8c17",
+  "name": "PR: compound requirement stays on one line ({ expr } -> Type)",
+  "language": "cpp",
+  "input": "namespace app {\ntemplate <typename TMessage>\nconcept CMessage = requires(TMessage msg) {\nrequires CProtoMessage<TMessage>;\n{ msg.GetSign() } -> std::same_as<NProto::int64>;\n{ msg.GetTimestamp() } -> std::same_as<NProto::uint64>;\n};\n}",
+  "expected": "namespace app {\ntemplate <typename TMessage>\nconcept CMessage = requires (TMessage msg) {\n    requires CProtoMessage<TMessage>;\n    { msg.GetSign() } -> std::same_as<NProto::int64>;\n    { msg.GetTimestamp() } -> std::same_as<NProto::uint64>;\n};\n} // namespace app",
+  "muted": true,
+  "note": "comment-18195479 (PR problem 7, requires example): clang-format 18 breaks '{ expr } -> Type' across lines even with AllowShortCompoundRequirementOnASingleLine (effective only in 19+). Anonymised reconstruction. https://a.yandex-team.ru/review/13704587/details#comment-18195479",
+  "created_at": "2026-06-24T12:23:36.816785+00:00"
+}

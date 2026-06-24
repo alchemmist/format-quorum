@@ -1,0 +1,10 @@
+{
+  "id": "913d58a6c9a6",
+  "name": "PR: blank line after namespace open and before close (muted)",
+  "language": "cpp",
+  "input": "namespace app {\nint Foo();\nint Bar();\n}",
+  "expected": "namespace app {\n\nint Foo();\nint Bar();\n\n} // namespace app",
+  "muted": true,
+  "note": "comment-18341258: a reviewer wanted one blank line right after '{' and before '}' of a namespace; clang-format cannot insert a literal blank line (the only offered alternative was wrapping the brace). Unfixable, muted. https://a.yandex-team.ru/review/13704587/details#comment-18341258",
+  "created_at": "2026-06-24T12:23:36.810791+00:00"
+}

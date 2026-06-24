@@ -1,0 +1,10 @@
+{
+  "id": "0b77af574d9a",
+  "name": "P6: lambda argument bodies indent correctly (fixed)",
+  "language": "cpp",
+  "input": "namespace app {\nvoid TWidget::Handle(const TVariant& value) {\nstd::visit(TOverloaded{[](const TFirst& f) { return f.Value; }, [](const TSecond& s) { return s.Other; }}, value);\n}\n}",
+  "expected": "namespace app {\nvoid TWidget::Handle(const TVariant& value) {\n    std::visit(\n        TOverloaded{\n            [](const TFirst& f) {\n                return f.Value;\n            },\n            [](const TSecond& s) {\n                return s.Other;\n            }\n        },\n        value\n    );\n}\n} // namespace app",
+  "muted": false,
+  "note": "LOGS-5799 problem 6 (fixed): a lambda passed as an argument (std::visit / TOverloaded) now indents its body under the lambda declaration instead of drifting to a wrong level. Anonymised reconstruction. https://st.yandex-team.ru/LOGS-5799",
+  "created_at": "2026-06-24T12:23:36.773148+00:00"
+}

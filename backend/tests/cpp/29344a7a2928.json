@@ -1,0 +1,10 @@
+{
+  "id": "29344a7a2928",
+  "name": "Style: function opening brace stays on the signature line",
+  "language": "cpp",
+  "input": "int Add(int a, int b)\n{\n    return a + b;\n}",
+  "expected": "int Add(int a, int b) {\n    return a + b;\n}",
+  "muted": false,
+  "note": "BraceWrapping.AfterFunction: false. https://st.yandex-team.ru/LOGS-4271",
+  "created_at": "2026-06-24T12:23:36.545342+00:00"
+}
