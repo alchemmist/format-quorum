@@ -28,7 +28,11 @@ import json
 import sys
 import urllib.request
 
-BASE = "http://localhost:3000"
+import os
+
+# Target instance. Defaults to the local dev server; point at prod with
+#   FQ_BASE=https://fq.alchemmist.xyz python3 scripts/seed_baseline_tests.py
+BASE = os.environ.get("FQ_BASE", "http://localhost:3000").rstrip("/")
 LOGS5799 = "https://st.yandex-team.ru/LOGS-5799"
 LOGS4271 = "https://st.yandex-team.ru/LOGS-4271"
 PR = "https://a.yandex-team.ru/review/13704587"
