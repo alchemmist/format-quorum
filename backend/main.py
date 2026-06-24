@@ -66,6 +66,9 @@ class FormatRequest(BaseModel):
     language: str = "cpp"
     # Optional clang-format version (X.Y.Z); defaults to the built-in version.
     clang_version: str | None = None
+    # Optional ad-hoc style config to use instead of the stored one (lets the
+    # tuning bench try variants without overwriting the saved config).
+    config: str | None = None
 
 
 @app.post("/api/format")
@@ -76,7 +79,9 @@ def api_format(req: FormatRequest):
         if err:
             return err
     try:
-        formatted = format_code(req.code, req.language, clang_format_bin=clang_bin)
+        formatted = format_code(
+            req.code, req.language, clang_format_bin=clang_bin, config=req.config
+        )
     except FormatError as exc:
         return JSONResponse({"error": str(exc)}, status_code=500)
     return {"formatted": formatted}
@@ -130,6 +135,8 @@ class TestPatch(BaseModel):
 class RunRequest(BaseModel):
     language: str | None = None
     clang_version: str | None = None
+    # Optional ad-hoc style config to run the suite against (tuning bench).
+    config: str | None = None
 
 
 @app.get("/api/tests")
@@ -168,7 +175,7 @@ def api_tests_run(body: RunRequest):
     clang_bin, err = _resolve_clang(body.clang_version)
     if err:
         return err
-    return run_all(tests, language=body.language, clang_bin=clang_bin)
+    return run_all(tests, language=body.language, clang_bin=clang_bin, config=body.config)
 
 
 @app.post("/api/tests/{test_id}/run")
@@ -179,7 +186,7 @@ def api_tests_run_one(test_id: str, body: RunRequest):
     clang_bin, err = _resolve_clang(body.clang_version)
     if err:
         return err
-    return run_test(rec, clang_bin)
+    return run_test(rec, clang_bin, config=body.config)
 
 
 # ── Formatter configs (single source of truth) ────────────────────────────────

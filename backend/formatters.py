@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import os
 import subprocess
+import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 
 BACKEND_DIR = Path(__file__).resolve().parent
@@ -49,36 +51,61 @@ def _run(argv: list[str], code: str) -> str:
     return proc.stdout
 
 
-def format_cpp(code: str, clang_format_bin: str | None = None) -> str:
+@contextmanager
+def _config_file(config: str | None, default_path: str, suffix: str):
+    """Yield a style/config file path. If `config` text is given, write it to a
+    temp file (used by the tuning bench to try ad-hoc configs without touching
+    the stored one); otherwise use the stored config path."""
+    if config is None:
+        yield default_path
+        return
+    tmp = tempfile.NamedTemporaryFile("w", suffix=suffix, delete=False, encoding="utf-8")
+    try:
+        tmp.write(config)
+        tmp.close()
+        yield tmp.name
+    finally:
+        os.unlink(tmp.name)
+
+
+def format_cpp(
+    code: str, clang_format_bin: str | None = None, config: str | None = None
+) -> str:
     """Format C++ source with clang-format using the house style config.
 
     `clang_format_bin` lets callers pick a specific clang-format version
     (used by the version-management feature); defaults to the base binary.
+    `config` lets callers pass ad-hoc style YAML to try without overwriting the
+    stored config; defaults to the stored config file.
     """
     binary = clang_format_bin or CLANG_FORMAT_BIN
-    return _run(
-        [
-            binary,
-            # Older clang-format versions error on config keys they don't know
-            # yet; downgrade those to warnings so one config works across
-            # versions.
-            "--Wno-error=unknown",
-            "--assume-filename=input.cpp",
-            f"--style=file:{CLANG_FORMAT_CONFIG}",
-        ],
-        code,
-    )
+    with _config_file(config, CLANG_FORMAT_CONFIG, ".clang-format") as style:
+        return _run(
+            [
+                binary,
+                # Older clang-format versions error on config keys they don't know
+                # yet; downgrade those to warnings so one config works across
+                # versions.
+                "--Wno-error=unknown",
+                "--assume-filename=input.cpp",
+                f"--style=file:{style}",
+            ],
+            code,
+        )
 
 
-def format_python(code: str) -> str:
+def format_python(code: str, config: str | None = None) -> str:
     """Format Python source with `ruff format` using the house style config."""
-    return _run(
-        [RUFF_BIN, "format", "--config", RUFF_CONFIG, "-"],
-        code,
-    )
+    with _config_file(config, RUFF_CONFIG, ".toml") as cfg:
+        return _run([RUFF_BIN, "format", "--config", cfg, "-"], code)
 
 
-def format_code(code: str, language: str, clang_format_bin: str | None = None) -> str:
+def format_code(
+    code: str,
+    language: str,
+    clang_format_bin: str | None = None,
+    config: str | None = None,
+) -> str:
     if language == "python":
-        return format_python(code)
-    return format_cpp(code, clang_format_bin=clang_format_bin)
+        return format_python(code, config=config)
+    return format_cpp(code, clang_format_bin=clang_format_bin, config=config)

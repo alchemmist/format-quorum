@@ -101,11 +101,13 @@ class TestStore:
         return True
 
 
-def run_test(rec: dict, clang_bin: str | None = None) -> dict:
+def run_test(rec: dict, clang_bin: str | None = None, config: str | None = None) -> dict:
     clang = clang_bin if rec["language"] == "cpp" else None
     error: str | None = None
     try:
-        actual = format_code(rec["input"], rec["language"], clang_format_bin=clang)
+        actual = format_code(
+            rec["input"], rec["language"], clang_format_bin=clang, config=config
+        )
     except FormatError as exc:
         actual = ""
         error = str(exc)
@@ -132,10 +134,13 @@ def run_test(rec: dict, clang_bin: str | None = None) -> dict:
 
 
 def run_all(
-    store: TestStore, language: str | None = None, clang_bin: str | None = None
+    store: TestStore,
+    language: str | None = None,
+    clang_bin: str | None = None,
+    config: str | None = None,
 ) -> dict:
     results = [
-        run_test(t, clang_bin)
+        run_test(t, clang_bin, config=config)
         for t in store.list()
         if language is None or t["language"] == language
     ]
