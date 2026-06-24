@@ -142,6 +142,7 @@ export default function App() {
     <ThemeProvider theme="dark">
       <div className="app-layout">
         <header className="app-header">
+          <div className="app-header-left">
           <h1 className="app-title">Format Quorum</h1>
 
           <div className="view-toggle">
@@ -188,6 +189,7 @@ export default function App() {
               </Button>
             </div>
           )}
+          </div>
 
           {view === 'playground' && (
             <div className="app-header-center">

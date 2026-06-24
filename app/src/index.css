@@ -25,14 +25,23 @@ body {
 }
 
 .app-header {
-  position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 12px;
   padding: 10px 20px;
   border-bottom: 1px solid #2d2d35;
   flex-shrink: 0;
   background: #16161b;
+}
+
+/* left cluster: title, view toggle, Config, draft bar */
+.app-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .app-title {
@@ -44,9 +53,7 @@ body {
 }
 
 .app-header-center {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  grid-column: 2;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -96,10 +103,11 @@ body {
 }
 
 .app-header-actions {
+  grid-column: 3;
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
+  justify-self: end;
 }
 
 .config-link-btn {
