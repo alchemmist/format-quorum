@@ -34,7 +34,9 @@ from typing import Any
 FQ_BASE = os.environ.get("FQ_BASE", "http://localhost:3000").rstrip("/")
 
 
-def _req(method, path, payload=None) -> Any:
+def _req(method, path, payload=None, tolerant=False) -> Any:
+    """Call the API. On an HTTP error, exit — unless `tolerant`, in which case
+    return None (used by the sweep so a config the version rejects just skips)."""
     data = json.dumps(payload).encode() if payload is not None else None
     headers = {"Content-Type": "application/json"} if data else {}
     req = urllib.request.Request(FQ_BASE + path, data=data, headers=headers, method=method)
@@ -42,6 +44,8 @@ def _req(method, path, payload=None) -> Any:
         with urllib.request.urlopen(req) as r:
             body = r.read().decode()
     except urllib.error.HTTPError as e:
+        if tolerant:
+            return None
         sys.exit(f"HTTP {e.code} on {method} {path}: {e.read().decode()[:300]}")
     return json.loads(body) if body else None
 
@@ -165,6 +169,80 @@ def cmd_try(a):
         print("--- target actual ---\n" + actual)
 
 
+DEFAULT_GRID = {
+    # "" as a value means "leave the key at its base-config value"
+    "AlignAfterOpenBracket": ["", "Align", "DontAlign", "AlwaysBreak", "BlockIndent"],
+    "Cpp11BracedListStyle": ["", "true", "false"],
+    "BinPackArguments": ["", "true", "false"],
+    "AllowAllArgumentsOnNextLine": ["", "true", "false"],
+    "InsertTrailingCommas": ["", "None", "Wrapped"],
+}
+
+
+def cmd_sweep(a):
+    """Exhaustively try a grid of option combinations and report which ones make
+    the TARGET TEST PASS (the only thing that counts as a fix), clean or not.
+    This is the guard against claiming a fix that was never verified."""
+    import itertools
+    t = _target(a.target)
+    desired = _norm(t["expected"])
+    base = _base_config()
+    grid = {}
+    for g in a.grid:
+        k, vs = g.split("=", 1)
+        grid[k] = [v.strip() for v in vs.split(",")]
+    if not grid:
+        grid = DEFAULT_GRID
+    names = list(grid)
+    combos = list(itertools.product(*[grid[n] for n in names]))
+    if len(combos) > a.max_combos:
+        sys.exit(f"{len(combos)} combos exceeds --max-combos={a.max_combos}; "
+                 f"narrow the grid (this would be slow and is rarely needed)")
+    print(f"[sweep] {len(combos)} combinations of {names} on {t['name']!r} @ {a.version}")
+
+    passing, closest, closest_score = [], None, -1
+    for combo in combos:
+        ov = {n: v for n, v in zip(names, combo) if v != ""}
+        variant = _apply(base, ov)
+        resp = _req("POST", "/api/format",
+                    {"code": t["input"], "language": "cpp", "clang_version": a.version,
+                     "config": variant}, tolerant=True)
+        out = resp.get("formatted") if resp else None
+        if out is None:
+            continue                                  # config the version rejects
+        if _norm(out) == desired:
+            passing.append(ov)
+        else:
+            score = sum(1 for x, y in zip(_norm(out).split("\n"), desired.split("\n")) if x == y)
+            if score > closest_score:
+                closest_score, closest = score, (ov, _norm(out))
+
+    if not passing:
+        # No combination makes the target pass — there is NO config fix (clean or
+        # destructive). State that, don't claim a breakable fix exists.
+        nlines = len(desired.split("\n"))
+        print(f"\nNO config in {a.version} makes {t['name']!r} pass — not even one that "
+              f"regresses other tests. ({len(combos)} combos tried.)")
+        if closest is not None:
+            print(f"closest matched {closest_score}/{nlines} lines with {closest[0]}:")
+            print(closest[1])
+        return
+
+    # Some combos pass — measure regressions to label clean vs destructive.
+    _, base_pass, _, _ = _run_suite(a.version)
+    scored = []
+    for ov in passing:
+        _, vp, _, vm = _run_suite(a.version, _apply(base, ov))
+        scored.append((ov, sorted(base_pass - vp - vm)))
+    scored.sort(key=lambda x: len(x[1]))
+    print(f"\n{len(scored)} combo(s) make the target PASS:")
+    for ov, regress in scored:
+        tag = "CLEAN FIX" if not regress else f"destructive (regresses {len(regress)})"
+        print(f"  [{tag}] {ov}")
+        if regress:
+            print(f"      regressions: {regress}")
+
+
 def main():
     p = argparse.ArgumentParser(description=f"clang-format tuning over format-quorum ({FQ_BASE})")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -177,6 +255,12 @@ def main():
     s.add_argument("--set", action="append", default=[], metavar="Key=Value")
     s.add_argument("--config-file"); s.add_argument("--show", action="store_true")
     s.set_defaults(fn=cmd_try)
+    s = sub.add_parser("sweep", help="try a grid of combos; report which make the target PASS")
+    s.add_argument("--target", required=True); s.add_argument("--version", required=True)
+    s.add_argument("--grid", action="append", default=[], metavar="Key=v1,v2,..",
+                   help="option grid axis (repeatable); omit to use the default brace/wrap grid")
+    s.add_argument("--max-combos", type=int, default=2000)
+    s.set_defaults(fn=cmd_sweep)
     a = p.parse_args(); a.fn(a)
 
 

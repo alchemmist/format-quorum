@@ -23,6 +23,17 @@ edit config files on disk — drive everything via cfprobe / the API.
 
 ## Hard rules
 
+- **A fix exists only if the TARGET TEST PASSES — verify, never infer.** An option
+  that merely *changes* the output, or that *regresses* other tests, is **not** a
+  fix. "Regresses other tests" and "fixes the target" are independent facts — an
+  option can do the first without the second. Never say a problem is "fixable (by
+  breaking other places)" unless a cfprobe run shows the target test actually
+  **passing**. If you haven't seen `TARGET … PASS`, you have no fix.
+- **Prove "no fix" with a sweep, not with a hunch.** Before concluding "no config
+  option" or "only a destructive fix", run `cfprobe sweep` — it tries every
+  combination in the grid and reports exactly which (if any) make the target pass.
+  Eyeballing a few one-at-a-time toggles is not enough to claim a fix is
+  impossible *or* that a destructive one exists.
 - **One version only.** Tune for the single clang-format version you were given
   (ask the user; default = the instance's `default` from `GET /api/clang-versions`).
   Do **not** test or recommend any other version. An option that exists only in a
@@ -86,24 +97,40 @@ After every run read two lines:
 (`curl $FQ_BASE/api/config/cpp`), edit a copy, and pass it whole with
 `--config-file PATH`.
 
-### 6. If docs + experiments don't crack it → search the web
+### 6. Sweep before concluding
+Once you've narrowed the candidate options, run the exhaustive sweep — it is the
+thing that turns "I think" into "I verified":
+```bash
+cfprobe.py sweep --target P5 --version X.Y.Z \
+  --grid AlignAfterOpenBracket=,Align,DontAlign,BlockIndent \
+  --grid Cpp11BracedListStyle=,true,false \
+  --grid InsertTrailingCommas=,None,Wrapped
+# (no --grid → a default brace/wrap grid)
+```
+It reports either the combos that make the target **PASS** (labelled CLEAN FIX or
+destructive with the regression list) or, if none do, `NO config … makes it pass`
+plus the closest output. Your conclusion must match what the sweep showed.
+
+### 7. If docs + experiments don't crack it → search the web
 WebSearch the exact behavior (e.g. "clang-format nested braced initializer not
 breaking after open brace"). Read llvm-project GitHub issues, LLVM Discourse,
 Stack Overflow. Re-test anything you find with `cfprobe try` **on the pinned
 version only** — if the fix is "added in a later release", it does not apply.
 
-### 7. Conclude
-The stored config was never changed, so there's nothing to revert. Report one of:
-- **Clean fix:** target passes, zero regressions → give the exact `.clang-format`
-  line(s) to add, and offer to apply + commit them.
-- **Trade-off only:** an option fixes the target but regresses other tests →
-  present the regression list and let the user decide.
-- **No config option:** nothing in the target version achieves it (the needed
-  knob doesn't exist, or every option that helps also drives an unrelated
-  construct and regresses agreed styles). State that plainly and explain the
-  conflict — that a single option governs several constructs at once, so you
-  can't fix this one without breaking the others. (Don't mention the off/on
-  escape hatch.)
+### 8. Conclude — matching exactly what the sweep showed
+The stored config was never changed, so there's nothing to revert. Report exactly
+one of these, and only the one the sweep actually demonstrated:
+- **Clean fix** (sweep showed a combo with target PASS, 0 regressions) → give the
+  exact `.clang-format` line(s) to add, and offer to apply + commit them.
+- **Destructive fix** (sweep showed a combo with target PASS **but** regressions)
+  → only then may you say "fixable by sacrificing X"; list the exact regressions
+  and let the user decide. Do not claim this unless a combo actually passed.
+- **No config option** (sweep showed NO combo makes the target pass) → say plainly
+  that no option in this version achieves it — *not even a destructive one*.
+  Explain why (the needed knob doesn't exist in this version; the options that
+  come closest only change the layout and regress agreed styles because one option
+  governs several constructs at once). Don't imply a breakable fix exists, and
+  don't mention the off/on escape hatch.
 
 ## Notes
 - The bench mirrors format-quorum exactly (it *is* the API): same flags, same
