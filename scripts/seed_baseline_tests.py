@@ -175,9 +175,10 @@ CASES = [
   "        .Buckets =\n            {\n                {.Lo = 1000, .Hi = 2000},\n"
   "                {.Lo = 3000, .Hi = 4000},\n                {.Lo = 5000, .Hi = 6000},\n"
   "                {.Lo = 7000, .Hi = 8000},\n            },\n        .Limit = 9,\n    };\n}\n} // namespace app",
-  False,
-  f"LOGS-5799 problem 5 (open): nested brace-init levels align to the brace instead "
-  f"of indenting cleanly. Anonymised reconstruction. {LOGS5799}"),
+  True,
+  f"LOGS-5799 problem 5 (🙈): the block-indented inner list is unreachable — no option "
+  f"combination produces it; AlignAfterOpenBracket/Cpp11BracedListStyle only regress "
+  f"other styles. Anonymised reconstruction. {LOGS5799}"),
 
  # ─── problem 6 (fixed) — lambda argument bodies indent correctly ────────────
  ("P6: lambda argument bodies indent correctly (fixed)", "cpp", "lock",
@@ -196,9 +197,9 @@ CASES = [
   "namespace app {\nvoid TWidget::Open() {\n    Reader_ = new NLib::TTableReader<NProto::TMessage>(\n"
   "        new NLib::TProtoReader(\n            client->CreateRawReader(\n"
   "                paths.at(currentIndex),\n                NLib::TFormat::Protobuf({prototype->GetDescriptor()}, false))));\n}\n} // namespace app",
-  False,
-  f"LOGS-5799 problem 8 (open): inner call/template args don't gain indentation. "
-  f"Anonymised reconstruction. {LOGS5799}"),
+  True,
+  f"LOGS-5799 problem 8 (🙈): progressive indentation of nested calls is unreachable — "
+  f"no option combination produces it. Anonymised reconstruction. {LOGS5799}"),
 
  # ─── PR review/13704587 — still-open threads (want) ─────────────────────────
  ("PR: multiline if wraps the brace onto its own line (option в2)", "cpp", "lock",
