@@ -10,7 +10,7 @@ import {
   Text,
   TextInput,
 } from '@gravity-ui/uikit'
-import { Pencil, TrashBin } from '@gravity-ui/icons'
+import { Pencil, PlayFill, TrashBin } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import { getQueryParam, setQueryParam, testShareUrl } from './url'
 import { computeDiff } from './useDiff'
@@ -78,6 +78,7 @@ export default function TestsView({
   const [tests, setTests] = useState<TestCase[]>([])
   const [results, setResults] = useState<Record<string, RunResult>>({})
   const [running, setRunning] = useState(false)
+  const [runningId, setRunningId] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | Language>(
     initialFilter === 'cpp' || initialFilter === 'python' ? initialFilter : 'all',
   )
@@ -196,6 +197,33 @@ export default function TestsView({
       setRunning(false)
     }
   }, [filter, runVersion])
+
+  // run a single test against the selected clang-format version
+  const runOne = useCallback(
+    async (test: TestCase) => {
+      setRunningId(test.id)
+      setError(null)
+      try {
+        const res = await fetch(`/api/tests/${test.id}/run`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clang_version: runVersion }),
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          setError(data.error ?? 'Run failed')
+          return
+        }
+        setResults((prev) => ({ ...prev, [test.id]: data }))
+        setExpanded((prev) => new Set(prev).add(test.id))
+      } catch (e) {
+        setError(String(e))
+      } finally {
+        setRunningId(null)
+      }
+    },
+    [runVersion],
+  )
 
   const toggleMute = useCallback(async (test: TestCase) => {
     const res = await fetch(`/api/tests/${test.id}`, {
@@ -416,6 +444,22 @@ export default function TestsView({
                     mute
                   </Checkbox>
                 </span>
+                <Button
+                  view="flat"
+                  size="s"
+                  title="Run this test"
+                  disabled={runningId === test.id}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    runOne(test)
+                  }}
+                >
+                  {runningId === test.id ? (
+                    <Spin size="xs" />
+                  ) : (
+                    <Icon data={PlayFill} size={16} />
+                  )}
+                </Button>
                 <Button
                   view="flat"
                   size="s"
