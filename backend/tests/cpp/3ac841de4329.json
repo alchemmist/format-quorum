@@ -1,0 +1,10 @@
+{
+  "id": "3ac841de4329",
+  "name": "Style: short enum is not collapsed onto one line",
+  "language": "cpp",
+  "input": "enum class EKind { First, Second, Third };",
+  "expected": "enum class EKind {\n    First,\n    Second,\n    Third\n};",
+  "muted": false,
+  "note": "AllowShortEnumsOnASingleLine: false. https://a.yandex-team.ru/review/13704587",
+  "created_at": "2026-06-24T10:53:45.539556+00:00"
+}

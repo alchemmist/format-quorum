@@ -1,0 +1,10 @@
+{
+  "id": "ab211c3a701f",
+  "name": "PR: opening { on next line for ctors with an initializer list",
+  "language": "cpp",
+  "input": "namespace app {\nclass TWidget {\npublic:\nTWidget(int firstValue, int secondValue) : First_(firstValue), Second_(secondValue) {\nInitialize();\n}\n\nprivate:\nint First_, Second_;\n};\n}",
+  "expected": "namespace app {\nclass TWidget {\npublic:\n    TWidget(int firstValue, int secondValue)\n        : First_(firstValue)\n        , Second_(secondValue)\n    {\n        Initialize();\n    }\n\nprivate:\n    int First_, Second_;\n};\n} // namespace app",
+  "muted": true,
+  "note": "comment-18340933: wanted '{' on the next line for constructors with an initializer list. Anonymised reconstruction. https://a.yandex-team.ru/review/13704587/details#comment-18340933",
+  "created_at": "2026-06-24T10:53:45.980232+00:00"
+}

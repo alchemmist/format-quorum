@@ -1,0 +1,10 @@
+{
+  "id": "2db3bc6f9c10",
+  "name": "Style: short function is not collapsed onto one line",
+  "language": "cpp",
+  "input": "struct T {\n    int Get() { return X; }\n    int X;\n};",
+  "expected": "struct T {\n    int Get() {\n        return X;\n    }\n\n    int X;\n};",
+  "muted": false,
+  "note": "AllowShortFunctionsOnASingleLine: false. https://a.yandex-team.ru/review/13704587",
+  "created_at": "2026-06-24T10:53:45.524337+00:00"
+}

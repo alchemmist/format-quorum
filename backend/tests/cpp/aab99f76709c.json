@@ -1,0 +1,10 @@
+{
+  "id": "aab99f76709c",
+  "name": "P8: nested template/call arguments indentation",
+  "language": "cpp",
+  "input": "namespace app {\nvoid TWidget::Open() {\nReader_ = new NLib::TTableReader<NProto::TMessage>(new NLib::TProtoReader(client->CreateRawReader(paths.at(currentIndex), NLib::TFormat::Protobuf({prototype->GetDescriptor()}, false))));\n}\n}",
+  "expected": "namespace app {\nvoid TWidget::Open() {\n    Reader_ = new NLib::TTableReader<NProto::TMessage>(\n        new NLib::TProtoReader(\n            client->CreateRawReader(\n                paths.at(currentIndex),\n                NLib::TFormat::Protobuf({prototype->GetDescriptor()}, false))));\n}\n} // namespace app",
+  "muted": false,
+  "note": "LOGS-5799 problem 8 (open): inner call/template args don't gain indentation. Anonymised reconstruction. https://st.yandex-team.ru/LOGS-5799",
+  "created_at": "2026-06-24T10:53:45.832225+00:00"
+}

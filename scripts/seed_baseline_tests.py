@@ -149,14 +149,14 @@ CASES = [
  # ─── problem 3 (unfixable, muted) — break after '=' in a parenthesised expr ──
  ("P3: no line break after '=' in an assignment (muted)", "cpp", "want",
   "namespace app {\nclass TWidget {\nvoid Process(const TMessage& message) {\n"
-  "auto parseLag = (TInstant::Now() - TInstant::Seconds(message.GetTimestamps().GetSourceTimeMs()));\n}\n};\n}",
+  "auto parseLag = (TInstant::Now() - TInstant::Seconds(message.GetProfileTimestamps().GetStageWallTime()));\n}\n};\n}",
   "namespace app {\nclass TWidget {\n    void Process(const TMessage& message) {\n"
-  "        auto parseLag = TInstant::Now() - TInstant::Seconds(message.GetTimestamps().GetSourceTimeMs());\n"
+  "        auto parseLag = TInstant::Now() - TInstant::Seconds(message.GetProfileTimestamps().GetStageWallTime());\n"
   "    }\n};\n} // namespace app",
   True,
   f"LOGS-5799 problem 3 (unfixable, 🙈): the right-hand side breaks after '=' and the "
-  f"parenthesised expression block-indents with a dangling ')'. Muted compromise. "
-  f"Anonymised reconstruction. {LOGS5799}"),
+  f"parenthesised expression block-indents with the closing ')' dangling on its own line "
+  f"(staircase). Muted compromise. Anonymised reconstruction. {LOGS5799}"),
 
  # ─── problem 5 (open) — nested designated initializers indentation ──────────
  ("P5: nested designated initializers indentation", "cpp", "want",

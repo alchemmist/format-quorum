@@ -1,0 +1,10 @@
+{
+  "id": "0ee7bae9f932",
+  "name": "Style: blank line between function definitions",
+  "language": "cpp",
+  "input": "int A() {\n    return 1;\n}\nint B() {\n    return 2;\n}",
+  "expected": "int A() {\n    return 1;\n}\n\nint B() {\n    return 2;\n}",
+  "muted": false,
+  "note": "SeparateDefinitionBlocks: Always. https://a.yandex-team.ru/review/13704587",
+  "created_at": "2026-06-24T10:53:45.554895+00:00"
+}
