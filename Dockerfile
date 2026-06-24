@@ -31,13 +31,19 @@ RUN pip install --no-cache-dir -r requirements.txt
 # backend source + formatter configs
 COPY backend/ .
 
+# baseline tests baked into the image as a read-only seed; the entrypoint copies
+# them into the (named-volume) tests dir only when that volume is still empty.
+COPY backend/tests /app/tests-seed
+
 # built frontend
 COPY --from=builder /build/dist ./frontend
+
+RUN chmod +x /app/entrypoint.sh
 
 ENV FRONTEND_DIST=/app/frontend \
     PORT=3000
 
 EXPOSE 3000
 
-# shell form so ${PORT} is expanded at runtime
-CMD uvicorn main:app --host 0.0.0.0 --port ${PORT}
+# entrypoint seeds the tests volume if empty, then execs uvicorn
+CMD ["/app/entrypoint.sh"]
