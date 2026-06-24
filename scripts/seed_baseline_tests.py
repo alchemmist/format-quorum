@@ -3,8 +3,14 @@
 
 Re-creates backend/tests/** from a single source of truth grounded in:
   - LOGS-4271  — the config setup ticket (agreed rules)
-  - review/13704587 — the config-review PR (inline discussion threads)
+  - review/13704587 — the config-review PR (description problems + threads)
   - LOGS-5799  — the follow-up ticket of remaining formatting problems
+
+Every problem case is an **anonymised reconstruction**: the issue was looked up
+in the ticket/PR, then rebuilt with the same structural context (namespace /
+class / method nesting, nested calls) that drives clang-format's column-based
+wrapping — but with generic names and no real source code (NDA). Only the
+essence is kept.
 
 Test modes:
   lock : expected = what the current config produces. A green regression guard
@@ -13,6 +19,7 @@ Test modes:
          achieve (a still-open issue). Stays red until fixed.
   guard: like lock, but the input is the *old bad* form — proves the current
          config/clang-format version no longer reproduces it.
+  muted tests (muted=True) show yellow regardless — accepted compromises.
 
 Run against a running instance:  python3 scripts/seed_baseline_tests.py
 """
@@ -74,12 +81,6 @@ CASES = [
   f"IndentCaseLabels: true. {PR}"),
  ("Style: empty block keeps a space {}", "cpp", "lock",
   "void F() {}", None, False, f"SpaceInEmptyBlock: true. {PR}"),
- ("Style: class opening brace stays on the header line", "cpp", "lock",
-  "class TFoo\n{\npublic:\n    int X;\n};", None, False,
-  f"BraceWrapping.AfterClass: false — opening brace on the same line. {LOGS4271}"),
- ("Style: function opening brace stays on the signature line", "cpp", "lock",
-  "int Add(int a, int b)\n{\n    return a + b;\n}", None, False,
-  f"BraceWrapping.AfterFunction: false. {LOGS4271}"),
  ("Style: short function is not collapsed onto one line", "cpp", "lock",
   "struct T {\n    int Get() { return X; }\n    int X;\n};", None, False,
   f"AllowShortFunctionsOnASingleLine: false. {PR}"),
@@ -89,118 +90,162 @@ CASES = [
  ("Style: blank line between function definitions", "cpp", "lock",
   "int A() {\n    return 1;\n}\nint B() {\n    return 2;\n}", None, False,
   f"SeparateDefinitionBlocks: Always. {PR}"),
- ("Style: template declaration breaks before the function", "cpp", "lock",
-  "template <typename T> T Identity(T value);", None, False,
-  f"AlwaysBreakTemplateDeclarations: Yes — template on its own line. PR thread: "
-  f"'template и class должны быть на разных строках'. {PR}"),
- ("Style: long template parameter list — one per line", "cpp", "lock",
-  "template <typename TRow, typename TOutput, typename TKeyRequest, typename TStateProxy, bool SimpleKeyRequest = false>\nclass TProcessor {};",
-  None, False,
-  f"Long template decl wraps each parameter. PR thread #32. {PR}"),
- ("Style: long function arguments — one per line (no bin-packing)", "cpp", "lock",
-  "void Configure(const TOptions& options, const TContext& context, int retryCount, bool verboseLogging);",
-  None, False, f"BinPackArguments: false, AllowAllArgumentsOnNextLine: false. {PR}"),
- ("Style: constructor initializer list — leading comma, one per line", "cpp", "lock",
-  "struct TFoo {\n    TFoo(int a, int b, int c) : A_(a), B_(b), C_(c) {}\n    int A_, B_, C_;\n};",
-  None, False,
-  f"BreakConstructorInitializers: BeforeComma, PackConstructorInitializers: Never. {PR}"),
- ("Style: inheritance list breaks before the comma", "cpp", "lock",
-  "class TDerived : public TBaseOne, public TBaseTwo, public TBaseThree, public TBaseFour {};",
-  None, False, f"BreakInheritanceList: BeforeComma. {PR}"),
  ("Style: ternary breaks before the operator", "cpp", "lock",
   "const auto value = someConditionThatIsFairlyLong ? theFirstAlternativeValue : theSecondAlternativeValue;",
   None, False, f"BreakBeforeTernaryOperators: true. {PR}"),
+ ("Style: function opening brace stays on the signature line", "cpp", "lock",
+  "int Add(int a, int b)\n{\n    return a + b;\n}", None, False,
+  f"BraceWrapping.AfterFunction: false. {LOGS4271}"),
+ ("Style: template declaration breaks before the function", "cpp", "lock",
+  "template <typename T> T Identity(T value);", None, False,
+  f"AlwaysBreakTemplateDeclarations: Yes. {PR}"),
+ ("Style: long template parameter list — one per line", "cpp", "lock",
+  "template <typename TRow, typename TOutput, typename TKeyRequest, typename TStateProxy, bool SimpleKeyRequest = false>\nclass TProcessor {};",
+  None, False, f"Long template decl wraps each parameter. {PR}"),
+ ("Style: long function arguments — one per line (no bin-packing)", "cpp", "lock",
+  "void Configure(const TOptions& options, const TContext& context, int retryCount, bool verboseLogging);",
+  None, False, f"BinPackArguments: false. {PR}"),
+ ("Style: constructor initializer list — leading comma, one per line", "cpp", "lock",
+  "struct TFoo {\n    TFoo(int a, int b, int c) : A_(a), B_(b), C_(c) {}\n    int A_, B_, C_;\n};",
+  None, False, f"BreakConstructorInitializers: BeforeComma, PackConstructorInitializers: Never. {PR}"),
+ ("Style: inheritance list breaks before the comma", "cpp", "lock",
+  "class TDerived : public TBaseOne, public TBaseTwo, public TBaseThree, public TBaseFour {};",
+  None, False, f"BreakInheritanceList: BeforeComma. {PR}"),
  ("Style: concept declaration breaks before the concept", "cpp", "lock",
   "template <typename T>\nconcept TScorable = requires(T t) { { t.Score() } -> std::convertible_to<double>; };",
-  None, False, f"BreakBeforeConceptDeclarations: true. {PR}"),
+  None, False, f"BreakBeforeConceptDeclarations. {PR}"),
  ("Style: chained method calls indentation", "cpp", "lock",
   "const auto result = builder.WithFirstOption(1).WithSecondOption(2).WithThirdOption(3).Build();",
-  None, False,
-  f"PR thread #8: ')->Run()' breaking was discussed. Locks current behaviour. {PR}"),
+  None, False, f"Locks current chained-call behaviour (PR thread #8). {PR}"),
 
- # ─────────────────────────── LOGS-5799 fixed problems (lock) ────────────────
+ # ─── LOGS-5799 problem 1 (fixed) — class opening brace, in a namespace ───────
  ("P1: class opening brace stays on the header line", "cpp", "lock",
-  "class TFoo\n{\npublic:\n    int X;\n};", None, False,
-  f"LOGS-5799 problem 1 (fixed). {LOGS5799}"),
- ("P2: return type stays on the function-name line", "cpp", "lock",
-  "std::vector<TString> ComputeReducedSessionsForRequest(const TRequest& request, int limitValue, bool flag);",
-  None, False, f"LOGS-5799 problem 2 (fixed): wrap after '(' by args. {LOGS5799}"),
- ("P4: consistent closing-bracket indentation", "cpp", "lock",
-  "DoCall(Wrap([&] {\nProcess();\nFinish();\n}), MakeOptions(optionAlpha, optionBeta, optionGamma, optionDelta));",
-  None, False, f"LOGS-5799 problem 4 (fixed): no ragged closing-bracket staircase. {LOGS5799}"),
- ("P7: empty () call is not split onto two lines", "cpp", "guard",
-  "NAntifraud::NProto::TUndoChEventVerdict& undoCheventVerdict = *res.MutableUndoCheventVerdictMsg(\n);",
+  "namespace app {\nclass TWidget : public IWidget {\npublic:\nint Value;\n};\n}",
   None, False,
-  f"LOGS-5799 problem 7: empty () used to split; clang-format 22 keeps it on one line. {LOGS5799}"),
+  f"LOGS-5799 problem 1 (fixed). Anonymised reconstruction. {LOGS5799}"),
 
- # ─────────────────────────── LOGS-5799 open problems (want) ─────────────────
+ # ─── problem 2 (fixed) — return type stays with the name, args wrap ──────────
+ ("P2: return type stays on the function-name line", "cpp", "lock",
+  "namespace app {\nclass TSessionStore {\npublic:\n"
+  "TVector<TReducedSession> ComputeReducedSessionsForRequest(const TRequest& request, int limitValue, bool flag);\n};\n}",
+  None, False,
+  f"LOGS-5799 problem 2 (fixed): wrap after '(' by args. Anonymised. {LOGS5799}"),
+
+ # ─── problem 4 (fixed) — closing brackets in a nested call ───────────────────
+ ("P4: consistent closing-bracket indentation", "cpp", "lock",
+  "namespace app {\nvoid TWidget::Process() {\n"
+  "RunPipeline(WrapHandler([&] {\nDoStep();\nFinalize();\n}), MakeOptions(optionAlpha, optionBeta, optionGamma, optionDelta));\n}\n}",
+  None, False,
+  f"LOGS-5799 problem 4 (fixed): no ragged closing-bracket staircase. Anonymised. {LOGS5799}"),
+
+ # ─── problem 7 (guard) — empty () not split, inside a method ─────────────────
+ ("P7: empty () call is not split onto two lines", "cpp", "guard",
+  "namespace app {\nvoid TWidget::Finish(TResponse& response) {\n"
+  "NDomain::TVerdict& verdict = *response.MutableVerdictMessageFieldData(\n);\n}\n}",
+  None, False,
+  f"LOGS-5799 problem 7: empty () used to split; clang-format 22 keeps it on one "
+  f"line — guard. Anonymised. {LOGS5799}"),
+
+ # ─── problem 3 (unfixable, muted) — break after '=' in a parenthesised expr ──
  ("P3: no line break after '=' in an assignment (muted)", "cpp", "want",
-  "const auto verdict = response.MutableProfileData()->CalculateSomethingWithLongName(argumentOne, argumentTwo);",
-  "const auto verdict = response.MutableProfileData()->CalculateSomethingWithLongName(\n"
-  "    argumentOne, argumentTwo);",
-  True, f"LOGS-5799 problem 3 (unfixable): only AlignAfterOpenBracket: DontAlign removes it, "
-  f"which breaks other places. Muted compromise. {LOGS5799}"),
- ("P5: nested designated initializers indentation", "cpp", "want",
-  "TSomeLongConfigName cfg = {.FieldNumberOne = {{.A = 1, .B = 2}, {.A = 3, .B = 4}}, .FieldNumberTwo = {{.A = 5}}};",
-  "TSomeLongConfigName cfg = {\n    .FieldNumberOne =\n        {\n            {.A = 1, .B = 2},\n"
-  "            {.A = 3, .B = 4},\n        },\n    .FieldNumberTwo = {{.A = 5}},\n};",
-  False, f"LOGS-5799 problem 5 (open). {LOGS5799}"),
- ("P6: lambda arguments keep a readable indentation", "cpp", "want",
-  "std::visit(TOverloaded{[](const TFirst& f) { return f.Value; }, [](const TSecond& s) { return s.Other; }}, variant);",
-  "std::visit(\n    TOverloaded{\n        [](const TFirst& f) { return f.Value; },\n"
-  "        [](const TSecond& s) { return s.Other; },\n    },\n    variant);",
-  False, f"LOGS-5799 problem 6: ticket marks it fixed, but this config still aligns lambda args "
-  f"to the brace. Also PR threads #37 #38. {LOGS5799}"),
- ("P8: nested template/call arguments indentation", "cpp", "want",
-  "TableReader_ = new NYT::TTableReader<NProtoBuf::Message>(new NYT::TLenvalProtoTableReader(Client_->CreateRawReader(TablePaths_.at(CurrentTableIdx_), NYT::TFormat::Protobuf({ProtoMessagePrototype_->GetDescriptor()}, false))));",
-  "TableReader_ = new NYT::TTableReader<NProtoBuf::Message>(\n    new NYT::TLenvalProtoTableReader(\n"
-  "        Client_->CreateRawReader(\n            TablePaths_.at(CurrentTableIdx_),\n"
-  "            NYT::TFormat::Protobuf({ProtoMessagePrototype_->GetDescriptor()}, false))));",
-  False, f"LOGS-5799 problem 8 (open). {LOGS5799}"),
+  "namespace app {\nclass TWidget {\nvoid Process(const TMessage& message) {\n"
+  "auto parseLag = (TInstant::Now() - TInstant::Seconds(message.GetTimestamps().GetSourceTimeMs()));\n}\n};\n}",
+  "namespace app {\nclass TWidget {\n    void Process(const TMessage& message) {\n"
+  "        auto parseLag = TInstant::Now() - TInstant::Seconds(message.GetTimestamps().GetSourceTimeMs());\n"
+  "    }\n};\n} // namespace app",
+  True,
+  f"LOGS-5799 problem 3 (unfixable, 🙈): the right-hand side breaks after '=' and the "
+  f"parenthesised expression block-indents with a dangling ')'. Muted compromise. "
+  f"Anonymised reconstruction. {LOGS5799}"),
 
- # ─────────────────────────── PR review/13704587 open threads (want) ─────────
+ # ─── problem 5 (open) — nested designated initializers indentation ──────────
+ ("P5: nested designated initializers indentation", "cpp", "want",
+  "namespace app {\nvoid TWidget::Configure() {\n"
+  "TModelConfig config = {.Buckets = {{.Lo = 1000, .Hi = 2000}, {.Lo = 3000, .Hi = 4000}, {.Lo = 5000, .Hi = 6000}, {.Lo = 7000, .Hi = 8000}}, .Limit = 9};\n}\n}",
+  "namespace app {\nvoid TWidget::Configure() {\n    TModelConfig config = {\n"
+  "        .Buckets =\n            {\n                {.Lo = 1000, .Hi = 2000},\n"
+  "                {.Lo = 3000, .Hi = 4000},\n                {.Lo = 5000, .Hi = 6000},\n"
+  "                {.Lo = 7000, .Hi = 8000},\n            },\n        .Limit = 9,\n    };\n}\n} // namespace app",
+  False,
+  f"LOGS-5799 problem 5 (open): nested brace-init levels align to the brace instead "
+  f"of indenting cleanly. Anonymised reconstruction. {LOGS5799}"),
+
+ # ─── problem 6 (open in this config) — lambda arguments indentation ─────────
+ ("P6: lambda arguments keep a readable indentation", "cpp", "want",
+  "namespace app {\nvoid TWidget::Handle(const TVariant& value) {\n"
+  "std::visit(TOverloaded{[](const TFirst& f) { return f.Value; }, [](const TSecond& s) { return s.Other; }}, value);\n}\n}",
+  "namespace app {\nvoid TWidget::Handle(const TVariant& value) {\n    std::visit(\n"
+  "        TOverloaded{\n            [](const TFirst& f) { return f.Value; },\n"
+  "            [](const TSecond& s) { return s.Other; },\n        },\n        value);\n}\n} // namespace app",
+  False,
+  f"LOGS-5799 problem 6: this config still aligns lambda args to the opening brace. "
+  f"Anonymised reconstruction. {LOGS5799}"),
+
+ # ─── problem 8 (open) — nested template/call argument indentation ───────────
+ ("P8: nested template/call arguments indentation", "cpp", "want",
+  "namespace app {\nvoid TWidget::Open() {\n"
+  "Reader_ = new NLib::TTableReader<NProto::TMessage>(new NLib::TProtoReader(client->CreateRawReader(paths.at(currentIndex), NLib::TFormat::Protobuf({prototype->GetDescriptor()}, false))));\n}\n}",
+  "namespace app {\nvoid TWidget::Open() {\n    Reader_ = new NLib::TTableReader<NProto::TMessage>(\n"
+  "        new NLib::TProtoReader(\n            client->CreateRawReader(\n"
+  "                paths.at(currentIndex),\n                NLib::TFormat::Protobuf({prototype->GetDescriptor()}, false))));\n}\n} // namespace app",
+  False,
+  f"LOGS-5799 problem 8 (open): inner call/template args don't gain indentation. "
+  f"Anonymised reconstruction. {LOGS5799}"),
+
+ # ─── PR review/13704587 — still-open threads (want) ─────────────────────────
  ("PR: multiline if — operator at line start, ) { de-indented", "cpp", "want",
-  "void F() {\n    if (!signMessages->empty() && signMessages->begin()->WriteTimestamp <= notificationWriteTimestamp) {\n        G();\n    }\n}",
-  "void F() {\n    if (\n        !signMessages->empty()\n"
-  "        && signMessages->begin()->WriteTimestamp <= notificationWriteTimestamp\n    ) {\n        G();\n    }\n}",
-  False, f"PR thread #31: preferred multiline-if style (operator leading, ')' de-indented). {PR}"),
+  "namespace app {\nvoid TWidget::Process(TState* state) {\n"
+  "if (!pendingMessages->empty() && pendingMessages->begin()->WriteTimestamp <= notificationWriteTimestamp) {\nHandle(state);\n}\n}\n}",
+  "namespace app {\nvoid TWidget::Process(TState* state) {\n    if (\n"
+  "        !pendingMessages->empty()\n"
+  "        && pendingMessages->begin()->WriteTimestamp <= notificationWriteTimestamp\n"
+  "    ) {\n        Handle(state);\n    }\n}\n} // namespace app",
+  False,
+  f"PR thread #31: preferred multiline-if style (operator leading, ')' de-indented). "
+  f"Anonymised reconstruction. {PR}"),
  ("PR: blank line after namespace open and before close", "cpp", "want",
-  "namespace NFoo {\nint Foo();\nint Bar();\n}",
-  "namespace NFoo {\n\nint Foo();\nint Bar();\n\n} // namespace NFoo",
-  False, f"PR thread #35: wanted one blank line after '{{' and before '}}' of a namespace — "
+  "namespace app {\nint Foo();\nint Bar();\n}",
+  "namespace app {\n\nint Foo();\nint Bar();\n\n} // namespace app",
+  False,
+  f"PR thread #35: wanted one blank line after '{{' and before '}}' of a namespace — "
   f"not configurable in clang-format. {PR}"),
 
- # ─── PR review/13704587 — accepted compromises (muted, 🙈 unfixable) ──────────
+ # ─── PR review/13704587 — accepted compromises (muted, 🙈 unfixable) ─────────
  ("PR3: arrow operator stays attached to the closing )", "cpp", "want",
-  "void F() {\n    auto result = sessionBuilder.MakeReducedSessionProcessor(firstArgument, secondArgument, thirdArgument)->Run();\n}",
-  "void F() {\n    auto result =\n        sessionBuilder.MakeReducedSessionProcessor(firstArgument, secondArgument, thirdArgument)->Run();\n}",
+  "namespace app {\nvoid TWidget::Run() {\n"
+  "auto result = sessionBuilder.MakeReducedSessionProcessor(firstArgument, secondArgument, thirdArgument)->Run();\n}\n}",
+  "namespace app {\nvoid TWidget::Run() {\n    auto result =\n"
+  "        sessionBuilder.MakeReducedSessionProcessor(firstArgument, secondArgument, thirdArgument)->Run();\n}\n} // namespace app",
   True,
-  f"PR description problem 3 (🙈, never fixed) + comment-18183104: '`)->Run()`' becomes "
-  f"'`)` newline `->Run()`'. Wanted the arrow to stay with the ')'. Unfixable in clang-format. {PR}/details#comment-18183104"),
+  f"PR description problem 3 (🙈) + comment-18183104: '`)->Run()`' becomes "
+  f"'`)` newline `->Run()`'. Anonymised reconstruction. {PR}/details#comment-18183104"),
  ("PR: template closing > on its own line (like a wrapped ) )", "cpp", "want",
-  "template <typename TFirstRowType, typename TSecondRowType, typename TThirdRowType, typename TFourthRowType>\nclass TRowsProcessor {};",
-  "template <\n    typename TFirstRowType,\n    typename TSecondRowType,\n    typename TThirdRowType,\n"
-  "    typename TFourthRowType\n>\nclass TRowsProcessor { };",
+  "namespace app {\ntemplate <typename TStateRequestMessage, typename TStateDiffMessage, typename TOutputStateMessage, typename TValidatorContext>\nclass TStateValidator {};\n}",
+  "namespace app {\ntemplate <\n    typename TStateRequestMessage,\n    typename TStateDiffMessage,\n"
+  "    typename TOutputStateMessage,\n    typename TValidatorContext\n>\nclass TStateValidator { };\n} // namespace app",
   True,
   f"comment-18340323: wanted the closing '>' of a wrapped template on its own line, "
-  f"analogous to how '()' wraps. Not configurable in clang-format. {PR}/details#comment-18340323"),
+  f"analogous to '()'. Anonymised reconstruction. {PR}/details#comment-18340323"),
  ("PR: opening { on next line for ctors with an initializer list", "cpp", "want",
-  "struct TFoo {\n    TFoo(int firstValue, int secondValue) : First_(firstValue), Second_(secondValue) {\n        Init();\n    }\n    int First_, Second_;\n};",
-  "struct TFoo {\n    TFoo(int firstValue, int secondValue)\n        : First_(firstValue)\n"
-  "        , Second_(secondValue)\n    {\n        Init();\n    }\n\n    int First_, Second_;\n};",
+  "namespace app {\nclass TWidget {\npublic:\n"
+  "TWidget(int firstValue, int secondValue) : First_(firstValue), Second_(secondValue) {\nInitialize();\n}\n\nprivate:\nint First_, Second_;\n};\n}",
+  "namespace app {\nclass TWidget {\npublic:\n    TWidget(int firstValue, int secondValue)\n"
+  "        : First_(firstValue)\n        , Second_(secondValue)\n    {\n        Initialize();\n    }\n\n"
+  "private:\n    int First_, Second_;\n};\n} // namespace app",
   True,
-  f"comment-18340933: wanted '{{' on the next line for constructors that have an initializer "
-  f"list. clang-format can't make brace-wrapping conditional on that. {PR}/details#comment-18340933"),
+  f"comment-18340933: wanted '{{' on the next line for constructors with an initializer "
+  f"list. Anonymised reconstruction. {PR}/details#comment-18340933"),
  ("PR: compound requirement stays on one line ({ expr } -> Type)", "cpp", "want",
-  "template <typename TMessage>\nconcept CMsg = requires(TMessage msg) {\n"
-  "    requires CProtoMessage<TMessage>;\n    { msg.GetSign() } -> std::same_as<NProtoBuf::int64>;\n"
-  "    { msg.GetWriteTimestamp() } -> std::same_as<NProtoBuf::uint64>;\n};",
-  "template <typename TMessage>\nconcept CMsg = requires (TMessage msg) {\n"
-  "    requires CProtoMessage<TMessage>;\n    { msg.GetSign() } -> std::same_as<NProtoBuf::int64>;\n"
-  "    { msg.GetWriteTimestamp() } -> std::same_as<NProtoBuf::uint64>;\n};",
+  "namespace app {\ntemplate <typename TMessage>\nconcept CMessage = requires(TMessage msg) {\n"
+  "requires CProtoMessage<TMessage>;\n{ msg.GetSign() } -> std::same_as<NProto::int64>;\n"
+  "{ msg.GetTimestamp() } -> std::same_as<NProto::uint64>;\n};\n}",
+  "namespace app {\ntemplate <typename TMessage>\nconcept CMessage = requires (TMessage msg) {\n"
+  "    requires CProtoMessage<TMessage>;\n    { msg.GetSign() } -> std::same_as<NProto::int64>;\n"
+  "    { msg.GetTimestamp() } -> std::same_as<NProto::uint64>;\n};\n} // namespace app",
   True,
-  f"comment-18195479 (PR problem 7, requires example): clang-format 18 adds needless breaks "
-  f"inside '{{ expr }} -> Type' even with AllowShortCompoundRequirementOnASingleLine (needs 19+). {PR}/details#comment-18195479"),
+  f"comment-18195479 (PR problem 7, requires example): clang-format 18 breaks "
+  f"'{{ expr }} -> Type' across lines even with AllowShortCompoundRequirementOnASingleLine "
+  f"(effective only in 19+). Anonymised reconstruction. {PR}/details#comment-18195479"),
 
  # ─────────────────────────── Python: single quotes ─────────────────────────
  ("Py quotes: double string becomes single", "python", "lock",
@@ -235,30 +280,28 @@ CASES = [
  ("Py: long call wraps at the configured line length", "python", "lock",
   "result = compute_something(first_argument, second_argument, third_argument, fourth_one)",
   None, False, "ruff line-length from ruff.toml."),
+ # P9 (open) — Python boolean operator wrap, in a real-ish dict() context
  ("P9: Python boolean operator wrap inside dict()", "python", "want",
-  "config = dict(RedirBuilderSendNonBaobabClicks=is_images_click_log or is_video_click_log or is_baobab_click_log, Other=1)",
-  "config = dict(\n    RedirBuilderSendNonBaobabClicks=is_images_click_log\n"
-  "        or is_video_click_log\n        or is_baobab_click_log,\n    Other=1,\n)",
-  False, f"LOGS-5799 problem 9 (open): 'or' lands at the start of the next line. {LOGS5799}"),
+  "def build_config():\n    return dict(RedirBuilderSendNonBaobabClicks=is_images_click_log or is_video_click_log or is_baobab_click_log, Other=1)",
+  "def build_config():\n    return dict(\n        RedirBuilderSendNonBaobabClicks=is_images_click_log\n"
+  "            or is_video_click_log\n            or is_baobab_click_log,\n        Other=1,\n    )",
+  False,
+  f"LOGS-5799 problem 9 (open): 'or' lands at the start of the next line at the same "
+  f"level as keys. Anonymised reconstruction. {LOGS5799}"),
 ]
 
 
 def main():
-    # wipe existing tests
     for t in _list():
         _delete(t["id"])
 
     warnings = []
     for name, lang, mode, src, desired, muted, note in CASES:
-        if mode in ("lock", "guard"):
-            expected = fmt(src, lang)
-        else:
-            expected = desired
+        expected = fmt(src, lang) if mode in ("lock", "guard") else desired
         _post("/api/tests", {
             "name": name, "language": lang, "input": src,
             "expected": expected, "muted": muted, "note": note,
         })
-        # sanity: a want test that already matches is mislabelled
         if mode == "want" and not muted and fmt(src, lang).rstrip("\n") == (expected or "").rstrip("\n"):
             warnings.append(name)
 

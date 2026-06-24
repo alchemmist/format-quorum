@@ -1,0 +1,10 @@
+{
+  "id": "6ad783b2c460",
+  "name": "Style: long template parameter list — one per line",
+  "language": "cpp",
+  "input": "template <typename TRow, typename TOutput, typename TKeyRequest, typename TStateProxy, bool SimpleKeyRequest = false>\nclass TProcessor {};",
+  "expected": "template <\n    typename TRow,\n    typename TOutput,\n    typename TKeyRequest,\n    typename TStateProxy,\n    bool SimpleKeyRequest = false>\nclass TProcessor { };",
+  "muted": false,
+  "note": "Long template decl wraps each parameter. https://a.yandex-team.ru/review/13704587",
+  "created_at": "2026-06-24T10:42:49.294949+00:00"
+}

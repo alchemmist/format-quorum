@@ -1,0 +1,10 @@
+{
+  "id": "da1fd166c301",
+  "name": "P6: lambda arguments keep a readable indentation",
+  "language": "cpp",
+  "input": "namespace app {\nvoid TWidget::Handle(const TVariant& value) {\nstd::visit(TOverloaded{[](const TFirst& f) { return f.Value; }, [](const TSecond& s) { return s.Other; }}, value);\n}\n}",
+  "expected": "namespace app {\nvoid TWidget::Handle(const TVariant& value) {\n    std::visit(\n        TOverloaded{\n            [](const TFirst& f) { return f.Value; },\n            [](const TSecond& s) { return s.Other; },\n        },\n        value);\n}\n} // namespace app",
+  "muted": false,
+  "note": "LOGS-5799 problem 6: this config still aligns lambda args to the opening brace. Anonymised reconstruction. https://st.yandex-team.ru/LOGS-5799",
+  "created_at": "2026-06-24T10:42:49.452227+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "494f937737cf",
+  "name": "Style: reference binds to the type (T& r)",
+  "language": "cpp",
+  "input": "int x = 0;\nint &r = x;",
+  "expected": "int x = 0;\nint& r = x;",
+  "muted": false,
+  "note": "PointerAlignment: Left. https://a.yandex-team.ru/review/13704587",
+  "created_at": "2026-06-24T10:42:49.062037+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "1a9831f824dd",
+  "name": "P1: class opening brace stays on the header line",
+  "language": "cpp",
+  "input": "namespace app {\nclass TWidget : public IWidget {\npublic:\nint Value;\n};\n}",
+  "expected": "namespace app {\nclass TWidget : public IWidget {\npublic:\n    int Value;\n};\n} // namespace app",
+  "muted": false,
+  "note": "LOGS-5799 problem 1 (fixed). Anonymised reconstruction. https://st.yandex-team.ru/LOGS-5799",
+  "created_at": "2026-06-24T10:42:49.386945+00:00"
+}

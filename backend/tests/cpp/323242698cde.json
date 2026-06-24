@@ -1,0 +1,10 @@
+{
+  "id": "323242698cde",
+  "name": "PR3: arrow operator stays attached to the closing )",
+  "language": "cpp",
+  "input": "namespace app {\nvoid TWidget::Run() {\nauto result = sessionBuilder.MakeReducedSessionProcessor(firstArgument, secondArgument, thirdArgument)->Run();\n}\n}",
+  "expected": "namespace app {\nvoid TWidget::Run() {\n    auto result =\n        sessionBuilder.MakeReducedSessionProcessor(firstArgument, secondArgument, thirdArgument)->Run();\n}\n} // namespace app",
+  "muted": true,
+  "note": "PR description problem 3 (🙈) + comment-18183104: '`)->Run()`' becomes '`)` newline `->Run()`'. Anonymised reconstruction. https://a.yandex-team.ru/review/13704587/details#comment-18183104",
+  "created_at": "2026-06-24T10:42:49.516111+00:00"
+}

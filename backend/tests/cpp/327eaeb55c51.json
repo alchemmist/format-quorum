@@ -1,0 +1,10 @@
+{
+  "id": "327eaeb55c51",
+  "name": "PR: multiline if — operator at line start, ) { de-indented",
+  "language": "cpp",
+  "input": "namespace app {\nvoid TWidget::Process(TState* state) {\nif (!pendingMessages->empty() && pendingMessages->begin()->WriteTimestamp <= notificationWriteTimestamp) {\nHandle(state);\n}\n}\n}",
+  "expected": "namespace app {\nvoid TWidget::Process(TState* state) {\n    if (\n        !pendingMessages->empty()\n        && pendingMessages->begin()->WriteTimestamp <= notificationWriteTimestamp\n    ) {\n        Handle(state);\n    }\n}\n} // namespace app",
+  "muted": false,
+  "note": "PR thread #31: preferred multiline-if style (operator leading, ')' de-indented). Anonymised reconstruction. https://a.yandex-team.ru/review/13704587",
+  "created_at": "2026-06-24T10:42:49.484734+00:00"
+}

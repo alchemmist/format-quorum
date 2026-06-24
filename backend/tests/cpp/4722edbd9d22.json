@@ -1,0 +1,10 @@
+{
+  "id": "4722edbd9d22",
+  "name": "Style: template declaration breaks before the function",
+  "language": "cpp",
+  "input": "template <typename T> T Identity(T value);",
+  "expected": "template <typename T>\nT Identity(T value);",
+  "muted": false,
+  "note": "AlwaysBreakTemplateDeclarations: Yes. https://a.yandex-team.ru/review/13704587",
+  "created_at": "2026-06-24T10:42:49.279815+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "526610ad448e",
+  "name": "P2: return type stays on the function-name line",
+  "language": "cpp",
+  "input": "namespace app {\nclass TSessionStore {\npublic:\nTVector<TReducedSession> ComputeReducedSessionsForRequest(const TRequest& request, int limitValue, bool flag);\n};\n}",
+  "expected": "namespace app {\nclass TSessionStore {\npublic:\n    TVector<TReducedSession> ComputeReducedSessionsForRequest(\n        const TRequest& request, int limitValue, bool flag\n    );\n};\n} // namespace app",
+  "muted": false,
+  "note": "LOGS-5799 problem 2 (fixed): wrap after '(' by args. Anonymised. https://st.yandex-team.ru/LOGS-5799",
+  "created_at": "2026-06-24T10:42:49.402648+00:00"
+}
