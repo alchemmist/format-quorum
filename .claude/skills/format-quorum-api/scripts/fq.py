@@ -70,7 +70,12 @@ def cmd_list(a):
 
 
 def cmd_get(a):
-    _pp(_req("GET", f"/api/tests/{a.id}"))
+    # the API has no GET /api/tests/{id}; fetch the list and filter
+    rows = _req("GET", "/api/tests")
+    match = next((t for t in rows if t["id"] == a.id), None)
+    if match is None:
+        sys.exit(f"no test with id {a.id}")
+    _pp(match)
 
 
 def cmd_format(a):
