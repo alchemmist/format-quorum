@@ -6,6 +6,7 @@ import TestsView from './TestsView'
 import ConfigDrawer from './ConfigDrawer'
 import { computeDiff } from './useDiff'
 import { getQueryParam, setQueryParam } from './url'
+import { useDraftCount, publishDraft, discardAll, draftConfig } from './draftStore'
 
 // @ts-ignore — Vite raw import
 import demoCpp from './demo.cpp?raw'
@@ -40,6 +41,9 @@ export default function App() {
   )
 
   const [configOpen, setConfigOpen] = useState(false)
+  const draftCount = useDraftCount()
+  const [publishing, setPublishing] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   // keep the active view in the URL so a Tests link is shareable
   useEffect(() => {
@@ -88,6 +92,8 @@ export default function App() {
           code: inputCode,
           language,
           ...(language === 'cpp' && clangVersion ? { clang_version: clangVersion } : {}),
+          // format against the local draft config if one exists
+          ...(draftConfig(language) !== undefined ? { config: draftConfig(language) } : {}),
         }),
       })
       const data = await res.json()
@@ -107,6 +113,21 @@ export default function App() {
     setOutputCode('')
     setStatus({ kind: 'idle' })
   }, [language])
+
+  const handlePublish = useCallback(async () => {
+    setPublishing(true)
+    try {
+      const { ok, errors } = await publishDraft()
+      if (!ok) {
+        setStatus({ kind: 'error', message: `Publish failed: ${errors.join('; ')}` })
+        return
+      }
+      setRefreshKey((k) => k + 1) // reload server tests in TestsView
+      if (outputCode) handleFormat() // playground now reflects the published config
+    } finally {
+      setPublishing(false)
+    }
+  }, [outputCode, handleFormat])
 
   const statusText =
     status.kind === 'loading'
@@ -148,6 +169,25 @@ export default function App() {
           >
             Config
           </Button>
+
+          {draftCount > 0 && (
+            <div className="draft-bar" title="Local unsaved changes (config + tests)">
+              <span className="draft-count">{draftCount} unsaved</span>
+              <Button view="action" size="s" onClick={handlePublish} disabled={publishing}>
+                {publishing ? (
+                  <span className="btn-spin">
+                    <Spin size="xs" />
+                    Publishing
+                  </span>
+                ) : (
+                  'Publish'
+                )}
+              </Button>
+              <Button view="flat" size="s" onClick={discardAll} disabled={publishing}>
+                Discard
+              </Button>
+            </div>
+          )}
 
           {view === 'playground' && (
             <div className="app-header-center">
@@ -206,6 +246,7 @@ export default function App() {
             playgroundInput={inputCode}
             playgroundOutput={outputCode}
             playgroundLanguage={language}
+            refreshKey={refreshKey}
           />
         ) : (
         <div className="editors-container">

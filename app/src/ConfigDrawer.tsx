@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Button, Spin, Text } from '@gravity-ui/uikit'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
+import { draftConfig, setConfigDraft } from './draftStore'
 
 interface Props {
   open: boolean
@@ -20,7 +21,6 @@ export default function ConfigDrawer({ open, initialLang, onClose, onSaved }: Pr
   const [lang, setLang] = useState<Language>(initialLang)
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(false)
-  const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
@@ -34,6 +34,12 @@ export default function ConfigDrawer({ open, initialLang, onClose, onSaved }: Pr
     setError(null)
     setSaved(false)
     try {
+      // show the local draft if there is one, otherwise the live server config
+      const drafted = draftConfig(which)
+      if (drafted !== undefined) {
+        setContent(drafted)
+        return
+      }
       const res = await fetch(`/api/config/${which}`)
       const data = await res.json()
       if (!res.ok) {
@@ -52,28 +58,13 @@ export default function ConfigDrawer({ open, initialLang, onClose, onSaved }: Pr
     if (open) load(lang)
   }, [open, lang, load])
 
-  const save = useCallback(async () => {
-    setSaving(true)
+  const save = useCallback(() => {
     setError(null)
-    try {
-      const res = await fetch(`/api/config/${lang}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setError(data.error ?? 'Failed to save config')
-        return
-      }
-      setSaved(true)
-      onSaved?.()
-      window.setTimeout(() => setSaved(false), 2000)
-    } catch (e) {
-      setError(String(e))
-    } finally {
-      setSaving(false)
-    }
+    // save to the local draft, not the server — Publish flushes it later
+    setConfigDraft(lang, content)
+    setSaved(true)
+    onSaved?.()
+    window.setTimeout(() => setSaved(false), 2000)
   }, [lang, content, onSaved])
 
   return (
@@ -99,16 +90,9 @@ export default function ConfigDrawer({ open, initialLang, onClose, onSaved }: Pr
             </Button>
           </div>
           <span className="config-drawer-spacer" />
-          {saved && <Text color="positive">saved ✓</Text>}
-          <Button view="action" size="s" onClick={save} disabled={saving || loading}>
-            {saving ? (
-              <span className="btn-spin">
-                <Spin size="xs" />
-                Saving
-              </span>
-            ) : (
-              'Save'
-            )}
+          {saved && <Text color="positive">draft saved ✓</Text>}
+          <Button view="action" size="s" onClick={save} disabled={loading}>
+            Save draft
           </Button>
           <Button view="flat" size="s" onClick={onClose}>
             ✕
@@ -139,8 +123,8 @@ export default function ConfigDrawer({ open, initialLang, onClose, onSaved }: Pr
 
         <div className="config-drawer-foot">
           <Text color="secondary" variant="caption-2">
-            Editing {TITLE[lang]} — Save writes straight to the file and applies
-            to the next format / test run.
+            Editing {TITLE[lang]} — Save keeps it in your local draft and applies
+            to the next format / test run. Publish pushes it to the server.
           </Text>
         </div>
       </div>

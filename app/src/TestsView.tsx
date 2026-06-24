@@ -14,16 +14,21 @@ import { Pencil, PlayFill, TrashBin } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import { getQueryParam, setQueryParam, testShareUrl } from './url'
 import { computeDiff } from './useDiff'
+import type { TestCase } from './types'
+import {
+  useDraft,
+  effectiveTests,
+  addDraftTest,
+  patchTest,
+  removeTest as draftRemoveTest,
+  newDraftId,
+  draftConfig,
+} from './draftStore'
 
-export interface TestCase {
-  id: string
-  name: string
-  language: Language
-  input: string
-  expected: string
-  muted: boolean
-  note?: string
-}
+export type { TestCase } from './types'
+
+// match the backend's comparison: CRLF→LF, strip trailing newlines
+const norm = (s: string) => s.replace(/\r\n/g, '\n').replace(/\n+$/, '')
 
 interface RunResult {
   id: string
@@ -38,6 +43,8 @@ interface Props {
   playgroundInput: string
   playgroundOutput: string
   playgroundLanguage: Language
+  /** bumped after a Publish so the server tests reload */
+  refreshKey?: number
 }
 
 function displayStatus(test: TestCase, result?: RunResult): Display {
@@ -73,9 +80,13 @@ export default function TestsView({
   playgroundInput,
   playgroundOutput,
   playgroundLanguage,
+  refreshKey,
 }: Props) {
   const initialFilter = getQueryParam('filter')
-  const [tests, setTests] = useState<TestCase[]>([])
+  const [serverTests, setServerTests] = useState<TestCase[]>([])
+  const draft = useDraft()
+  // what the UI shows: server tests with the local draft overlaid
+  const tests = useMemo(() => effectiveTests(serverTests), [serverTests, draft])
   const [results, setResults] = useState<Record<string, RunResult>>({})
   const [running, setRunning] = useState(false)
   const [runningId, setRunningId] = useState<string | null>(null)
@@ -103,12 +114,18 @@ export default function TestsView({
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState(emptyForm(playgroundLanguage))
-  const [saving, setSaving] = useState(false)
 
   const loadTests = useCallback(async () => {
     const res = await fetch('/api/tests')
-    setTests(await res.json())
+    setServerTests(await res.json())
   }, [])
+
+  // reload server tests after a Publish (refreshKey bump); drop stale results
+  useEffect(() => {
+    if (refreshKey === undefined) return
+    loadTests()
+    setResults({})
+  }, [refreshKey, loadTests])
 
   useEffect(() => {
     loadTests()
@@ -171,73 +188,73 @@ export default function TestsView({
     [langTests, statusFilter, results],
   )
 
-  const runAll = useCallback(async () => {
-    setRunning(true)
-    setError(null)
-    try {
-      const res = await fetch('/api/tests/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          language: filter === 'all' ? undefined : filter,
-          clang_version: runVersion,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setError(data.error ?? 'Run failed')
-        return
-      }
-      const byId: Record<string, RunResult> = {}
-      for (const r of data.results) byId[r.id] = r
-      setResults((prev) => ({ ...prev, ...byId }))
-    } catch (e) {
-      setError(String(e))
-    } finally {
-      setRunning(false)
-    }
-  }, [filter, runVersion])
-
-  // run a single test against the selected clang-format version
-  const runOne = useCallback(
-    async (test: TestCase) => {
-      setRunningId(test.id)
-      setError(null)
+  // run a test client-side: format its input against the effective config
+  // (local draft if any, else the server's) and compare to the expected output.
+  const formatAndCompare = useCallback(
+    async (test: TestCase): Promise<RunResult> => {
       try {
-        const res = await fetch(`/api/tests/${test.id}/run`, {
+        const cfg = draftConfig(test.language)
+        const res = await fetch('/api/format', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clang_version: runVersion }),
+          body: JSON.stringify({
+            code: test.input,
+            language: test.language,
+            ...(test.language === 'cpp' && runVersion ? { clang_version: runVersion } : {}),
+            ...(cfg !== undefined ? { config: cfg } : {}),
+          }),
         })
         const data = await res.json()
         if (!res.ok) {
-          setError(data.error ?? 'Run failed')
-          return
+          return { id: test.id, passed: false, actual: '', error: data.error ?? 'Format failed' }
         }
-        setResults((prev) => ({ ...prev, [test.id]: data }))
-        setExpanded((prev) => new Set(prev).add(test.id))
+        return {
+          id: test.id,
+          passed: norm(data.formatted) === norm(test.expected),
+          actual: data.formatted,
+          error: null,
+        }
       } catch (e) {
-        setError(String(e))
-      } finally {
-        setRunningId(null)
+        return { id: test.id, passed: false, actual: '', error: String(e) }
       }
     },
     [runVersion],
   )
 
-  const toggleMute = useCallback(async (test: TestCase) => {
-    const res = await fetch(`/api/tests/${test.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ muted: !test.muted }),
-    })
-    const updated = await res.json()
-    setTests((prev) => prev.map((t) => (t.id === test.id ? updated : t)))
+  const runAll = useCallback(async () => {
+    setRunning(true)
+    setError(null)
+    try {
+      const rs = await Promise.all(langTests.map(formatAndCompare))
+      setResults((prev) => {
+        const next = { ...prev }
+        for (const r of rs) next[r.id] = r
+        return next
+      })
+    } finally {
+      setRunning(false)
+    }
+  }, [langTests, formatAndCompare])
+
+  // run a single test against the selected version + effective config
+  const runOne = useCallback(
+    async (test: TestCase) => {
+      setRunningId(test.id)
+      setError(null)
+      const r = await formatAndCompare(test)
+      setResults((prev) => ({ ...prev, [test.id]: r }))
+      setExpanded((prev) => new Set(prev).add(test.id))
+      setRunningId(null)
+    },
+    [formatAndCompare],
+  )
+
+  const toggleMute = useCallback((test: TestCase) => {
+    patchTest(test.id, { muted: !test.muted })
   }, [])
 
-  const removeTest = useCallback(async (id: string) => {
-    await fetch(`/api/tests/${id}`, { method: 'DELETE' })
-    setTests((prev) => prev.filter((t) => t.id !== id))
+  const removeTest = useCallback((id: string) => {
+    draftRemoveTest(id)
     setResults((prev) => {
       const next = { ...prev }
       delete next[id]
@@ -284,46 +301,29 @@ export default function TestsView({
     setDialogOpen(true)
   }, [])
 
-  const save = useCallback(async () => {
-    setSaving(true)
+  const save = useCallback(() => {
     setError(null)
-    try {
-      const editing = editingId !== null
-      const res = await fetch(
-        editing ? `/api/tests/${editingId}` : '/api/tests',
-        {
-          method: editing ? 'PUT' : 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(form),
-        },
-      )
-      const data = await res.json()
-      if (!res.ok) {
-        setError(data.error ?? 'Failed to save test')
-        return
-      }
-      setTests((prev) =>
-        editing ? prev.map((t) => (t.id === editingId ? data : t)) : [...prev, data],
-      )
-      // a saved test may now format differently; drop its stale result
-      if (editing) {
-        setResults((prev) => {
-          const next = { ...prev }
-          delete next[editingId!]
-          return next
-        })
-      }
-      setDialogOpen(false)
-    } catch (e) {
-      setError(String(e))
-    } finally {
-      setSaving(false)
+    if (!form.name.trim()) {
+      setError('Name is required')
+      return
     }
+    if (editingId !== null) {
+      patchTest(editingId, form)
+      // a changed test may now format differently; drop its stale result
+      setResults((prev) => {
+        const next = { ...prev }
+        delete next[editingId]
+        return next
+      })
+    } else {
+      addDraftTest({ id: newDraftId(), ...form })
+    }
+    setDialogOpen(false)
   }, [editingId, form])
 
-  const deleteFromDialog = useCallback(async () => {
+  const deleteFromDialog = useCallback(() => {
     if (editingId === null) return
-    await removeTest(editingId)
+    removeTest(editingId)
     setDialogOpen(false)
   }, [editingId, removeTest])
 
@@ -596,8 +596,8 @@ export default function TestsView({
           onClickButtonCancel={() => setDialogOpen(false)}
           textButtonCancel="Cancel"
           onClickButtonApply={save}
-          textButtonApply={saving ? 'Saving…' : editingId ? 'Save changes' : 'Save test'}
-          propsButtonApply={{ disabled: saving || !form.name.trim() }}
+          textButtonApply={editingId ? 'Save changes' : 'Add test'}
+          propsButtonApply={{ disabled: !form.name.trim() }}
         />
       </Dialog>
     </div>
