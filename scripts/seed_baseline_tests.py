@@ -160,12 +160,14 @@ CASES = [
   "namespace app {\nclass TWidget {\nvoid Process(const TMessage& message) {\n"
   "auto parseLag = (TInstant::Now() - TInstant::Seconds(message.GetProfileTimestamps().GetStageWallTime()));\n}\n};\n}",
   "namespace app {\nclass TWidget {\n    void Process(const TMessage& message) {\n"
-  "        auto parseLag = TInstant::Now() - TInstant::Seconds(message.GetProfileTimestamps().GetStageWallTime());\n"
+  "        auto parseLag = (TInstant::Now() -\n"
+  "            TInstant::Seconds(message.GetProfileTimestamps().GetStageWallTime()));\n"
   "    }\n};\n} // namespace app",
   True,
-  f"LOGS-5799 problem 3 (unfixable, 🙈): the right-hand side breaks after '=' and the "
-  f"parenthesised expression block-indents with the closing ')' dangling on its own line "
-  f"(staircase). Muted compromise. Anonymised reconstruction. {LOGS5799}"),
+  f"LOGS-5799 problem 3 (🙈): the right-hand side block-indents with the closing ')' "
+  f"dangling on its own line (staircase). AlignAfterOpenBracket: DontAlign produces the "
+  f"clean wrapped form (this desired) but is global and regresses agreed styles, so it's a "
+  f"muted compromise. Anonymised reconstruction. {LOGS5799}"),
 
  # ─── problem 5 (open) — nested designated initializers indentation ──────────
  ("P5: nested designated initializers indentation", "cpp", "want",

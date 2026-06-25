@@ -21,7 +21,7 @@ const TITLE: Record<Language, string> = {
 interface Impact {
   nowPass: string[] // were failing on the live config, pass on this draft
   nowFail: string[] // were passing on the live config, fail on this draft
-  mutedChanged: number // muted tests whose output changed
+  mutedWouldPass: string[] // muted tests that would pass on this draft (could un-mute)
 }
 
 const norm = (s: string) => s.replace(/\r\n/g, '\n').replace(/\n+$/, '')
@@ -103,22 +103,24 @@ export default function ConfigDrawer({ open, initialLang, onClose, onSaved }: Pr
       const mine = all.filter((t) => t.language === lang)
       const nowPass: string[] = []
       const nowFail: string[] = []
-      let mutedChanged = 0
+      const mutedWouldPass: string[] = []
       await Promise.all(
         mine.map(async (t) => {
           const [live, drafted] = await Promise.all([fmt(t.input), fmt(t.input, content)])
           if (live === null || drafted === null) return
-          if (t.muted) {
-            if (norm(live) !== norm(drafted)) mutedChanged++
-            return
-          }
           const passLive = norm(live) === norm(t.expected)
           const passDraft = norm(drafted) === norm(t.expected)
+          if (t.muted) {
+            // muted tests stay yellow, but a draft that makes one pass means the
+            // mute (an accepted compromise) could be lifted — surface that
+            if (passDraft && !passLive) mutedWouldPass.push(t.name)
+            return
+          }
           if (!passLive && passDraft) nowPass.push(t.name)
           else if (passLive && !passDraft) nowFail.push(t.name)
         }),
       )
-      setImpact({ nowPass, nowFail, mutedChanged })
+      setImpact({ nowPass, nowFail, mutedWouldPass })
     } catch (e) {
       setError(String(e))
     } finally {
@@ -208,26 +210,40 @@ export default function ConfigDrawer({ open, initialLang, onClose, onSaved }: Pr
                   <span className="impact-pos">+{impact.nowPass.length} fixed</span>
                   {' · '}
                   <span className="impact-neg">−{impact.nowFail.length} broken</span>
-                  {impact.mutedChanged > 0 && ` · ${impact.mutedChanged} muted changed`}
+                  {impact.mutedWouldPass.length > 0 && (
+                    <span className="impact-muted">
+                      {' · '}
+                      {impact.mutedWouldPass.length} muted would pass
+                    </span>
+                  )}
                 </Text>
               )
             )}
           </div>
 
-          {impact && (impact.nowFail.length > 0 || impact.nowPass.length > 0) && (
-            <div className="config-impact-lists">
-              {impact.nowFail.length > 0 && (
-                <Text color="secondary" variant="caption-2">
-                  <span className="impact-neg">breaks:</span> {impact.nowFail.join(', ')}
-                </Text>
-              )}
-              {impact.nowPass.length > 0 && (
-                <Text color="secondary" variant="caption-2">
-                  <span className="impact-pos">fixes:</span> {impact.nowPass.join(', ')}
-                </Text>
-              )}
-            </div>
-          )}
+          {impact &&
+            (impact.nowFail.length > 0 ||
+              impact.nowPass.length > 0 ||
+              impact.mutedWouldPass.length > 0) && (
+              <div className="config-impact-lists">
+                {impact.nowFail.length > 0 && (
+                  <Text color="secondary" variant="caption-2">
+                    <span className="impact-neg">breaks:</span> {impact.nowFail.join(', ')}
+                  </Text>
+                )}
+                {impact.nowPass.length > 0 && (
+                  <Text color="secondary" variant="caption-2">
+                    <span className="impact-pos">fixes:</span> {impact.nowPass.join(', ')}
+                  </Text>
+                )}
+                {impact.mutedWouldPass.length > 0 && (
+                  <Text color="secondary" variant="caption-2">
+                    <span className="impact-muted">muted would pass:</span>{' '}
+                    {impact.mutedWouldPass.join(', ')}
+                  </Text>
+                )}
+              </div>
+            )}
 
           <Text color="secondary" variant="caption-2">
             Editing {TITLE[lang]} — Save keeps it in your local draft and applies

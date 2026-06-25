@@ -3,7 +3,7 @@
   "name": "P3: no line break after '=' in an assignment (muted)",
   "language": "cpp",
   "input": "namespace app {\nclass TWidget {\nvoid Process(const TMessage& message) {\nauto parseLag = (TInstant::Now() - TInstant::Seconds(message.GetProfileTimestamps().GetStageWallTime()));\n}\n};\n}",
-  "expected": "namespace app {\nclass TWidget {\n    void Process(const TMessage& message) {\n        auto parseLag = TInstant::Now() - TInstant::Seconds(message.GetProfileTimestamps().GetStageWallTime());\n    }\n};\n} // namespace app",
+  "expected": "namespace app {\nclass TWidget {\n    void Process(const TMessage& message) {\n        auto parseLag = (TInstant::Now() -\n            TInstant::Seconds(message.GetProfileTimestamps().GetStageWallTime()));\n    }\n};\n} // namespace app",
   "muted": true,
   "note": "LOGS-5799 problem 3 (unfixable, 🙈): the right-hand side breaks after '=' and the parenthesised expression block-indents with the closing ')' dangling on its own line (staircase). Muted compromise. Anonymised reconstruction. https://st.yandex-team.ru/LOGS-5799",
   "created_at": "2026-06-24T12:23:36.736679+00:00"

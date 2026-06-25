@@ -412,6 +412,9 @@ body {
 .impact-neg {
   color: #e46a6a;
 }
+.impact-muted {
+  color: #ffbe5c;
+}
 
 /* ── Tests view ──────────────────────────────────────────────────────────── */
 .tests-view {
