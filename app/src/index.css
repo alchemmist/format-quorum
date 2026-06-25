@@ -29,7 +29,10 @@ body {
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 12px;
-  padding: 10px 20px;
+  padding: 0 20px;
+  /* fixed height so the header doesn't jump when the draft bar appears */
+  height: 52px;
+  box-sizing: border-box;
   border-bottom: 1px solid #2d2d35;
   flex-shrink: 0;
   background: #16161b;
