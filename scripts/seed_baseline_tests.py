@@ -142,18 +142,21 @@ CASES = [
   None, False,
   f"LOGS-5799 problem 4 (fixed): no ragged closing-bracket staircase. Anonymised. {LOGS5799}"),
 
- # ─── problem 7 (open) — empty () splits when the line overflows ──────────────
+ # ─── problem 7 (🙈, muted) — empty () splits when the line overflows ──────────
  ("P7: empty () splits onto two lines when the line overflows", "cpp", "want",
   "namespace app {\nvoid TWidget::Finish(TResponse& response) {\n"
   "NDomain::NProto::TUndoVerdictResult& undoVerdictResult = *response.MutableUndoVerdictResultMsg();\n}\n}",
   "namespace app {\nvoid TWidget::Finish(TResponse& response) {\n"
   "    NDomain::NProto::TUndoVerdictResult& undoVerdictResult =\n"
   "        *response.MutableUndoVerdictResultMsg();\n}\n} // namespace app",
-  False,
-  f"LOGS-5799 problem 7 (open): when the declaration exceeds the 100-col limit, the "
+  True,
+  f"LOGS-5799 problem 7 (🙈): when the declaration exceeds the 100-col limit, the "
   f"empty () is the only break point — '(' stays at the end of the line and ');' dangles "
-  f"on its own. Wanted: break after '=' and keep () together. The length matters: a "
-  f"shorter line fits and never reproduces it. Anonymised reconstruction. {LOGS5799}"),
+  f"on its own. The desired (break after '=', keep () together) is reachable ONLY with "
+  f"AlignAfterOpenBracket: Align + a low PenaltyBreakAssignment — Align alone doesn't move "
+  f"it, and that combo regresses 5 agreed styles (P2/P4/P6/long-args/ternary). DontAlign "
+  f"(which fixes P3) breaks after the type, not after '=', so it doesn't help here. No "
+  f"clean fix — muted compromise. Anonymised reconstruction. {LOGS5799}"),
 
  # ─── problem 3 (unfixable, muted) — break after '=' in a parenthesised expr ──
  ("P3: no line break after '=' in an assignment (muted)", "cpp", "want",
