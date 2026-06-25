@@ -394,6 +394,24 @@ body {
   border-top: 1px solid #2d2d35;
   flex-shrink: 0;
 }
+.config-impact-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.config-impact-lists {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+.impact-pos {
+  color: #5fb760;
+}
+.impact-neg {
+  color: #e46a6a;
+}
 
 /* ── Tests view ──────────────────────────────────────────────────────────── */
 .tests-view {
