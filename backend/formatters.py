@@ -51,6 +51,36 @@ def _run(argv: list[str], code: str) -> str:
     return proc.stdout
 
 
+def apply_config_patch(base: str, patch: dict) -> str:
+    """Apply top-level clang-format key overrides to a YAML config string.
+
+    Existing top-level ``key:`` lines are replaced in place; unknown keys are
+    appended at the end. Nested keys are not addressed (pass a full ``config``
+    for those). Mirrors the tuning bench's own merge so a "config patch → which
+    tests flip" hypothesis can be checked server-side.
+    """
+    def _fmt(value) -> str:
+        if isinstance(value, bool):
+            return "true" if value else "false"
+        return str(value)
+
+    remaining = {k: _fmt(v) for k, v in patch.items()}
+    out: list[str] = []
+    for line in base.split("\n"):
+        stripped = line.strip()
+        hit = next(
+            (
+                k
+                for k in remaining
+                if stripped.startswith(k + ":") and not line.startswith((" ", "\t"))
+            ),
+            None,
+        )
+        out.append(f"{hit}: {remaining.pop(hit)}" if hit is not None else line)
+    out += [f"{k}: {v}" for k, v in remaining.items()]
+    return "\n".join(out)
+
+
 @contextmanager
 def _config_file(config: str | None, default_path: str, suffix: str):
     """Yield a style/config file path. If `config` text is given, write it to a

@@ -118,6 +118,13 @@ format/run call also accepts an ad-hoc `config` string to format against a
 candidate config **without** overwriting the stored one (used by the tuning
 bench and the impact preview).
 
+`/api/tests/whatif` is the dedicated *hypothesis* endpoint: give it a `patch`
+(top-level clang-format key overrides applied on the live config, e.g.
+`{"AlignAfterOpenBracket": "DontAlign"}`) or a whole `config`, and it runs the
+suite twice — live vs candidate — and returns what flips (`now_pass`,
+`now_fail`, `muted_would_pass`), plus the status of any named `targets`. So
+"will this option fix test P7 / what does it break?" is one call.
+
 | Method | Path | Purpose |
 |--------|------|---------|
 | POST | `/api/format` | format `{code, language, clang_version?, config?}` |
@@ -126,6 +133,7 @@ bench and the impact preview).
 | GET/POST/PUT/DELETE | `/api/tests` … | manage tests |
 | POST | `/api/tests/run` | run the suite (`{clang_version?, config?}`) |
 | POST | `/api/tests/{id}/run` | run a single test |
+| POST | `/api/tests/whatif` | hypothesis check: `{patch?, config?, targets?}` → which tests flip pass/fail |
 | GET/PUT | `/api/config/{lang}` | get / update a formatter config (`cpp` \| `python`) |
 | GET | `/clang-format`, `/ruff.toml` | raw config files |
 

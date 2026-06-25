@@ -19,6 +19,7 @@ from formatters import (
     CLANG_FORMAT_CONFIG,
     RUFF_CONFIG,
     FormatError,
+    apply_config_patch,
     format_code,
 )
 from test_store import TestStore, run_all, run_test
@@ -36,7 +37,7 @@ VERSIONS_DIR = Path(
 # Where BEFORE/AFTER tests live (git-backed, bind-mounted in Docker).
 TESTS_DIR = Path(os.environ.get("TESTS_DIR", str(BACKEND_DIR / "tests")))
 
-app = FastAPI(title="format-quorum", version="0.4.0")
+app = FastAPI(title="format-quorum", version="0.5.0")
 versions = VersionManager(VERSIONS_DIR, CLANG_FORMAT_BIN)
 tests = TestStore(TESTS_DIR)
 
@@ -187,6 +188,98 @@ def api_tests_run_one(test_id: str, body: RunRequest):
     if err:
         return err
     return run_test(rec, clang_bin, config=body.config)
+
+
+class WhatIfRequest(BaseModel):
+    """A "config hypothesis": format every test against the live config and
+    against a candidate, then report which tests flip pass/fail."""
+
+    language: str = "cpp"
+    clang_version: str | None = None
+    # Top-level clang-format key overrides applied on top of the LIVE stored
+    # config (cpp only). e.g. {"AlignAfterOpenBracket": "DontAlign"}.
+    patch: dict | None = None
+    # Alternative to `patch`: a full config string to try as-is (either language).
+    config: str | None = None
+    # Optional test ids or name substrings to call out individually in `targets`.
+    targets: list[str] | None = None
+
+
+@app.post("/api/tests/whatif")
+def api_tests_whatif(body: WhatIfRequest):
+    """Check a "patch → which tests pass/fail" hypothesis without touching the
+    stored config. Runs the suite twice (live config vs candidate) on one
+    clang-format version and diffs the per-test results."""
+    clang_bin, err = _resolve_clang(body.clang_version)
+    if err:
+        return err
+
+    # Candidate config: a patch merges onto the live stored config; a full
+    # `config` is used as-is. Baseline is always the live stored config.
+    candidate = body.config
+    if body.patch:
+        if body.language != "cpp":
+            return JSONResponse(
+                {"error": "patch is cpp-only; pass a full `config` for python"},
+                status_code=400,
+            )
+        base = body.config
+        if base is None:
+            base = Path(CLANG_FORMAT_CONFIG).read_text(encoding="utf-8")
+        candidate = apply_config_patch(base, body.patch)
+
+    base_run = run_all(tests, language=body.language, clang_bin=clang_bin, config=None)
+    cand_run = run_all(
+        tests, language=body.language, clang_bin=clang_bin, config=candidate
+    )
+
+    by_id = {r["id"]: r for r in base_run["results"]}
+    now_pass: list[str] = []
+    now_fail: list[str] = []
+    muted_would_pass: list[str] = []
+    results: list[dict] = []
+    for cand in cand_run["results"]:
+        live = by_id[cand["id"]]
+        results.append(
+            {
+                "id": cand["id"],
+                "name": cand["name"],
+                "muted": cand["muted"],
+                "baseline_status": live["status"],
+                "patched_status": cand["status"],
+                "baseline_passed": live["passed"],
+                "patched_passed": cand["passed"],
+            }
+        )
+        if cand["muted"]:
+            if cand["passed"] and not live["passed"]:
+                muted_would_pass.append(cand["name"])
+        elif cand["passed"] and not live["passed"]:
+            now_pass.append(cand["name"])
+        elif live["passed"] and not cand["passed"]:
+            now_fail.append(cand["name"])
+
+    out = {
+        "language": body.language,
+        "clang_version": body.clang_version,
+        "effective_config": candidate,
+        "summary": {"baseline": base_run["summary"], "patched": cand_run["summary"]},
+        "flips": {
+            "now_pass": now_pass,
+            "now_fail": now_fail,
+            "muted_would_pass": muted_would_pass,
+        },
+        "results": results,
+    }
+    if body.targets:
+        wanted = [t.lower() for t in body.targets]
+        out["targets"] = [
+            r
+            for r in results
+            if r["id"] in body.targets
+            or any(w in r["name"].lower() for w in wanted)
+        ]
+    return out
 
 
 # ── Formatter configs (single source of truth) ────────────────────────────────

@@ -34,7 +34,23 @@ FQ_BASE=https://fq.alchemmist.xyz python3 .claude/skills/format-quorum-api/scrip
 ```
 
 Commands: `list`, `get <id>`, `format`, `add`, `update <id>`, `delete <id>`,
-`run`, `get-config <lang>`, `put-config <lang>`. Run any with `-h` for flags.
+`run`, `get-config <lang>`, `put-config <lang>`, `whatif`. Run any with `-h`
+for flags.
+
+**`whatif`** answers "config patch → which tests pass/fail" in one call without
+touching the stored config — the server runs the suite live vs candidate and
+diffs them. Use it to check a tuning hypothesis or a config edit's blast radius:
+
+```bash
+# does AlignAfterOpenBracket: DontAlign fix test P7, and what does it break?
+fq.py whatif --version 18.1.8 --set AlignAfterOpenBracket=DontAlign --target P7
+# combine overrides, or try a whole file with --config-file
+fq.py whatif --set AlignAfterOpenBracket=Align --set PenaltyBreakAssignment=0 --target P7
+```
+
+It prints baseline vs patched counts, `+fixed / −broken / muted-would-pass`, and
+each `--target`'s `baseline → patched` status. `--set` overrides apply on top of
+the **live** config (cpp only); `--config-file` tries a full config as-is.
 
 ## Test data model
 
@@ -134,6 +150,8 @@ commit (author **alchemmist**, no `Co-Authored-By` — repo commit convention).
 
 `POST /api/format` · `GET/POST /api/tests` · `PUT/DELETE /api/tests/{id}` ·
 `POST /api/tests/run` · `POST /api/tests/{id}/run` ·
+`POST /api/tests/whatif` (`{language, clang_version?, patch?, config?, targets?}`
+→ `{summary{baseline,patched}, flips{now_pass,now_fail,muted_would_pass}, results, targets?}`) ·
 `GET/POST /api/clang-versions` · `DELETE /api/clang-versions/{version}` ·
 `GET/PUT /api/config/{lang}` · `GET /clang-format` · `GET /ruff.toml`.
 clang-format default is `18.1.8`; other versions must be installed via

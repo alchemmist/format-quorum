@@ -144,6 +144,45 @@ def cmd_versions(a):
     _pp(_req("GET", "/api/clang-versions"))
 
 
+def _coerce(v):
+    """Turn a CLI string into bool/int where it obviously is one (so a YAML
+    patch gets `true`/`12`, not `"true"`/`"12"`)."""
+    if v in ("true", "false"):
+        return v == "true"
+    if v.lstrip("-").isdigit():
+        return int(v)
+    return v
+
+
+def cmd_whatif(a):
+    """Check a 'config patch -> which tests pass/fail' hypothesis."""
+    payload = {"language": a.lang}
+    if a.version:
+        payload["clang_version"] = a.version
+    if a.set:
+        payload["patch"] = {k: _coerce(v) for k, v in (s.split("=", 1) for s in a.set)}
+    if a.config_file:
+        payload["config"] = _read(a.config_file)
+    if a.target:
+        payload["targets"] = a.target
+    res = _req("POST", "/api/tests/whatif", payload)
+    b, p = res["summary"]["baseline"], res["summary"]["patched"]
+    print(f"baseline: {b['passed']} pass / {b['failed']} fail / {b['muted']} muted")
+    print(f"patched : {p['passed']} pass / {p['failed']} fail / {p['muted']} muted")
+    f = res["flips"]
+    print(f"+{len(f['now_pass'])} fixed  -{len(f['now_fail'])} broken  "
+          f"{len(f['muted_would_pass'])} muted-would-pass")
+    if f["now_pass"]:
+        print("  fixes :", ", ".join(f["now_pass"]))
+    if f["now_fail"]:
+        print("  breaks:", ", ".join(f["now_fail"]))
+    if f["muted_would_pass"]:
+        print("  muted would pass:", ", ".join(f["muted_would_pass"]))
+    for t in res.get("targets", []):
+        print(f"  TARGET {t['name']}: {t['baseline_status']} -> {t['patched_status']}"
+              f"  (passes: {t['baseline_passed']} -> {t['patched_passed']})")
+
+
 def main():
     p = argparse.ArgumentParser(description=f"format-quorum API client (base={BASE})")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -181,6 +220,15 @@ def main():
     s.add_argument("lang"); s.add_argument("--input-file", "-i", default="-"); s.set_defaults(fn=cmd_put_config)
 
     s = sub.add_parser("versions", help="list clang-format versions"); s.set_defaults(fn=cmd_versions)
+
+    s = sub.add_parser("whatif", help="config patch -> which tests flip pass/fail")
+    s.add_argument("--lang", default="cpp"); s.add_argument("--version")
+    s.add_argument("--set", action="append", default=[], metavar="Key=Value",
+                   help="top-level clang-format override on the live config (repeatable)")
+    s.add_argument("--config-file", help="try a full config instead of a patch")
+    s.add_argument("--target", action="append", default=[], metavar="ID_OR_NAME",
+                   help="test id or name substring to call out (repeatable)")
+    s.set_defaults(fn=cmd_whatif)
 
     a = p.parse_args()
     a.fn(a)

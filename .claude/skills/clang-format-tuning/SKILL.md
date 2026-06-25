@@ -97,6 +97,14 @@ After every run read two lines:
 (`curl $FQ_BASE/api/config/cpp`), edit a copy, and pass it whole with
 `--config-file PATH`.
 
+> The backend also exposes `POST /api/tests/whatif` — the server-side
+> equivalent of one `try`: send a `patch` (top-level overrides on the live
+> config) or a full `config` and it returns the pass/fail flips
+> (`now_pass` / `now_fail` / `muted_would_pass`) plus the status of named
+> `targets`, in one call. `cfprobe try` is fine for the loop; reach for `whatif`
+> (or `fq.py whatif`) when you want a single round-trip or to script the check
+> from elsewhere.
+
 ### 6. Sweep before concluding
 Once you've narrowed the candidate options, run the exhaustive sweep — it is the
 thing that turns "I think" into "I verified":
