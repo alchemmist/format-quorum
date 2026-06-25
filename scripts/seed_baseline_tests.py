@@ -203,6 +203,22 @@ CASES = [
   f"LOGS-5799 problem 8 (open): progressive indentation of nested calls is unreachable — "
   f"no option combination produces it. Anonymised reconstruction. {LOGS5799}"),
 
+ # ─── LOGS-5799 (Kamil) — lambdas as braced-init-list elements ────────────────
+ ("Lambdas as braced-init-list elements indent under their signature", "cpp", "lock",
+  "namespace app {\nTMappingMethods* GetMappingMethods() {\nstatic TMappingMethods Methods{\n"
+  "// length\n[](TObject* self) -> long {\n"
+  "try { return FromPy<TMapping*>(self)->GetLength(); } catch (const std::exception&) { return -1; }\n},\n"
+  "// subscript\n[](TObject* self, TObject* key) -> TObject* {\nTString keyStr;\n"
+  "if (!FromPy(key, keyStr)) { SetError(\"Key must be str\"); return nullptr; }\n"
+  "return FromPy<TMapping*>(self)->GetItem(keyStr);\n},\n// ass_subscript\nnullptr,\n};\n"
+  "return &Methods;\n}\n}",
+  None, False,
+  f"LOGS-5799 (Kamil): a struct initialised with lambda members (PyMappingMethods-style) — "
+  f"each lambda body indents +4 under its signature and '}}' aligns with the signature. This "
+  f"is LambdaBodyIndentation: Signature (our default) and the cleanest clang-format produces "
+  f"here; OuterScope regresses it (body loses its indent, '}}' drifts to the outer scope). "
+  f"Anonymised reconstruction. {LOGS5799}"),
+
  # ─── PR review/13704587 — still-open threads (want) ─────────────────────────
  ("PR: multiline if wraps the brace onto its own line (option в2)", "cpp", "lock",
   "namespace app {\nvoid TWidget::Process(TState* state) {\n"

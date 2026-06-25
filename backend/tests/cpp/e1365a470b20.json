@@ -1,0 +1,10 @@
+{
+  "id": "e1365a470b20",
+  "name": "Lambdas as braced-init-list elements indent under their signature",
+  "language": "cpp",
+  "input": "namespace app {\nTMappingMethods* GetMappingMethods() {\nstatic TMappingMethods Methods{\n// length\n[](TObject* self) -> long {\ntry { return FromPy<TMapping*>(self)->GetLength(); } catch (const std::exception&) { return -1; }\n},\n// subscript\n[](TObject* self, TObject* key) -> TObject* {\nTString keyStr;\nif (!FromPy(key, keyStr)) { SetError(\"Key must be str\"); return nullptr; }\nreturn FromPy<TMapping*>(self)->GetItem(keyStr);\n},\n// ass_subscript\nnullptr,\n};\nreturn &Methods;\n}\n}\n",
+  "expected": "namespace app {\nTMappingMethods* GetMappingMethods() {\n    static TMappingMethods Methods{\n        // length\n        [](TObject* self) -> long {\n            try {\n                return FromPy<TMapping*>(self)->GetLength();\n            } catch (const std::exception&) {\n                return -1;\n            }\n        },\n        // subscript\n        [](TObject* self, TObject* key) -> TObject* {\n            TString keyStr;\n            if (!FromPy(key, keyStr)) {\n                SetError(\"Key must be str\");\n                return nullptr;\n            }\n            return FromPy<TMapping*>(self)->GetItem(keyStr);\n        },\n        // ass_subscript\n        nullptr,\n    };\n    return &Methods;\n}\n} // namespace app\n",
+  "muted": false,
+  "note": "LOGS-5799 (Kamil): a struct initialised with lambda members (PyMappingMethods-style) — each lambda body indents +4 under its signature and '}' aligns with the signature. This is LambdaBodyIndentation: Signature (our default) and the cleanest clang-format produces here; OuterScope regresses it (body loses its indent, '}' drifts to the outer scope). Anonymised reconstruction. https://st.yandex-team.ru/LOGS-5799",
+  "created_at": "2026-06-25T16:47:46.150838+00:00"
+}
