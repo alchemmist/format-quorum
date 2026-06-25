@@ -4,7 +4,7 @@
   "language": "cpp",
   "input": "namespace app {\nvoid TWidget::Finish(TResponse& response) {\nNDomain::NProto::TUndoVerdictResult& undoVerdictResult = *response.MutableUndoVerdictResultMsg();\n}\n}",
   "expected": "namespace app {\nvoid TWidget::Finish(TResponse& response) {\n    NDomain::NProto::TUndoVerdictResult& undoVerdictResult =\n        *response.MutableUndoVerdictResultMsg();\n}\n} // namespace app",
-  "muted": true,
-  "note": "LOGS-5799 problem 7 (🙈): when the declaration exceeds the 100-col limit, the empty () is the only break point — '(' stays at the end of the line and ');' dangles on its own. The desired (break after '=', keep () together) is reachable ONLY with AlignAfterOpenBracket: Align + a low PenaltyBreakAssignment — Align alone doesn't move it, and that combo regresses 5 agreed styles (P2/P4/P6/long-args/ternary). DontAlign (which fixes P3) breaks after the type, not after '=', so it doesn't help here. No clean fix — muted compromise. Anonymised reconstruction. https://st.yandex-team.ru/LOGS-5799",
+  "muted": false,
+  "note": "LOGS-5799 problem 7 (open): when the declaration exceeds the 100-col limit, '(' stays at the end of the line and ');' dangles on its own. Breaking after '=' instead needs AlignAfterOpenBracket: Align + a low PenaltyBreakAssignment, which regresses 5 agreed styles (P2/P4/P6/long-args/ternary). No clean fix. https://st.yandex-team.ru/LOGS-5799",
   "created_at": "2026-06-24T12:23:36.719536+00:00"
 }

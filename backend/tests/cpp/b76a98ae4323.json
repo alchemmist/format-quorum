@@ -4,7 +4,7 @@
   "language": "cpp",
   "input": "namespace app {\nvoid TWidget::Open() {\nReader_ = new NLib::TTableReader<NProto::TMessage>(new NLib::TProtoReader(client->CreateRawReader(paths.at(currentIndex), NLib::TFormat::Protobuf({prototype->GetDescriptor()}, false))));\n}\n}",
   "expected": "namespace app {\nvoid TWidget::Open() {\n    Reader_ = new NLib::TTableReader<NProto::TMessage>(\n        new NLib::TProtoReader(\n            client->CreateRawReader(\n                paths.at(currentIndex),\n                NLib::TFormat::Protobuf({prototype->GetDescriptor()}, false))));\n}\n} // namespace app",
-  "muted": true,
-  "note": "LOGS-5799 проблема 8 (🙈): прогрессивный отступ вложенных вызовов не достижим — clang-format не разбивает их, когда аргументы влезают упакованными. https://st.yandex-team.ru/LOGS-5799",
+  "muted": false,
+  "note": "LOGS-5799 проблема 8 (open): прогрессивный отступ вложенных вызовов не достижим — clang-format не разбивает их, когда аргументы влезают упакованными. https://st.yandex-team.ru/LOGS-5799",
   "created_at": "2026-06-24T12:23:36.775212+00:00"
 }

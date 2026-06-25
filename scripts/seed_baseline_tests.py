@@ -142,21 +142,18 @@ CASES = [
   None, False,
   f"LOGS-5799 problem 4 (fixed): no ragged closing-bracket staircase. Anonymised. {LOGS5799}"),
 
- # ─── problem 7 (🙈, muted) — empty () splits when the line overflows ──────────
+ # ─── problem 7 (open, red) — empty () splits when the line overflows ──────────
  ("P7: empty () splits onto two lines when the line overflows", "cpp", "want",
   "namespace app {\nvoid TWidget::Finish(TResponse& response) {\n"
   "NDomain::NProto::TUndoVerdictResult& undoVerdictResult = *response.MutableUndoVerdictResultMsg();\n}\n}",
   "namespace app {\nvoid TWidget::Finish(TResponse& response) {\n"
   "    NDomain::NProto::TUndoVerdictResult& undoVerdictResult =\n"
   "        *response.MutableUndoVerdictResultMsg();\n}\n} // namespace app",
-  True,
-  f"LOGS-5799 problem 7 (🙈): when the declaration exceeds the 100-col limit, the "
-  f"empty () is the only break point — '(' stays at the end of the line and ');' dangles "
-  f"on its own. The desired (break after '=', keep () together) is reachable ONLY with "
-  f"AlignAfterOpenBracket: Align + a low PenaltyBreakAssignment — Align alone doesn't move "
-  f"it, and that combo regresses 5 agreed styles (P2/P4/P6/long-args/ternary). DontAlign "
-  f"(which fixes P3) breaks after the type, not after '=', so it doesn't help here. No "
-  f"clean fix — muted compromise. Anonymised reconstruction. {LOGS5799}"),
+  False,
+  f"LOGS-5799 problem 7 (open): when the declaration exceeds the 100-col limit, '(' stays "
+  f"at the end of the line and ');' dangles on its own. Breaking after '=' instead needs "
+  f"AlignAfterOpenBracket: Align + a low PenaltyBreakAssignment, which regresses 5 agreed "
+  f"styles (P2/P4/P6/long-args/ternary). No clean fix. Anonymised reconstruction. {LOGS5799}"),
 
  # ─── problem 3 (unfixable, muted) — break after '=' in a parenthesised expr ──
  ("P3: no line break after '=' in an assignment (muted)", "cpp", "want",
@@ -172,7 +169,7 @@ CASES = [
   f"clean wrapped form (this desired) but is global and regresses agreed styles, so it's a "
   f"muted compromise. Anonymised reconstruction. {LOGS5799}"),
 
- # ─── problem 5 (open) — nested designated initializers indentation ──────────
+ # ─── problem 5 (open, red) — nested designated initializers indentation ─────
  ("P5: nested designated initializers indentation", "cpp", "want",
   "namespace app {\nvoid TWidget::Configure() {\n"
   "TModelConfig config = {.Buckets = {{.Lo = 1000, .Hi = 2000}, {.Lo = 3000, .Hi = 4000}, {.Lo = 5000, .Hi = 6000}, {.Lo = 7000, .Hi = 8000}}, .Limit = 9};\n}\n}",
@@ -180,8 +177,8 @@ CASES = [
   "        .Buckets =\n            {\n                {.Lo = 1000, .Hi = 2000},\n"
   "                {.Lo = 3000, .Hi = 4000},\n                {.Lo = 5000, .Hi = 6000},\n"
   "                {.Lo = 7000, .Hi = 8000},\n            },\n        .Limit = 9,\n    };\n}\n} // namespace app",
-  True,
-  f"LOGS-5799 problem 5 (🙈): the block-indented inner list is unreachable — no option "
+  False,
+  f"LOGS-5799 problem 5 (open): the block-indented inner list is unreachable — no option "
   f"combination produces it; AlignAfterOpenBracket/Cpp11BracedListStyle only regress "
   f"other styles. Anonymised reconstruction. {LOGS5799}"),
 
@@ -195,15 +192,15 @@ CASES = [
   f"TOverloaded) now indents its body under the lambda declaration instead of drifting "
   f"to a wrong level. Anonymised reconstruction. {LOGS5799}"),
 
- # ─── problem 8 (open) — nested template/call argument indentation ───────────
+ # ─── problem 8 (open, red) — nested template/call argument indentation ──────
  ("P8: nested template/call arguments indentation", "cpp", "want",
   "namespace app {\nvoid TWidget::Open() {\n"
   "Reader_ = new NLib::TTableReader<NProto::TMessage>(new NLib::TProtoReader(client->CreateRawReader(paths.at(currentIndex), NLib::TFormat::Protobuf({prototype->GetDescriptor()}, false))));\n}\n}",
   "namespace app {\nvoid TWidget::Open() {\n    Reader_ = new NLib::TTableReader<NProto::TMessage>(\n"
   "        new NLib::TProtoReader(\n            client->CreateRawReader(\n"
   "                paths.at(currentIndex),\n                NLib::TFormat::Protobuf({prototype->GetDescriptor()}, false))));\n}\n} // namespace app",
-  True,
-  f"LOGS-5799 problem 8 (🙈): progressive indentation of nested calls is unreachable — "
+  False,
+  f"LOGS-5799 problem 8 (open): progressive indentation of nested calls is unreachable — "
   f"no option combination produces it. Anonymised reconstruction. {LOGS5799}"),
 
  # ─── PR review/13704587 — still-open threads (want) ─────────────────────────
