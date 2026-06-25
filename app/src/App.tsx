@@ -170,25 +170,6 @@ export default function App() {
           >
             Config
           </Button>
-
-          {draftCount > 0 && (
-            <div className="draft-bar" title="Local unsaved changes (config + tests)">
-              <span className="draft-count">{draftCount} unsaved</span>
-              <Button view="action" size="s" onClick={handlePublish} disabled={publishing}>
-                {publishing ? (
-                  <span className="btn-spin">
-                    <Spin size="xs" />
-                    Publishing
-                  </span>
-                ) : (
-                  'Publish'
-                )}
-              </Button>
-              <Button view="flat" size="s" onClick={discardAll} disabled={publishing}>
-                Discard
-              </Button>
-            </div>
-          )}
           </div>
 
           {view === 'playground' && (
@@ -211,36 +192,52 @@ export default function App() {
             </div>
           )}
 
-          {view === 'playground' && (
-            <div className="app-header-actions">
-              <label className="diff-toggle">
-                <Checkbox
-                  checked={showDiff}
-                  onUpdate={setShowDiff}
-                  size="m"
-                />
-                <span className="diff-toggle-label">Diff</span>
-              </label>
-              <Button view="outlined" size="s" onClick={handleReset}>
-                Reset
-              </Button>
-              <Button
-                view="action"
-                size="s"
-                onClick={handleFormat}
-                disabled={status.kind === 'loading'}
-              >
-                {status.kind === 'loading' ? (
-                  <span className="btn-spin">
-                    <Spin size="xs" />
-                    Formatting
-                  </span>
-                ) : (
-                  'Format'
-                )}
-              </Button>
-            </div>
-          )}
+          <div className="app-header-right">
+            {draftCount > 0 && (
+              <div className="draft-bar" title="Local unsaved changes (config + tests)">
+                <span className="draft-count">{draftCount} unsaved</span>
+                <Button view="action" size="s" onClick={handlePublish} disabled={publishing}>
+                  {publishing ? (
+                    <span className="btn-spin">
+                      <Spin size="xs" />
+                      Publishing
+                    </span>
+                  ) : (
+                    'Publish'
+                  )}
+                </Button>
+                <Button view="flat" size="s" onClick={discardAll} disabled={publishing}>
+                  Discard
+                </Button>
+              </div>
+            )}
+            {view === 'playground' && (
+              <div className="app-header-actions">
+                <label className="diff-toggle">
+                  <Checkbox checked={showDiff} onUpdate={setShowDiff} size="m" />
+                  <span className="diff-toggle-label">Diff</span>
+                </label>
+                <Button view="outlined" size="s" onClick={handleReset}>
+                  Reset
+                </Button>
+                <Button
+                  view="action"
+                  size="s"
+                  onClick={handleFormat}
+                  disabled={status.kind === 'loading'}
+                >
+                  {status.kind === 'loading' ? (
+                    <span className="btn-spin">
+                      <Spin size="xs" />
+                      Formatting
+                    </span>
+                  ) : (
+                    'Format'
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
         </header>
 
         {view === 'tests' ? (

@@ -33,15 +33,24 @@ body {
   border-bottom: 1px solid #2d2d35;
   flex-shrink: 0;
   background: #16161b;
+  /* never wrap/overlap: if too narrow for one line, scroll horizontally */
+  overflow-x: auto;
 }
 
-/* left cluster: title, view toggle, Config, draft bar */
+/* left cluster: title, view toggle, Config — single line, never wraps */
 .app-header-left {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 0;
-  flex-wrap: wrap;
+}
+
+/* right cluster: draft bar + format actions — single line, pinned right */
+.app-header-right {
+  grid-column: 3;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .app-title {
@@ -50,6 +59,7 @@ body {
   color: #e2e2e2;
   letter-spacing: -0.01em;
   margin: 0;
+  white-space: nowrap;
 }
 
 .app-header-center {
@@ -103,11 +113,9 @@ body {
 }
 
 .app-header-actions {
-  grid-column: 3;
   display: flex;
   align-items: center;
   gap: 8px;
-  justify-self: end;
 }
 
 .config-link-btn {
