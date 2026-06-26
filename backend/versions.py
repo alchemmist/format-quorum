@@ -12,10 +12,14 @@ a version, generate_dockerfile.py probing wheel availability) into the runtime.
 
 from __future__ import annotations
 
+import json
+import platform
 import re
 import shutil
 import subprocess
+import sys
 import threading
+import urllib.request
 import venv
 from pathlib import Path
 
@@ -47,6 +51,12 @@ class VersionManager:
         self.base_version = self._probe(base_bin)
         self._lock = threading.Lock()
         self._installing: set[str] = set()
+        # which KNOWN_VERSIONS actually have an installable wheel for *this*
+        # platform — probed against PyPI in the background. None until ready;
+        # until then state() shows the full list (best effort).
+        self._suggest_lock = threading.Lock()
+        self._installable: set[str] | None = None
+        threading.Thread(target=self._warm_suggestions, daemon=True).start()
 
     # ── probing ──────────────────────────────────────────────────────────────
     @staticmethod
@@ -62,6 +72,46 @@ class VersionManager:
 
     def _venv_bin(self, version: str) -> Path:
         return self.dir / version / "bin" / "clang-format"
+
+    # ── suggestion availability ──────────────────────────────────────────────
+    @staticmethod
+    def _wheel_compatible(filename: str) -> bool:
+        """Mirror pip's wheel/platform check well enough to know whether a
+        `clang-format==X.Y.Z` install would find a binary wheel here."""
+        name = filename.lower()
+        if not name.endswith(".whl"):
+            return False  # sdist only → no bundled binary we can use
+        machine = platform.machine().lower()
+        plat: str = sys.platform
+        if plat.startswith("linux"):
+            linux_ok = "manylinux" in name or "musllinux" in name
+            if machine in ("aarch64", "arm64"):
+                return linux_ok and "aarch64" in name
+            if machine in ("x86_64", "amd64"):
+                return linux_ok and "x86_64" in name
+            return linux_ok and machine in name
+        if plat == "darwin":
+            return "macosx" in name  # universal2 covers both arm64 and x86_64
+        if plat.startswith("win"):
+            return "win_amd64" in name or "win32" in name
+        return True
+
+    def _has_compatible_wheel(self, version: str) -> bool:
+        url = f"https://pypi.org/pypi/clang-format/{version}/json"
+        with urllib.request.urlopen(url, timeout=8) as resp:  # noqa: S310
+            data = json.load(resp)
+        return any(self._wheel_compatible(u["filename"]) for u in data.get("urls", []))
+
+    def _warm_suggestions(self) -> None:
+        installable: set[str] = set()
+        for v in KNOWN_VERSIONS:
+            try:
+                if self._has_compatible_wheel(v):
+                    installable.add(v)
+            except Exception:  # noqa: BLE001 - probe failure → keep, don't hide
+                installable.add(v)
+        with self._suggest_lock:
+            self._installable = installable
 
     # ── queries ──────────────────────────────────────────────────────────────
     def _installed(self) -> list[str]:
@@ -89,7 +139,11 @@ class VersionManager:
         installed = self._installed()
         with self._lock:
             installing = sorted(self._installing)
-        suggestions = [v for v in KNOWN_VERSIONS if v not in installed]
+        with self._suggest_lock:
+            installable = self._installable
+        # before the probe finishes, fall back to the full list
+        pool = KNOWN_VERSIONS if installable is None else [v for v in KNOWN_VERSIONS if v in installable]
+        suggestions = [v for v in pool if v not in installed]
         return {
             "versions": installed,
             "default": self.base_version,
