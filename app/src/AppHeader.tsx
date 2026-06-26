@@ -76,6 +76,10 @@ export default function AppHeader({
       <div className="app-header-center" id={HEADER_SLOT_IDS.center} />
 
       <div className="app-header-right">
+        {/* the active view portals its own actions (Format, Reset, …) here */}
+        <div className="app-header-actions" id={HEADER_SLOT_IDS.right} />
+
+        {/* the draft plate stays the right-most thing in the header on every tab */}
         {draftCount > 0 && (
           <div className="draft-bar" title="Local unsaved changes (config + tests)">
             <span className="draft-count">{draftCount} unsaved</span>
@@ -98,9 +102,6 @@ export default function AppHeader({
             </Button>
           </div>
         )}
-
-        {/* the active view portals its own actions (Format, Reset, …) here */}
-        <div className="app-header-actions" id={HEADER_SLOT_IDS.right} />
       </div>
     </header>
   )
