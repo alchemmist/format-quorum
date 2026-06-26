@@ -1,7 +1,17 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Button, Select, Spin, Text } from '@gravity-ui/uikit'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ActionTooltip, Button, Icon, Select, Spin, Text, TextInput } from '@gravity-ui/uikit'
+import { Ghost } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
-import { draftConfig, setConfigDraft, configKey } from './draftStore'
+import {
+  draftConfig,
+  setConfigDraft,
+  configKey,
+  addDraftShadow,
+  newShadowId,
+  draftShadow,
+  useShadows,
+  type ShadowMeta,
+} from './draftStore'
 import type { TestCase } from './types'
 
 interface Props {
@@ -36,8 +46,10 @@ export default function ConfigDrawer({
   onSaved,
 }: Props) {
   const [lang, setLang] = useState<Language>(initialLang)
-  // clang-format version whose config we're editing (cpp only)
+  // clang-format version (or shadow id) whose config we're editing (cpp only)
   const [versions, setVersions] = useState<string[]>([])
+  const [serverShadows, setServerShadows] = useState<ShadowMeta[]>([])
+  const shadows = useShadows(serverShadows)
   const [version, setVersion] = useState<string | undefined>(initialVersion)
   const [content, setContent] = useState('')
   const [serverContent, setServerContent] = useState('')
@@ -46,6 +58,15 @@ export default function ConfigDrawer({
   const [saved, setSaved] = useState(false)
   const [impact, setImpact] = useState<Impact | null>(null)
   const [checking, setChecking] = useState(false)
+  // "Save as shadow config" name-entry popup
+  const shadowBtnRef = useRef<HTMLDivElement>(null)
+  const [shadowFormOpen, setShadowFormOpen] = useState(false)
+  const [shadowName, setShadowName] = useState('')
+  const [shadowSaved, setShadowSaved] = useState(false)
+
+  // the real clang-format version a selection runs on (a shadow → its base)
+  const baseOf = (ver: string | undefined) =>
+    shadows.find((s) => s.id === ver)?.base ?? ver
 
   // adopt the playground language/version each time the drawer is opened
   useEffect(() => {
@@ -62,6 +83,7 @@ export default function ConfigDrawer({
       .then((r) => r.json())
       .then((d) => {
         setVersions(d.versions ?? [])
+        setServerShadows(d.shadows ?? [])
         setVersion((prev) => prev ?? d.default ?? (d.versions ?? [])[0])
       })
       .catch(() => {})
@@ -75,7 +97,11 @@ export default function ConfigDrawer({
       setSaved(false)
       setImpact(null)
       try {
-        const q = which === 'cpp' && ver ? `?version=${encodeURIComponent(ver)}` : ''
+        // a *draft* (unpublished) shadow isn't on the server — show its base
+        // version's config as the baseline, its draft text as the content
+        const sh = which === 'cpp' ? draftShadow(ver) : undefined
+        const fetchVer = sh ? sh.base : ver
+        const q = which === 'cpp' && fetchVer ? `?version=${encodeURIComponent(fetchVer)}` : ''
         const res = await fetch(`/api/config/${which}${q}`)
         const data = await res.json()
         if (!res.ok) {
@@ -119,6 +145,22 @@ export default function ConfigDrawer({
     window.setTimeout(() => setSaved(false), 2000)
   }, [lang, version, content, onSaved])
 
+  // store the current edits as a new shadow config (local draft) and switch to it
+  const saveShadow = useCallback(() => {
+    const name = shadowName.trim()
+    const base = baseOf(version)
+    if (!name || !base) return
+    const id = newShadowId()
+    addDraftShadow({ id, base, name }, content)
+    setShadowFormOpen(false)
+    setShadowName('')
+    setVersion(id) // edit the new shadow from here on
+    setShadowSaved(true)
+    window.setTimeout(() => setShadowSaved(false), 2000)
+    onSaved?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shadowName, version, content, shadows, onSaved])
+
   const changed = content !== serverContent
 
   // run every test of this language against the live config and against this
@@ -133,7 +175,9 @@ export default function ConfigDrawer({
         body: JSON.stringify({
           code,
           language: lang,
-          ...(lang === 'cpp' && version ? { clang_version: version } : {}),
+          // resolve a shadow to its base binary; baseline (no config) uses that
+          // version's published config, candidate uses the edited content
+          ...(lang === 'cpp' && baseOf(version) ? { clang_version: baseOf(version) } : {}),
           ...(config !== undefined ? { config } : {}),
         }),
       })
@@ -204,15 +248,67 @@ export default function ConfigDrawer({
               // the drawer's stacking layer (the portal layer sits below it)
               disablePortal
             >
-              {versions.map((v) => (
-                <Select.Option key={v} value={v}>
-                  {v}
+              {[
+                ...versions.map((v) => ({ value: v, label: v })),
+                ...shadows.map((s) => ({ value: s.id, label: `👻 ${s.name}` })),
+              ].map((o) => (
+                <Select.Option key={o.value} value={o.value}>
+                  {o.label}
                 </Select.Option>
               ))}
             </Select>
           )}
           <span className="config-drawer-spacer" />
+          {shadowSaved && <Text color="positive">shadow saved ✓</Text>}
           {saved && <Text color="positive">draft saved ✓</Text>}
+          {lang === 'cpp' && (
+            // a plain anchored panel (not a portal) so it sits in the drawer's
+            // stacking context, above the editor
+            <div className="shadow-anchor" ref={shadowBtnRef}>
+              <ActionTooltip
+                title="Save as shadow config"
+                description="Store these edits as a separate, named config that reuses this clang-format binary but its own .clang-format. It shows up everywhere as a 👻 pseudo-version — run it and compare it in the matrix next to the real versions. Saved to your local draft; Publish pushes it to the server."
+              >
+                <Button
+                  view="flat"
+                  size="s"
+                  onClick={() => setShadowFormOpen((o) => !o)}
+                  disabled={loading || !version}
+                  aria-label="Save as shadow config"
+                >
+                  <Icon data={Ghost} size={16} />
+                </Button>
+              </ActionTooltip>
+              {shadowFormOpen && (
+                <div className="shadow-form">
+                  <Text variant="caption-2" color="secondary">
+                    New shadow config from these edits
+                  </Text>
+                  <div className="shadow-form-row">
+                    <TextInput
+                      autoFocus
+                      value={shadowName}
+                      onUpdate={setShadowName}
+                      placeholder="Name, e.g. no-align"
+                      size="s"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') saveShadow()
+                        if (e.key === 'Escape') setShadowFormOpen(false)
+                      }}
+                    />
+                    <Button
+                      view="action"
+                      size="s"
+                      onClick={saveShadow}
+                      disabled={!shadowName.trim()}
+                    >
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           <Button view="action" size="s" onClick={save} disabled={loading}>
             Save draft
           </Button>
@@ -308,9 +404,16 @@ export default function ConfigDrawer({
 
           <Text color="secondary" variant="caption-2">
             Editing {TITLE[lang]}
-            {lang === 'cpp' && version ? ` for clang-format ${version}` : ''} — Save
-            keeps it in your local draft and applies to the next format / test run.
-            Publish pushes it to the server.
+            {lang === 'cpp' && version
+              ? (() => {
+                  const sh = shadows.find((s) => s.id === version)
+                  return sh
+                    ? ` for shadow config 👻 ${sh.name} (clang-format ${sh.base})`
+                    : ` for clang-format ${version}`
+                })()
+              : ''}{' '}
+            — Save keeps it in your local draft and applies to the next format /
+            test run. Publish pushes it to the server.
           </Text>
         </div>
       </div>

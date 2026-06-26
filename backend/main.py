@@ -23,8 +23,9 @@ from formatters import (
     format_code,
 )
 from test_store import TestStore, run_all, run_test
-from versions import VersionManager
+from versions import VERSION_RE, VersionManager
 from config_store import ConfigStore
+from shadow_store import ShadowStore
 
 BACKEND_DIR = Path(__file__).resolve().parent
 # Where the built frontend lives. Set FRONTEND_DIST in Docker.
@@ -47,10 +48,13 @@ CONFIG_HISTORY_DIR = Path(
 # Languages that have a config (the "Config" UI knows these two).
 CONFIG_LANGS = ("cpp", "python")
 
-app = FastAPI(title="format-quorum", version="0.7.0")
+app = FastAPI(title="format-quorum", version="0.8.0")
 versions = VersionManager(VERSIONS_DIR, CLANG_FORMAT_BIN)
 tests = TestStore(TESTS_DIR)
 configs = ConfigStore(CONFIG_HISTORY_DIR)
+# shadow configs: named alt configs that reuse an installed binary (their `base`)
+# but carry their own .clang-format. They surface as pseudo-versions everywhere.
+shadows = ShadowStore(CONFIG_HISTORY_DIR / "shadows.json")
 
 # The default clang-format version (the image's built-in). Its config is the
 # template new versions clone from, and the one materialized to the .clang-format
@@ -59,19 +63,31 @@ DEFAULT_CPP_VERSION = versions.base_version
 
 
 def _cpp_key(version: str | None) -> str:
-    """Config-store key for a clang-format version (default version when None).
-    Falls back to the legacy single 'cpp' key if there's no probed version."""
+    """Config-store key for a clang-format version OR a shadow id (each keeps its
+    own config). Default version when None; legacy 'cpp' if there's no probed
+    version."""
     v = version or DEFAULT_CPP_VERSION
     return f"cpp@{v}" if v else "cpp"
 
 
+def _real_version(version: str | None) -> str | None:
+    """Map a shadow id to the real clang-format version it runs on (its `base`);
+    pass real version strings through unchanged."""
+    sh = shadows.get(version)
+    return sh["base"] if sh else version
+
+
 def _ensure_cpp_config(version: str | None) -> str:
-    """Resolve the config key for a cpp version, lazily cloning it from the
-    default version's config if it doesn't exist yet."""
+    """Resolve the config key for a cpp version or shadow id, lazily seeding it if
+    it doesn't exist yet: a real version clones from the default version's config;
+    a shadow clones from its base version's config."""
     key = _cpp_key(version)
-    default_key = _cpp_key(None)
-    if key != default_key and not configs.exists(key):
-        configs.ensure_seeded(key, seed_from_key=default_key)
+    if configs.exists(key):
+        return key
+    sh = shadows.get(version)
+    seed_key = _cpp_key(sh["base"]) if sh else _cpp_key(None)
+    if key != seed_key:
+        configs.ensure_seeded(key, seed_from_key=seed_key)
     return key
 
 
@@ -104,11 +120,17 @@ def _init_configs() -> None:
 _init_configs()
 
 
+def _clang_bin(version: str | None) -> str | None:
+    """clang-format binary for a version string or shadow id (None = default)."""
+    return versions.get_binary(_real_version(version))
+
+
 def _resolve_clang(version: str | None):
-    """Return (binary_or_None, error_response_or_None) for a version string."""
+    """Return (binary_or_None, error_response_or_None) for a version string or
+    shadow id (a shadow resolves to its base version's binary)."""
     if not version:
         return None, None
-    binary = versions.get_binary(version)
+    binary = _clang_bin(version)
     if binary is None:
         return None, JSONResponse(
             {"error": f"clang-format {version} is not installed"}, status_code=400
@@ -161,7 +183,8 @@ class AddVersionRequest(BaseModel):
 
 @app.get("/api/clang-versions")
 def api_list_versions():
-    return versions.state()
+    # shadows ride along so the UI can list them as pseudo-versions ("👻 name")
+    return {**versions.state(), "shadows": shadows.list()}
 
 
 @app.post("/api/clang-versions")
@@ -171,7 +194,7 @@ def api_add_version(req: AddVersionRequest):
         return JSONResponse({"error": error}, status_code=400)
     # give the new version its own config, copied once from the default version
     configs.ensure_seeded(_cpp_key(req.version), seed_from_key=_cpp_key(None))
-    return versions.state()
+    return {**versions.state(), "shadows": shadows.list()}
 
 
 @app.delete("/api/clang-versions/{version}")
@@ -179,7 +202,46 @@ def api_remove_version(version: str):
     ok, error = versions.remove_version(version)
     if not ok:
         return JSONResponse({"error": error}, status_code=400)
-    return versions.state()
+    return {**versions.state(), "shadows": shadows.list()}
+
+
+# ── shadow configs ────────────────────────────────────────────────────────────
+class ShadowCreate(BaseModel):
+    id: str
+    base: str  # an installed clang-format version whose binary the shadow runs on
+    name: str = "shadow"
+    content: str  # the shadow's .clang-format text
+
+
+@app.post("/api/shadow-configs")
+def api_shadow_create(body: ShadowCreate):
+    """Register a shadow config and seed its config text. The id is client-chosen
+    (so an unpublished draft and its publish refer to the same shadow); it must
+    look like a shadow id, not a real version."""
+    sid = body.id.strip()
+    if not sid.startswith("shadow-") or VERSION_RE.match(sid):
+        return JSONResponse({"error": "invalid shadow id"}, status_code=400)
+    if versions.get_binary(body.base) is None:
+        return JSONResponse(
+            {"error": f"base clang-format {body.base} is not installed"}, status_code=400
+        )
+    sh = shadows.create(sid, body.base, (body.name or "shadow").strip() or "shadow")
+    key = _cpp_key(sid)
+    # the shadow's config is an independent snapshot; if it somehow already exists
+    # (re-publish), record the new content as a fresh version instead
+    if configs.exists(key):
+        configs.record(key, body.content, message="shadow config update")
+    else:
+        configs.ensure_seeded(key, seed_text=body.content)
+    return {"ok": True, "shadow": sh, "shadows": shadows.list()}
+
+
+@app.delete("/api/shadow-configs/{shadow_id}")
+def api_shadow_delete(shadow_id: str):
+    if not shadows.delete(shadow_id):
+        return JSONResponse({"error": "shadow config not found"}, status_code=404)
+    configs.drop(_cpp_key(shadow_id))  # drop its config history too
+    return {"ok": True, "shadows": shadows.list()}
 
 
 # ── Formatting test suite ─────────────────────────────────────────────────────
@@ -378,15 +440,20 @@ def api_tests_matrix(body: MatrixRequest):
     `passed` flag, so the UI can flag a muted test that actually passes on some
     version (a candidate to un-mute / a behaviour change between versions)."""
     lang = body.language or "cpp"
-    cols = sorted(versions.state()["versions"], key=_version_key)
+    # real installed versions, then shadow configs as extra columns (each shadow
+    # runs its base binary under its own config)
+    shadow_list = shadows.list() if lang == "cpp" else []
+    cols = sorted(versions.state()["versions"], key=_version_key) + [
+        s["id"] for s in shadow_list
+    ]
     test_list = [t for t in tests.list() if t["language"] == lang]
 
     per_version: dict[str, dict] = {}
     for v in cols:
-        binary = versions.get_binary(v)
+        binary = _clang_bin(v)
         if binary is None:
             continue
-        # each version runs against its OWN config (cpp); python is version-agnostic
+        # each column runs against its OWN config (cpp); python is version-agnostic
         cfg = configs.current(_ensure_cpp_config(v)) if lang == "cpp" else None
         res = run_all(tests, language=lang, clang_bin=binary, config=cfg)
         per_version[v] = {
@@ -407,7 +474,7 @@ def api_tests_matrix(body: MatrixRequest):
             "muted_passes_somewhere": bool(t["muted"] and passed_on),
         })
 
-    return {"language": lang, "versions": cols, "tests": rows}
+    return {"language": lang, "versions": cols, "tests": rows, "shadows": shadow_list}
 
 
 # ── Formatter configs (single source of truth, versioned) ─────────────────────

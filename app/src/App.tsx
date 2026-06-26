@@ -10,7 +10,7 @@ import ConfigDrawer from './ConfigDrawer'
 import MatrixDrawer from './MatrixDrawer'
 import { computeDiff } from './useDiff'
 import { getQueryParam, setQueryParam } from './url'
-import { useDraftCount, publishDraft, discardAll, draftConfig, configKey } from './draftStore'
+import { useDraftCount, publishDraft, discardAll, formatOverrides } from './draftStore'
 
 // @ts-ignore — Vite raw import
 import demoCpp from './demo.cpp?raw'
@@ -100,12 +100,9 @@ export default function App() {
         body: JSON.stringify({
           code: inputCode,
           language,
-          ...(language === 'cpp' && clangVersion ? { clang_version: clangVersion } : {}),
-          // format against the local draft config for this (lang, version) if any;
-          // otherwise the server applies that version's published config
-          ...(draftConfig(configKey(language, clangVersion)) !== undefined
-            ? { config: draftConfig(configKey(language, clangVersion)) }
-            : {}),
+          // clang_version + any local draft config (incl. shadow configs); the
+          // server applies the selected version's published config otherwise
+          ...formatOverrides(language, clangVersion),
         }),
       })
       const data = await res.json()

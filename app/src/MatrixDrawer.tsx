@@ -15,9 +15,16 @@ interface Row {
   muted_passes_somewhere: boolean
 }
 
+interface ShadowMeta {
+  id: string
+  base: string
+  name: string
+}
+
 interface Matrix {
   versions: string[]
   tests: Row[]
+  shadows?: ShadowMeta[]
 }
 
 interface Props {
@@ -84,6 +91,16 @@ export default function MatrixDrawer({ open, onClose, onPickTest }: Props) {
   }, [open, data, loading, run])
 
   const surprises = data ? data.tests.filter((t) => t.muted_passes_somewhere) : []
+  // a column id → its display label + tooltip (shadow configs show "👻 name")
+  const shadowById = new Map((data?.shadows ?? []).map((s) => [s.id, s]))
+  const colLabel = (v: string) => {
+    const sh = shadowById.get(v)
+    return sh ? `👻 ${sh.name}` : v
+  }
+  const colTitle = (v: string) => {
+    const sh = shadowById.get(v)
+    return sh ? `shadow config "${sh.name}" · clang-format ${sh.base}` : v
+  }
 
   return (
     <>
@@ -135,8 +152,12 @@ export default function MatrixDrawer({ open, onClose, onPickTest }: Props) {
                       <tr>
                         <th className="matrix-th-name">Test</th>
                         {data.versions.map((v) => (
-                          <th key={v} className="matrix-th-ver" title={v}>
-                            <span>{v}</span>
+                          <th
+                            key={v}
+                            className={`matrix-th-ver${shadowById.has(v) ? ' shadow' : ''}`}
+                            title={colTitle(v)}
+                          >
+                            <span>{colLabel(v)}</span>
                           </th>
                         ))}
                       </tr>

@@ -8,12 +8,14 @@ import {
   Text,
   TextInput,
 } from '@gravity-ui/uikit'
+import { useShadows, deleteShadow, type ShadowMeta } from './draftStore'
 
 export interface VersionsState {
   versions: string[]
   default: string | null
   installing: string[]
   suggestions: string[]
+  shadows?: ShadowMeta[]
 }
 
 interface Props {
@@ -100,6 +102,7 @@ export default function ClangVersionControl({ value, onChange }: Props) {
   )
 
   const versions = state?.versions ?? []
+  const shadows = useShadows(state?.shadows ?? [])
   const selected = value ?? state?.default ?? undefined
 
   return (
@@ -113,9 +116,12 @@ export default function ClangVersionControl({ value, onChange }: Props) {
         disabled={versions.length === 0}
         placeholder="version"
       >
-        {versions.map((v) => (
-          <Select.Option key={v} value={v}>
-            {v}
+        {[
+          ...versions.map((v) => ({ value: v, label: v })),
+          ...shadows.map((s) => ({ value: s.id, label: `👻 ${s.name}` })),
+        ].map((o) => (
+          <Select.Option key={o.value} value={o.value}>
+            {o.label}
           </Select.Option>
         ))}
       </Select>
@@ -208,6 +214,34 @@ export default function ClangVersionControl({ value, onChange }: Props) {
               </div>
             ))}
           </div>
+
+          {shadows.length > 0 && (
+            <div className="version-list">
+              <Text color="secondary" variant="caption-2">
+                Shadow configs (remove publishes with your draft):
+              </Text>
+              {shadows.map((s) => (
+                <div key={s.id} className="version-list-item">
+                  <Text>
+                    👻 {s.name}{' '}
+                    <Text color="secondary" variant="caption-2">
+                      ({s.base})
+                    </Text>
+                  </Text>
+                  <Button
+                    view="flat-danger"
+                    size="xs"
+                    onClick={() => {
+                      deleteShadow(s.id)
+                      if (value === s.id && state?.default) onChange(state.default)
+                    }}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </Dialog.Body>
         <Dialog.Footer
           onClickButtonCancel={() => setOpen(false)}

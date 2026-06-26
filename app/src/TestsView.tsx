@@ -24,8 +24,7 @@ import {
   patchTest,
   removeTest as draftRemoveTest,
   newDraftId,
-  draftConfig,
-  configKey,
+  formatOverrides,
 } from './draftStore'
 
 export type { TestCase } from './types'
@@ -214,17 +213,15 @@ export default function TestsView({
   const formatAndCompare = useCallback(
     async (test: TestCase): Promise<RunResult> => {
       try {
-        // run against the local draft config for this (lang, run-version) if any;
-        // otherwise the server uses that version's published config
-        const cfg = draftConfig(configKey(test.language, runVersion))
+        // run against the selected version + any local draft config (incl. a
+        // shadow config); the server uses the published config otherwise
         const res = await fetch('/api/format', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             code: test.input,
             language: test.language,
-            ...(test.language === 'cpp' && runVersion ? { clang_version: runVersion } : {}),
-            ...(cfg !== undefined ? { config: cfg } : {}),
+            ...formatOverrides(test.language, runVersion),
           }),
         })
         const data = await res.json()

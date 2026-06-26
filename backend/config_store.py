@@ -114,6 +114,17 @@ class ConfigStore:
         self._materialize(key)
         return True
 
+    def drop(self, key: str) -> bool:
+        """Delete a key's whole history (used when a shadow config is removed).
+        Returns True if a history file existed and was deleted."""
+        with self._lock:
+            self._materialize_paths.pop(key, None)
+            path = self._hist_path(key)
+            if path.exists():
+                path.unlink()
+                return True
+        return False
+
     def migrate(self, old_key: str, new_key: str) -> bool:
         """Move a key's history to a new name if the old exists and the new
         doesn't (used to retro-key the single `cpp` config to the default
