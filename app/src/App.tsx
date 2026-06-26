@@ -1,5 +1,14 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
-import { ThemeProvider, Button, Spin, Select, Checkbox } from '@gravity-ui/uikit'
+import { ThemeProvider, Button, Spin, Select, Checkbox, Icon } from '@gravity-ui/uikit'
+import {
+  ArrowRotateLeft,
+  ArrowUpFromLine,
+  Code,
+  Flask,
+  Gear,
+  Sparkles,
+  TrashBin,
+} from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import ClangVersionControl from './ClangVersionControl'
 import TestsView from './TestsView'
@@ -153,6 +162,7 @@ export default function App() {
               size="s"
               onClick={() => setView('playground')}
             >
+              <Icon data={Code} size={15} />
               Playground
             </Button>
             <Button
@@ -160,6 +170,7 @@ export default function App() {
               size="s"
               onClick={() => setView('tests')}
             >
+              <Icon data={Flask} size={15} />
               Tests
             </Button>
           </div>
@@ -170,6 +181,7 @@ export default function App() {
             className="config-open-btn"
             onClick={() => setConfigOpen(true)}
           >
+            <Icon data={Gear} size={15} />
             Config
           </Button>
           </div>
@@ -205,10 +217,14 @@ export default function App() {
                       Publishing
                     </span>
                   ) : (
-                    'Publish'
+                    <>
+                      <Icon data={ArrowUpFromLine} size={14} />
+                      Publish
+                    </>
                   )}
                 </Button>
                 <Button view="flat" size="s" onClick={discardAll} disabled={publishing}>
+                  <Icon data={TrashBin} size={14} />
                   Discard
                 </Button>
               </div>
@@ -220,6 +236,7 @@ export default function App() {
                   <span className="diff-toggle-label">Diff</span>
                 </label>
                 <Button view="outlined" size="s" onClick={handleReset}>
+                  <Icon data={ArrowRotateLeft} size={14} />
                   Reset
                 </Button>
                 <Button
@@ -234,7 +251,10 @@ export default function App() {
                       Formatting
                     </span>
                   ) : (
-                    'Format'
+                    <>
+                      <Icon data={Sparkles} size={14} />
+                      Format
+                    </>
                   )}
                 </Button>
               </div>

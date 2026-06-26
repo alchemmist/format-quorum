@@ -10,7 +10,7 @@ import {
   Text,
   TextInput,
 } from '@gravity-ui/uikit'
-import { LayoutCells, Pencil, PlayFill, TrashBin } from '@gravity-ui/icons'
+import { LayoutCells, Pencil, PlayFill, Plus, TrashBin } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import { getQueryParam, setQueryParam, testShareUrl } from './url'
 import { computeDiff } from './useDiff'
@@ -340,7 +340,10 @@ export default function TestsView({
               Running
             </span>
           ) : (
-            'Run all'
+            <>
+              <Icon data={PlayFill} size={16} />
+              Run all
+            </>
           )}
         </Button>
 
@@ -401,7 +404,8 @@ export default function TestsView({
         </Button>
 
         <Button view="normal" size="m" className="tests-add-btn" onClick={openCreate}>
-          + Add test
+          <Icon data={Plus} size={16} />
+          Add test
         </Button>
       </div>
 
