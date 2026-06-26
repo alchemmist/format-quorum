@@ -601,16 +601,41 @@ body {
   overflow: hidden;
 }
 
-/* enlarged code inside the zoom dialog */
-.test-zoom-editor {
-  height: 70vh;
-  border: 1px solid #2d2d35;
-  border-radius: 4px;
-  overflow: hidden;
+/* enlarged code — frameless overlay, closes on backdrop click / Escape */
+.zoom-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4vh 4vw;
+  background: rgba(0, 0, 0, 0);
+  opacity: 0;
+  transition: opacity 0.16s ease, background 0.16s ease;
 }
 
-.test-zoom-editor .cm-editor {
+.zoom-overlay.shown {
+  background: rgba(0, 0, 0, 0.55);
+  opacity: 1;
+}
+
+.zoom-code {
+  width: min(1100px, 92vw);
+  height: 88vh;
+  overflow: hidden;
+  border-radius: 6px;
+  transform: scale(0.97);
+  transition: transform 0.16s ease;
+}
+
+.zoom-overlay.shown .zoom-code {
+  transform: scale(1);
+}
+
+.zoom-code .cm-editor {
   height: 100%;
+  font-size: 15px;
 }
 
 .test-pane-editor .cm-editor {

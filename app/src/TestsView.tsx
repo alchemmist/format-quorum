@@ -658,10 +658,30 @@ function TestPane({
   diffAgainst?: string
 }) {
   const [zoom, setZoom] = useState(false)
+  const [shown, setShown] = useState(false)
   const diffRanges = useMemo(
     () => (diffAgainst !== undefined ? computeDiff(diffAgainst, code) : undefined),
     [diffAgainst, code],
   )
+
+  const openZoom = useCallback(() => {
+    setZoom(true)
+    requestAnimationFrame(() => setShown(true))
+  }, [])
+  const closeZoom = useCallback(() => {
+    setShown(false)
+    window.setTimeout(() => setZoom(false), 160)
+  }, [])
+
+  // close the enlarged view on Escape
+  useEffect(() => {
+    if (!zoom) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeZoom()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [zoom, closeZoom])
   return (
     <div className="test-pane">
       <div className="test-pane-titlebar">
@@ -673,7 +693,7 @@ function TestPane({
           className="test-pane-zoom"
           title="Enlarge"
           aria-label="Enlarge this code"
-          onClick={() => setZoom(true)}
+          onClick={openZoom}
         >
           <Icon data={Magnifier} size={14} />
         </button>
@@ -688,10 +708,9 @@ function TestPane({
         />
       </div>
 
-      <Dialog open={zoom} onClose={() => setZoom(false)} size="l">
-        <Dialog.Header caption={title} />
-        <Dialog.Body>
-          <div className="test-zoom-editor">
+      {zoom && (
+        <div className={`zoom-overlay${shown ? ' shown' : ''}`} onClick={closeZoom}>
+          <div className="zoom-code" onClick={(e) => e.stopPropagation()}>
             <CodeMirrorEditor
               value={code}
               language={language}
@@ -700,12 +719,8 @@ function TestPane({
               showDiff={diffRanges !== undefined}
             />
           </div>
-        </Dialog.Body>
-        <Dialog.Footer
-          onClickButtonCancel={() => setZoom(false)}
-          textButtonCancel="Close"
-        />
-      </Dialog>
+        </div>
+      )}
     </div>
   )
 }
