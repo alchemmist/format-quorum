@@ -10,7 +10,7 @@ import {
   Text,
   TextInput,
 } from '@gravity-ui/uikit'
-import { LayoutCells, Pencil, PlayFill, Plus, TrashBin } from '@gravity-ui/icons'
+import { LayoutCells, Magnifier, Pencil, PlayFill, Plus, TrashBin } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import { getQueryParam, setQueryParam, testShareUrl } from './url'
 import { computeDiff } from './useDiff'
@@ -657,15 +657,27 @@ function TestPane({
   language: Language
   diffAgainst?: string
 }) {
+  const [zoom, setZoom] = useState(false)
   const diffRanges = useMemo(
     () => (diffAgainst !== undefined ? computeDiff(diffAgainst, code) : undefined),
     [diffAgainst, code],
   )
   return (
     <div className="test-pane">
-      <Text color="secondary" variant="caption-2" className="test-pane-title">
-        {title}
-      </Text>
+      <div className="test-pane-titlebar">
+        <Text color="secondary" variant="caption-2" className="test-pane-title">
+          {title}
+        </Text>
+        <button
+          type="button"
+          className="test-pane-zoom"
+          title="Enlarge"
+          aria-label="Enlarge this code"
+          onClick={() => setZoom(true)}
+        >
+          <Icon data={Magnifier} size={14} />
+        </button>
+      </div>
       <div className="test-pane-editor">
         <CodeMirrorEditor
           value={code}
@@ -675,6 +687,25 @@ function TestPane({
           showDiff={diffRanges !== undefined}
         />
       </div>
+
+      <Dialog open={zoom} onClose={() => setZoom(false)} size="l">
+        <Dialog.Header caption={title} />
+        <Dialog.Body>
+          <div className="test-zoom-editor">
+            <CodeMirrorEditor
+              value={code}
+              language={language}
+              readOnly
+              diffRanges={diffRanges}
+              showDiff={diffRanges !== undefined}
+            />
+          </div>
+        </Dialog.Body>
+        <Dialog.Footer
+          onClickButtonCancel={() => setZoom(false)}
+          textButtonCancel="Close"
+        />
+      </Dialog>
     </div>
   )
 }

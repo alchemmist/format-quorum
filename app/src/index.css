@@ -558,8 +558,40 @@ body {
   min-width: 0;
 }
 
+.test-pane-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 18px;
+}
+
 .test-pane-title {
   padding-left: 2px;
+}
+
+/* loupe to enlarge a pane — faint until the pane is hovered */
+.test-pane-zoom {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #8a8a96;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s, background 0.12s;
+}
+
+.test-pane:hover .test-pane-zoom {
+  opacity: 1;
+}
+
+.test-pane-zoom:hover {
+  color: #e6e6ee;
+  background: #2d2d35;
 }
 
 .test-pane-editor {
@@ -567,6 +599,18 @@ body {
   border: 1px solid #2d2d35;
   border-radius: 4px;
   overflow: hidden;
+}
+
+/* enlarged code inside the zoom dialog */
+.test-zoom-editor {
+  height: 70vh;
+  border: 1px solid #2d2d35;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.test-zoom-editor .cm-editor {
+  height: 100%;
 }
 
 .test-pane-editor .cm-editor {
