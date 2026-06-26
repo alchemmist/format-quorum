@@ -663,6 +663,13 @@ export default function TestsView({
   )
 }
 
+// hold this key while hovering a pane to peek at it enlarged; release to close.
+// Ctrl is a free modifier on macOS (Mod = Cmd there) and doesn't hijack
+// CodeMirror's drag-select the way Alt (rectangular selection) would, so you can
+// still select/copy text inside the enlarged view while holding it.
+const PEEK_KEY = 'Control'
+const PEEK_HINT = 'Ctrl'
+
 function TestPane({
   title,
   code,
@@ -676,31 +683,69 @@ function TestPane({
 }) {
   const [zoom, setZoom] = useState(false)
   const [shown, setShown] = useState(false)
+  const hoverRef = useRef(false)
+  // true when the enlarged view was opened by holding the key (so releasing it
+  // closes it); a click-opened view stays until backdrop/Escape
+  const heldRef = useRef(false)
   const diffRanges = useMemo(
     () => (diffAgainst !== undefined ? computeDiff(diffAgainst, code) : undefined),
     [diffAgainst, code],
   )
 
-  const openZoom = useCallback(() => {
+  const openZoom = useCallback((held = false) => {
+    heldRef.current = held
     setZoom(true)
     requestAnimationFrame(() => setShown(true))
   }, [])
   const closeZoom = useCallback(() => {
+    heldRef.current = false
     setShown(false)
     window.setTimeout(() => setZoom(false), 160)
   }, [])
 
-  // close the enlarged view on Escape
+  // hold PEEK_KEY while hovering this pane → open; release → close
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== PEEK_KEY || e.repeat) return
+      if (zoom || !hoverRef.current) return
+      openZoom(true)
+    }
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === PEEK_KEY && heldRef.current) closeZoom()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+    }
+  }, [zoom, openZoom, closeZoom])
+
+  // close the enlarged view on Escape, or if the window loses focus (so a
+  // held-open peek can't get stuck when the keyup is swallowed)
   useEffect(() => {
     if (!zoom) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeZoom()
     }
+    const onBlur = () => closeZoom()
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    window.addEventListener('blur', onBlur)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('blur', onBlur)
+    }
   }, [zoom, closeZoom])
   return (
-    <div className="test-pane">
+    <div
+      className="test-pane"
+      onMouseEnter={() => {
+        hoverRef.current = true
+      }}
+      onMouseLeave={() => {
+        hoverRef.current = false
+      }}
+    >
       <div className="test-pane-titlebar">
         <Text color="secondary" variant="caption-2" className="test-pane-title">
           {title}
@@ -708,9 +753,9 @@ function TestPane({
         <button
           type="button"
           className="test-pane-zoom"
-          title="Enlarge"
+          title={`Enlarge — or hover and hold ${PEEK_HINT}`}
           aria-label="Enlarge this code"
-          onClick={openZoom}
+          onClick={() => openZoom()}
         >
           <Icon data={Magnifier} size={14} />
         </button>
