@@ -213,11 +213,11 @@ CASES = [
   "return FromPy<TMapping*>(self)->GetItem(keyStr);\n},\n// ass_subscript\nnullptr,\n};\n"
   "return &Methods;\n}\n}",
   None, False,
-  f"LOGS-5799 (Kamil): a struct initialised with lambda members (PyMappingMethods-style) — "
-  f"each lambda body indents +4 under its signature and '}}' aligns with the signature. This "
-  f"is LambdaBodyIndentation: Signature (our default) and the cleanest clang-format produces "
-  f"here; OuterScope regresses it (body loses its indent, '}}' drifts to the outer scope). "
-  f"Anonymised reconstruction. {LOGS5799}"),
+  f"LOGS-5799 (Kamil): struct initialised with lambda members. clang-format already formats "
+  f"it the normal K&R way (lambda body indented under the signature). The only other layout "
+  f"clang-format can produce is Allman ('{{' on its own line) via "
+  f"BraceWrapping.BeforeLambdaBody: true, which is global and regresses P6/P4. So the current "
+  f"form is already the normal one — this lock guards it. {LOGS5799}"),
 
  # ─── PR review/13704587 — still-open threads (want) ─────────────────────────
  ("PR: multiline if wraps the brace onto its own line (option в2)", "cpp", "lock",
