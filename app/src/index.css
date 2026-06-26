@@ -818,7 +818,10 @@ body {
   padding: 4px 10px;
 }
 
-.matrix-th-name {
+/* keep the specificity above `.matrix-table thead th` (which also sets
+   z-index) so the sticky name header stays above the scrolling version
+   headers instead of letting them slide over the Test column */
+.matrix-table thead th.matrix-th-name {
   z-index: 3;
   background: #1b1b21;
 }
