@@ -423,10 +423,20 @@ def api_tests_whatif(body: WhatIfRequest):
     return out
 
 
+class MatrixShadow(BaseModel):
+    id: str
+    base: str  # an installed clang-format version whose binary it runs on
+    name: str = "shadow"
+    content: str  # the shadow's .clang-format text
+
+
 class MatrixRequest(BaseModel):
     # The matrix axis is clang-format versions, so it covers cpp tests; python
     # output doesn't depend on the clang version.
     language: str = "cpp"
+    # Ad-hoc, *unpublished* shadow configs to include as extra columns, so a
+    # draft shadow shows in the matrix before it's published.
+    shadows: list[MatrixShadow] | None = None
 
 
 def _version_key(v: str):
@@ -440,26 +450,39 @@ def api_tests_matrix(body: MatrixRequest):
     `passed` flag, so the UI can flag a muted test that actually passes on some
     version (a candidate to un-mute / a behaviour change between versions)."""
     lang = body.language or "cpp"
-    # real installed versions, then shadow configs as extra columns (each shadow
-    # runs its base binary under its own config)
-    shadow_list = shadows.list() if lang == "cpp" else []
-    cols = sorted(versions.state()["versions"], key=_version_key) + [
-        s["id"] for s in shadow_list
-    ]
     test_list = [t for t in tests.list() if t["language"] == lang]
 
+    # Column specs: (col_id, binary, config). Real installed versions first, then
+    # published shadow configs, then any ad-hoc (unpublished) draft shadows the
+    # client sent — each shadow runs its base binary under its own config.
+    col_specs: list[tuple[str, str | None, str | None]] = []
+    for v in sorted(versions.state()["versions"], key=_version_key):
+        cfg = configs.current(_ensure_cpp_config(v)) if lang == "cpp" else None
+        col_specs.append((v, _clang_bin(v), cfg))
+
+    shadow_meta: dict[str, dict] = {}
+    if lang == "cpp":
+        for s in shadows.list():
+            shadow_meta[s["id"]] = s
+            cfg = configs.current(_ensure_cpp_config(s["id"]))
+            col_specs.append((s["id"], _clang_bin(s["id"]), cfg))
+        for s in body.shadows or []:
+            if s.id in shadow_meta:
+                continue  # a published column already covers this id
+            shadow_meta[s.id] = {"id": s.id, "base": s.base, "name": s.name}
+            col_specs.append((s.id, versions.get_binary(s.base), s.content))
+
+    cols = [c[0] for c in col_specs]
     per_version: dict[str, dict] = {}
-    for v in cols:
-        binary = _clang_bin(v)
+    for col_id, binary, cfg in col_specs:
         if binary is None:
             continue
-        # each column runs against its OWN config (cpp); python is version-agnostic
-        cfg = configs.current(_ensure_cpp_config(v)) if lang == "cpp" else None
         res = run_all(tests, language=lang, clang_bin=binary, config=cfg)
-        per_version[v] = {
+        per_version[col_id] = {
             r["id"]: {"status": r["status"], "passed": r["passed"]}
             for r in res["results"]
         }
+    shadow_list = list(shadow_meta.values())
 
     rows = []
     for t in test_list:

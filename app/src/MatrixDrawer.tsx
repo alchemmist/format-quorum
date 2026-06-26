@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Button, Icon, Spin, Text } from '@gravity-ui/uikit'
 import { ArrowRotateLeft, Check, Minus, StarFill, Xmark } from '@gravity-ui/icons'
+import { draftCreatedShadows } from './draftStore'
 
 interface Cell {
   status: 'pass' | 'fail' | 'muted'
@@ -67,10 +68,17 @@ export default function MatrixDrawer({ open, onClose, onPickTest }: Props) {
     setLoading(true)
     setError(null)
     try {
+      // send locally-created (unpublished) shadows so they get matrix columns too
+      const shadows = draftCreatedShadows().map((s) => ({
+        id: s.id,
+        base: s.base,
+        name: s.name,
+        content: s.content,
+      }))
       const res = await fetch('/api/tests/matrix', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ language: 'cpp' }),
+        body: JSON.stringify({ language: 'cpp', shadows }),
       })
       const d = await res.json()
       if (!res.ok) {
@@ -95,7 +103,7 @@ export default function MatrixDrawer({ open, onClose, onPickTest }: Props) {
   const shadowById = new Map((data?.shadows ?? []).map((s) => [s.id, s]))
   const colLabel = (v: string) => {
     const sh = shadowById.get(v)
-    return sh ? `👻 ${sh.name}` : v
+    return sh ? `👻 ${sh.name} (${sh.base})` : v
   }
   const colTitle = (v: string) => {
     const sh = shadowById.get(v)

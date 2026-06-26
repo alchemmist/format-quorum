@@ -162,6 +162,10 @@ export function deleteShadow(id: string) {
 export const draftShadow = (id: string | undefined): ShadowDraft | undefined =>
   id === undefined ? undefined : state.shadowsCreated[id]
 
+// locally-created (unpublished) shadows — the server doesn't know these yet, so
+// the matrix takes them as ad-hoc columns to run before they're published
+export const draftCreatedShadows = (): ShadowDraft[] => Object.values(state.shadowsCreated)
+
 // server shadows merged with the local draft — what the UI's version lists show
 export function effectiveShadows(server: ShadowMeta[]): ShadowMeta[] {
   const kept = server.filter((s) => !state.shadowsDeleted.includes(s.id))

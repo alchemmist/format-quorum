@@ -250,7 +250,7 @@ export default function ConfigDrawer({
             >
               {[
                 ...versions.map((v) => ({ value: v, label: v })),
-                ...shadows.map((s) => ({ value: s.id, label: `👻 ${s.name}` })),
+                ...shadows.map((s) => ({ value: s.id, label: `👻 ${s.name} (${s.base})` })),
               ].map((o) => (
                 <Select.Option key={o.value} value={o.value}>
                   {o.label}
@@ -270,7 +270,7 @@ export default function ConfigDrawer({
                 description="Store these edits as a separate, named config that reuses this clang-format binary but its own .clang-format. It shows up everywhere as a 👻 pseudo-version — run it and compare it in the matrix next to the real versions. Saved to your local draft; Publish pushes it to the server."
               >
                 <Button
-                  view="flat"
+                  view="action"
                   size="s"
                   onClick={() => setShadowFormOpen((o) => !o)}
                   disabled={loading || !version}

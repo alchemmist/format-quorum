@@ -118,7 +118,7 @@ export default function ClangVersionControl({ value, onChange }: Props) {
       >
         {[
           ...versions.map((v) => ({ value: v, label: v })),
-          ...shadows.map((s) => ({ value: s.id, label: `👻 ${s.name}` })),
+          ...shadows.map((s) => ({ value: s.id, label: `👻 ${s.name} (${s.base})` })),
         ].map((o) => (
           <Select.Option key={o.value} value={o.value}>
             {o.label}
