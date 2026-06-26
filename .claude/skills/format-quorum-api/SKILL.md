@@ -49,6 +49,14 @@ a newer version is its new options. Target one with `--clang-version X.Y.Z` on
 default version). A newly added version's config is copied once from the default
 version's current config. python has a single config (no version).
 
+**Shadow configs** are named alternative `.clang-format`s that reuse an
+installed binary (their `--base` version) but their own config — so you can run
+the *same* clang-format binary under two configs and compare them in the matrix.
+They appear everywhere as a `👻 name` pseudo-version. Manage them with
+`fq.py shadows` / `shadow-add --base X.Y.Z --name NAME -i file` / `shadow-delete <id>`.
+A shadow's config is just a config keyed by its id, so `get-config cpp
+--clang-version <shadow-id>` (and put/history/rollback) all work on it too.
+
 **`whatif`** answers "config patch → which tests pass/fail" in one call without
 touching the stored config — the server runs the suite live vs candidate and
 diffs them. Use it to check a tuning hypothesis or a config edit's blast radius:

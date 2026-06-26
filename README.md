@@ -38,6 +38,14 @@ Then open `http://localhost:3000`.
   wheel for this platform. Installed versions persist across restarts. Each
   version keeps **its own config** (a newer clang-format is worth installing for
   the options it adds), cloned once from the default version when added.
+- **Shadow configs** — in the Config drawer, **👻 Save as shadow config** stores
+  the current edits as a *named* alternative `.clang-format` that reuses the
+  selected clang-format **binary** but its own config. It then appears
+  everywhere as a `👻 name` pseudo-version — pick it in the playground/tests, and
+  it gets **its own column in the version matrix** right next to the real
+  versions, so you can compare the same binary under two configs. Like every
+  edit it lives in the local draft until **Publish**; remove one from the
+  **Versions** manager.
 - **Tests** — BEFORE → AFTER cases run against the current config:
   - green = pass, red = fail, **yellow = muted** (a conscious compromise / one to
     revisit later);
@@ -106,6 +114,10 @@ history), cloned once from the default version when added; a request without a
 version targets the default version. Select one with `?version=X.Y.Z` (GET) or
 the `version` field (PUT/rollback). Python has a single config.
 
+A **shadow config** is keyed `cpp@<shadow-id>` and behaves exactly like a
+version's config (own history, rollback, impact) — it's just selected by its
+shadow id (e.g. `?version=shadow-1719…`) and runs on its base version's binary.
+
 ### Versioned config — so a good config can't be lost
 
 Config changes are **never a destructive overwrite**. Each published config is
@@ -155,8 +167,10 @@ suite twice — live vs candidate — and returns what flips (`now_pass`,
 | Method | Path | Purpose |
 |--------|------|---------|
 | POST | `/api/format` | format `{code, language, clang_version?, config?}` |
-| GET/POST | `/api/clang-versions` | list / install a clang-format version |
+| GET/POST | `/api/clang-versions` | list (incl. shadow configs) / install a clang-format version |
 | DELETE | `/api/clang-versions/{v}` | remove an installed version |
+| POST | `/api/shadow-configs` | create a shadow config `{id, base, name, content}` |
+| DELETE | `/api/shadow-configs/{id}` | remove a shadow config |
 | GET/POST/PUT/DELETE | `/api/tests` … | manage tests |
 | POST | `/api/tests/run` | run the suite (`{clang_version?, config?}`) |
 | POST | `/api/tests/{id}/run` | run a single test |

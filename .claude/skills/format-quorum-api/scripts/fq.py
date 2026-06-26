@@ -178,6 +178,37 @@ def cmd_versions(a):
     _pp(_req("GET", "/api/clang-versions"))
 
 
+# ── shadow configs ────────────────────────────────────────────────────────────
+# A shadow config reuses an installed clang-format BINARY (its --base version)
+# but its own .clang-format. It shows up everywhere as a "👻 name" pseudo-version
+# (incl. its own matrix column). Selected by its id like any version.
+def cmd_shadows(a):
+    rows = _req("GET", "/api/clang-versions").get("shadows", [])
+    if a.json:
+        _pp(rows)
+        return
+    for s in rows:
+        print(f"{s['id']}  👻 {s['name']}  (base {s['base']})")
+    print(f"\n{len(rows)} shadow configs")
+
+
+def cmd_shadow_add(a):
+    import time
+
+    sid = a.id or f"shadow-{int(time.time() * 1000)}"
+    body = {
+        "id": sid,
+        "base": a.base,
+        "name": a.name,
+        "content": _read(a.input_file),
+    }
+    _pp(_req("POST", "/api/shadow-configs", body))
+
+
+def cmd_shadow_delete(a):
+    _pp(_req("DELETE", f"/api/shadow-configs/{a.id}"))
+
+
 def _coerce(v):
     """Turn a CLI string into bool/int where it obviously is one (so a YAML
     patch gets `true`/`12`, not `"true"`/`"12"`)."""
@@ -266,6 +297,17 @@ def main():
     s.add_argument("--author"); s.add_argument("--message", "-m"); s.set_defaults(fn=cmd_config_rollback)
 
     s = sub.add_parser("versions", help="list clang-format versions"); s.set_defaults(fn=cmd_versions)
+
+    s = sub.add_parser("shadows", help="list shadow configs")
+    s.add_argument("--json", action="store_true"); s.set_defaults(fn=cmd_shadows)
+    s = sub.add_parser("shadow-add", help="create a shadow config (alt .clang-format on a base version's binary)")
+    s.add_argument("--base", required=True, help="installed clang-format version the shadow runs on")
+    s.add_argument("--name", required=True)
+    s.add_argument("--input-file", "-i", default="-", help="the shadow's .clang-format (file or stdin)")
+    s.add_argument("--id", help="shadow id (default: generated; must start with 'shadow-')")
+    s.set_defaults(fn=cmd_shadow_add)
+    s = sub.add_parser("shadow-delete", help="delete a shadow config")
+    s.add_argument("id"); s.set_defaults(fn=cmd_shadow_delete)
 
     s = sub.add_parser("whatif", help="config patch -> which tests flip pass/fail")
     s.add_argument("--lang", default="cpp"); s.add_argument("--version")
