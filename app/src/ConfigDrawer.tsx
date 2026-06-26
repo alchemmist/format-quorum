@@ -74,13 +74,12 @@ export default function ConfigDrawer({
     return sh ? <ShadowLabel>{`${sh.name} (${sh.base})`}</ShadowLabel> : v
   }
 
-  // adopt the playground language/version each time the drawer is opened
+  // sync to the header's version each time the drawer is opened, but keep the
+  // language tab (.clang-format / ruff.toml) where it was last left, so reopening
+  // returns to the tab you closed on rather than always the playground language
   useEffect(() => {
-    if (open) {
-      setLang(initialLang)
-      setVersion(initialVersion)
-    }
-  }, [open, initialLang, initialVersion])
+    if (open) setVersion(initialVersion)
+  }, [open, initialVersion])
 
   // installed clang-format versions for the picker; default-select one
   useEffect(() => {
