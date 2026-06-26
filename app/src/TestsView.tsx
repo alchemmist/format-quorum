@@ -628,11 +628,14 @@ export default function TestsView({
 }
 
 // hold this key while hovering a pane to peek at it enlarged; release to close.
-// Ctrl is a free modifier on macOS (Mod = Cmd there) and doesn't hijack
-// CodeMirror's drag-select the way Alt (rectangular selection) would, so you can
-// still select/copy text inside the enlarged view while holding it.
-const PEEK_KEY = 'Control'
-const PEEK_HINT = 'Ctrl'
+const PEEK_KEY = 'Alt'
+const PEEK_HINT = 'Alt'
+
+// Which pane the cursor is currently over — a single shared value so exactly one
+// pane can match on keydown. (Per-pane hover flags could get stuck true when the
+// overlay covers the cursor and a mouseleave is missed, opening the wrong pane.)
+let hoveredPaneId = 0
+let paneSeq = 0
 
 function TestPane({
   title,
@@ -647,7 +650,7 @@ function TestPane({
 }) {
   const [zoom, setZoom] = useState(false)
   const [shown, setShown] = useState(false)
-  const hoverRef = useRef(false)
+  const [paneId] = useState(() => ++paneSeq)
   // true when the enlarged view was opened by holding the key (so releasing it
   // closes it); a click-opened view stays until backdrop/Escape
   const heldRef = useRef(false)
@@ -671,7 +674,7 @@ function TestPane({
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== PEEK_KEY || e.repeat) return
-      if (zoom || !hoverRef.current) return
+      if (zoom || hoveredPaneId !== paneId) return
       openZoom(true)
     }
     const onKeyUp = (e: KeyboardEvent) => {
@@ -683,7 +686,7 @@ function TestPane({
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
     }
-  }, [zoom, openZoom, closeZoom])
+  }, [zoom, paneId, openZoom, closeZoom])
 
   // close the enlarged view on Escape, or if the window loses focus (so a
   // held-open peek can't get stuck when the keyup is swallowed)
@@ -704,10 +707,10 @@ function TestPane({
     <div
       className="test-pane"
       onMouseEnter={() => {
-        hoverRef.current = true
+        hoveredPaneId = paneId
       }}
       onMouseLeave={() => {
-        hoverRef.current = false
+        if (hoveredPaneId === paneId) hoveredPaneId = 0
       }}
     >
       <div className="test-pane-titlebar">
