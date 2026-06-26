@@ -37,6 +37,37 @@ interface Impact {
   mutedWouldPass: string[] // muted tests that would pass on this draft (could un-mute)
 }
 
+interface HistoryEntry {
+  seq: number
+  ts: string | null
+  author: string
+  message: string
+  patch: string
+}
+
+// colorize a unified diff for the history panel
+function PatchView({ patch }: { patch: string }) {
+  return (
+    <pre className="config-patch">
+      {patch.split('\n').map((line, i) => {
+        const cls =
+          line.startsWith('+') && !line.startsWith('+++')
+            ? 'add'
+            : line.startsWith('-') && !line.startsWith('---')
+              ? 'del'
+              : line.startsWith('@@')
+                ? 'hunk'
+                : ''
+        return (
+          <div key={i} className={`patch-line ${cls}`}>
+            {line || ' '}
+          </div>
+        )
+      })}
+    </pre>
+  )
+}
+
 const norm = (s: string) => s.replace(/\r\n/g, '\n').replace(/\n+$/, '')
 
 export default function ConfigDrawer({
@@ -64,6 +95,12 @@ export default function ConfigDrawer({
   const [shadowFormOpen, setShadowFormOpen] = useState(false)
   const [shadowName, setShadowName] = useState('')
   const [shadowSaved, setShadowSaved] = useState(false)
+  // version history panel
+  const [showHistory, setShowHistory] = useState(false)
+  const [history, setHistory] = useState<HistoryEntry[]>([])
+  const [historyHead, setHistoryHead] = useState(0)
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [expandedSeq, setExpandedSeq] = useState<number | null>(null)
 
   // the real clang-format version a selection runs on (a shadow → its base)
   const baseOf = (ver: string | undefined) =>
@@ -78,7 +115,10 @@ export default function ConfigDrawer({
   // language tab (.clang-format / ruff.toml) where it was last left, so reopening
   // returns to the tab you closed on rather than always the playground language
   useEffect(() => {
-    if (open) setVersion(initialVersion)
+    if (open) {
+      setVersion(initialVersion)
+      setShowHistory(false) // always reopen on the editor, not the history panel
+    }
   }, [open, initialVersion])
 
   // installed clang-format versions for the picker; default-select one
@@ -179,12 +219,65 @@ export default function ConfigDrawer({
         setShadowFormOpen(false)
         return
       }
+      // run before CodeMirror's own Esc handler (which would otherwise eat the
+      // first press to clear the cursor) so one Esc always acts
+      e.preventDefault()
+      e.stopPropagation()
+      if (showHistory) {
+        setShowHistory(false) // Esc out of the history panel back to the editor
+        return
+      }
       if (changed) save()
       onClose()
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, shadowFormOpen, changed, save, onClose])
+    // capture phase: handle Esc ahead of the focused editor
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [open, shadowFormOpen, showHistory, changed, save, onClose])
+
+  // ── version history ───────────────────────────────────────────────────────
+  const cfgQuery = lang === 'cpp' && version ? `?version=${encodeURIComponent(version)}` : ''
+  const isDraftShadow = !!draftShadow(version)
+
+  const loadHistory = useCallback(async () => {
+    setHistoryLoading(true)
+    try {
+      const res = await fetch(`/api/config/${lang}/history${cfgQuery}`)
+      const data = await res.json()
+      // newest first
+      setHistory([...(data.versions ?? [])].reverse())
+      setHistoryHead(data.head ?? 0)
+    } catch {
+      /* ignore — panel just shows empty */
+    } finally {
+      setHistoryLoading(false)
+    }
+  }, [lang, cfgQuery])
+
+  useEffect(() => {
+    if (open && showHistory) loadHistory()
+  }, [open, showHistory, loadHistory])
+
+  // load an earlier version's content into the editor as a draft (publish to
+  // actually roll back on the server — consistent with the draft model)
+  const restoreVersion = useCallback(
+    async (seq: number) => {
+      const res = await fetch(`/api/config/${lang}/history/${seq}${cfgQuery}`)
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error ?? 'Failed to load version')
+        return
+      }
+      const key = configKey(lang, version)
+      setContent(data.content)
+      if (key) setConfigDraft(key, data.content)
+      setImpact(null)
+      setShowHistory(false)
+      setSaved(true)
+      window.setTimeout(() => setSaved(false), 2000)
+    },
+    [lang, version, cfgQuery],
+  )
 
   // run every test of this language against the live config and against this
   // draft config, and report which tests flip pass/fail.
@@ -329,7 +422,20 @@ export default function ConfigDrawer({
               )}
             </div>
           )}
-          <Button view="action" size="s" onClick={save} disabled={loading}>
+          <Button
+            view={showHistory ? 'action' : 'flat'}
+            size="s"
+            onClick={() => setShowHistory((s) => !s)}
+            disabled={loading || isDraftShadow}
+            title={
+              isDraftShadow
+                ? 'History is available once the shadow config is published'
+                : 'Config version history & rollback'
+            }
+          >
+            History
+          </Button>
+          <Button view="action" size="s" onClick={save} disabled={loading || showHistory}>
             Save draft
           </Button>
           <Button view="flat" size="s" onClick={onClose}>
@@ -347,6 +453,61 @@ export default function ConfigDrawer({
           {loading ? (
             <div className="config-drawer-loading">
               <Spin size="m" />
+            </div>
+          ) : showHistory ? (
+            <div className="config-history">
+              {historyLoading ? (
+                <div className="config-drawer-loading">
+                  <Spin size="m" />
+                </div>
+              ) : history.length === 0 ? (
+                <Text color="secondary">No history yet — the base config is version 0.</Text>
+              ) : (
+                history.map((v) => (
+                  <div key={v.seq} className="config-history-item">
+                    <div className="config-history-head">
+                      <Text variant="subheader-1">v{v.seq}</Text>
+                      {v.seq === historyHead && (
+                        <Text color="positive" variant="caption-2">
+                          current
+                        </Text>
+                      )}
+                      <Text color="secondary" variant="caption-2">
+                        {v.ts ? new Date(v.ts).toLocaleString() : 'base config'}
+                        {v.author ? ` · ${v.author}` : ''}
+                      </Text>
+                      <span className="config-drawer-spacer" />
+                      {v.patch && (
+                        <Button
+                          view="flat"
+                          size="xs"
+                          onClick={() =>
+                            setExpandedSeq((s) => (s === v.seq ? null : v.seq))
+                          }
+                        >
+                          {expandedSeq === v.seq ? 'hide diff' : 'diff'}
+                        </Button>
+                      )}
+                      {v.seq !== historyHead && (
+                        <Button
+                          view="outlined"
+                          size="xs"
+                          onClick={() => restoreVersion(v.seq)}
+                          title="Load this version into the editor as a draft"
+                        >
+                          Load
+                        </Button>
+                      )}
+                    </div>
+                    {v.message && (
+                      <Text color="secondary" variant="caption-2" className="config-history-msg">
+                        {v.message}
+                      </Text>
+                    )}
+                    {expandedSeq === v.seq && v.patch && <PatchView patch={v.patch} />}
+                  </div>
+                ))
+              )}
             </div>
           ) : (
             <CodeMirrorEditor
