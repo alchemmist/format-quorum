@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { ThemeProvider, Button, Spin, Select, Checkbox, Icon } from '@gravity-ui/uikit'
-import { ArrowRotateLeft, Sparkles } from '@gravity-ui/icons'
+import { ArrowRotateLeft, CurlyBrackets, LogoPython, Sparkles } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import ClangVersionControl from './ClangVersionControl'
 import AppHeader, { type View } from './AppHeader'
@@ -198,10 +198,26 @@ export default function App() {
                 value={[language]}
                 onUpdate={(val) => handleLanguageChange(val[0])}
                 size="s"
-                width={120}
+                width={76}
+                renderSelectedOption={(opt) => (
+                  <span className="lang-opt">
+                    <Icon
+                      data={opt.value === 'python' ? LogoPython : CurlyBrackets}
+                      size={15}
+                    />
+                  </span>
+                )}
               >
-                <Select.Option value="cpp">C++</Select.Option>
-                <Select.Option value="python">Python</Select.Option>
+                <Select.Option value="cpp">
+                  <span title="C++" className="lang-opt">
+                    <Icon data={CurlyBrackets} size={15} /> C++
+                  </span>
+                </Select.Option>
+                <Select.Option value="python">
+                  <span title="Python" className="lang-opt">
+                    <Icon data={LogoPython} size={15} /> Python
+                  </span>
+                </Select.Option>
               </Select>
               {language === 'cpp' && (
                 <ClangVersionControl value={clangVersion} onChange={setClangVersion} />

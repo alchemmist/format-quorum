@@ -1,4 +1,4 @@
-import { Button, Icon, Spin, type IconData } from '@gravity-ui/uikit'
+import { ActionTooltip, Button, Icon, Spin, type IconData } from '@gravity-ui/uikit'
 import { ArrowUpFromLine, Code, Flask, Gear, TrashBin } from '@gravity-ui/icons'
 import { HEADER_SLOT_IDS } from './HeaderSlot'
 
@@ -56,15 +56,20 @@ export default function AppHeader({
           ))}
         </div>
 
-        <Button
-          view="outlined"
-          size="s"
-          className="config-open-btn"
-          onClick={onOpenConfig}
+        <ActionTooltip
+          title="Edit config"
+          description="Open the formatter config editor — Ctrl/Cmd + ,"
         >
-          <Icon data={Gear} size={15} />
-          Config
-        </Button>
+          <Button
+            view="outlined"
+            size="s"
+            className="config-open-btn"
+            onClick={onOpenConfig}
+            aria-label="Edit config"
+          >
+            <Icon data={Gear} size={15} />
+          </Button>
+        </ActionTooltip>
       </div>
 
       {/* the active view portals its language/version pickers here */}

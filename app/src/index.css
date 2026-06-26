@@ -121,6 +121,13 @@ body {
   gap: 8px;
 }
 
+/* language options: icon + label in the dropdown, icon-only when collapsed */
+.lang-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 /* "Save as shadow config" name-entry panel (anchored under the 👻 button, kept
    inside the drawer's stacking context so it sits above the editor) */
 .shadow-anchor {
