@@ -133,7 +133,7 @@ export default function MatrixDrawer({ open, onClose, onPickTest }: Props) {
                   <table className="matrix-table">
                     <thead>
                       <tr>
-                        <th className="matrix-th-name" />
+                        <th className="matrix-th-name">Test</th>
                         {data.versions.map((v) => (
                           <th key={v} className="matrix-th-ver" title={v}>
                             <span>{v}</span>

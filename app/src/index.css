@@ -778,7 +778,9 @@ body {
   border-collapse: separate;
   border-spacing: 0;
   font-size: 12px;
-  width: 100%;
+  /* size to content so there's no dead space between the name and version
+     columns; the table scrolls horizontally when many versions are present */
+  width: auto;
 }
 
 .matrix-table th,
@@ -831,7 +833,7 @@ body {
 }
 
 .matrix-name-text {
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
