@@ -4,6 +4,7 @@ import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import ClangVersionControl from './ClangVersionControl'
 import TestsView from './TestsView'
 import ConfigDrawer from './ConfigDrawer'
+import MatrixDrawer from './MatrixDrawer'
 import { computeDiff } from './useDiff'
 import { getQueryParam, setQueryParam } from './url'
 import { useDraftCount, publishDraft, discardAll, draftConfig } from './draftStore'
@@ -41,6 +42,7 @@ export default function App() {
   )
 
   const [configOpen, setConfigOpen] = useState(false)
+  const [matrixOpen, setMatrixOpen] = useState(false)
   const draftCount = useDraftCount()
   const [publishing, setPublishing] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -246,6 +248,7 @@ export default function App() {
             playgroundOutput={outputCode}
             playgroundLanguage={language}
             refreshKey={refreshKey}
+            onOpenMatrix={() => setMatrixOpen(true)}
           />
         ) : (
         <div className="editors-container">
@@ -315,6 +318,8 @@ export default function App() {
             if (outputCode) handleFormat()
           }}
         />
+
+        <MatrixDrawer open={matrixOpen} onClose={() => setMatrixOpen(false)} />
       </div>
     </ThemeProvider>
   )

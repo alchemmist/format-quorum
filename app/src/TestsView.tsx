@@ -10,7 +10,7 @@ import {
   Text,
   TextInput,
 } from '@gravity-ui/uikit'
-import { Pencil, PlayFill, TrashBin } from '@gravity-ui/icons'
+import { LayoutCells, Pencil, PlayFill, TrashBin } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import { getQueryParam, setQueryParam, testShareUrl } from './url'
 import { computeDiff } from './useDiff'
@@ -45,6 +45,8 @@ interface Props {
   playgroundLanguage: Language
   /** bumped after a Publish so the server tests reload */
   refreshKey?: number
+  /** open the tests×versions matrix drawer */
+  onOpenMatrix?: () => void
 }
 
 function displayStatus(test: TestCase, result?: RunResult): Display {
@@ -81,6 +83,7 @@ export default function TestsView({
   playgroundOutput,
   playgroundLanguage,
   refreshKey,
+  onOpenMatrix,
 }: Props) {
   const initialFilter = getQueryParam('filter')
   const [serverTests, setServerTests] = useState<TestCase[]>([])
@@ -385,6 +388,17 @@ export default function TestsView({
           ))}
           <Text color="secondary">/ {summary.total}</Text>
         </div>
+
+        <Button
+          view="outlined"
+          size="m"
+          className="tests-matrix-btn"
+          onClick={onOpenMatrix}
+          title="Run all tests on every installed clang-format version"
+        >
+          <Icon data={LayoutCells} size={16} />
+          Matrix
+        </Button>
 
         <Button view="normal" size="m" className="tests-add-btn" onClick={openCreate}>
           + Add test
