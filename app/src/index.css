@@ -615,6 +615,22 @@ body {
   height: 100%;
 }
 
+/* icon + label buttons: vertically center the icon with the text + small gap */
+.g-button .g-button__text {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* tighten the gap between the line-number gutter and the code (raise specificity
+   so it beats CodeMirror's own injected .cm-lineNumbers .cm-gutterElement rule) */
+.cm-editor .cm-lineNumbers .cm-gutterElement {
+  padding: 0 3px 0 6px;
+}
+.cm-editor .cm-line {
+  padding-left: 3px;
+}
+
 /* ── Version matrix drawer (slides in from the right) ───────────────────────── */
 .matrix-drawer {
   position: fixed;
@@ -740,14 +756,16 @@ body {
   color: #d2d2d8;
   white-space: nowrap;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .matrix-name-text {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: inline-block;
-  max-width: 290px;
-  vertical-align: middle;
 }
 
 .matrix-row:hover td {
@@ -760,8 +778,7 @@ body {
 
 .matrix-row-star {
   color: #ffbe5c;
-  margin-right: 5px;
-  vertical-align: middle;
+  flex-shrink: 0;
 }
 
 .matrix-cell {
