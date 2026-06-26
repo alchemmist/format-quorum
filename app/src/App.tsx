@@ -221,6 +221,10 @@ export default function App() {
             </div>
           )}
 
+          {/* Tests view fills this with its own language/version pickers (via a
+              portal) so they sit in the same centered spot as on the playground */}
+          {view === 'tests' && <div className="app-header-center" id="tests-header-slot" />}
+
           <div className="app-header-right">
             {draftCount > 0 && (
               <div className="draft-bar" title="Local unsaved changes (config + tests)">

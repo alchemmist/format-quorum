@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Button,
   Checkbox,
@@ -120,6 +121,12 @@ export default function TestsView({
   )
   const [error, setError] = useState<string | null>(null)
   const didScrollRef = useRef(false)
+  // header slot (rendered by App) where the language/version pickers go, so they
+  // sit in the same centered spot as the playground's pickers
+  const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null)
+  useEffect(() => {
+    setHeaderSlot(document.getElementById('tests-header-slot'))
+  }, [])
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -359,6 +366,41 @@ export default function TestsView({
 
   return (
     <div className="tests-view">
+      {/* language + clang-format pickers live in the header (same spot as the
+          playground), portaled into the slot App renders for the tests view */}
+      {headerSlot &&
+        createPortal(
+          <>
+            <Select
+              value={[filter]}
+              onUpdate={(v) => setFilter(v[0] as 'all' | Language)}
+              size="s"
+              width={120}
+            >
+              <Select.Option value="all">All</Select.Option>
+              <Select.Option value="cpp">C++</Select.Option>
+              <Select.Option value="python">Python</Select.Option>
+            </Select>
+            {versions.length > 0 && (
+              <Select
+                value={runVersion ? [runVersion] : []}
+                onUpdate={(v) => setRunVersion(v[0])}
+                size="s"
+                width={190}
+                label="clang-format"
+                title="clang-format version for the run"
+              >
+                {versions.map((v) => (
+                  <Select.Option key={v} value={v}>
+                    {v}
+                  </Select.Option>
+                ))}
+              </Select>
+            )}
+          </>,
+          headerSlot,
+        )}
+
       <div className="tests-toolbar">
         <Button view="action" size="m" onClick={runAll} disabled={running}>
           {running ? (
@@ -373,34 +415,6 @@ export default function TestsView({
             </>
           )}
         </Button>
-
-        <Select
-          value={[filter]}
-          onUpdate={(v) => setFilter(v[0] as 'all' | Language)}
-          size="m"
-          width={120}
-        >
-          <Select.Option value="all">All</Select.Option>
-          <Select.Option value="cpp">C++</Select.Option>
-          <Select.Option value="python">Python</Select.Option>
-        </Select>
-
-        {versions.length > 0 && (
-          <Select
-            value={runVersion ? [runVersion] : []}
-            onUpdate={(v) => setRunVersion(v[0])}
-            size="m"
-            width={200}
-            label="clang-format"
-            title="clang-format version for the run"
-          >
-            {versions.map((v) => (
-              <Select.Option key={v} value={v}>
-                {v}
-              </Select.Option>
-            ))}
-          </Select>
-        )}
 
         <div className="tests-summary">
           {(['pass', 'fail', 'muted'] as const).map((s) => (
