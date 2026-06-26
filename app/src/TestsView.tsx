@@ -45,6 +45,9 @@ interface Props {
   playgroundInput: string
   playgroundOutput: string
   playgroundLanguage: Language
+  /** clang-format version, shared with the playground tab */
+  clangVersion?: string
+  onClangVersionChange: (version: string) => void
   /** bumped after a Publish so the server tests reload */
   refreshKey?: number
   /** open the tests×versions matrix drawer */
@@ -88,6 +91,8 @@ export default function TestsView({
   playgroundInput,
   playgroundOutput,
   playgroundLanguage,
+  clangVersion,
+  onClangVersionChange,
   refreshKey,
   onOpenMatrix,
   focusTest,
@@ -109,9 +114,6 @@ export default function TestsView({
     initialStatus === 'pass' || initialStatus === 'fail' || initialStatus === 'muted'
       ? initialStatus
       : 'all',
-  )
-  const [runVersion, setRunVersion] = useState<string | undefined>(
-    () => getQueryParam('version') ?? undefined,
   )
   const [focusedId, setFocusedId] = useState<string | null>(() => getQueryParam('test'))
   const [copiedId, setCopiedId] = useState<string | null>(null)
@@ -145,9 +147,6 @@ export default function TestsView({
   useEffect(() => {
     setQueryParam('filter', filter === 'all' ? null : filter)
   }, [filter])
-  useEffect(() => {
-    setQueryParam('version', runVersion ?? null)
-  }, [runVersion])
   useEffect(() => {
     setQueryParam('status', statusFilter === 'all' ? null : statusFilter)
   }, [statusFilter])
@@ -221,7 +220,7 @@ export default function TestsView({
           body: JSON.stringify({
             code: test.input,
             language: test.language,
-            ...formatOverrides(test.language, runVersion),
+            ...formatOverrides(test.language, clangVersion),
           }),
         })
         const data = await res.json()
@@ -238,7 +237,7 @@ export default function TestsView({
         return { id: test.id, passed: false, actual: '', error: String(e) }
       }
     },
-    [runVersion],
+    [clangVersion],
   )
 
   const runAll = useCallback(async () => {
@@ -362,7 +361,7 @@ export default function TestsView({
           <Select.Option value="cpp">C++</Select.Option>
           <Select.Option value="python">Python</Select.Option>
         </Select>
-        <ClangVersionControl value={runVersion} onChange={setRunVersion} />
+        <ClangVersionControl value={clangVersion} onChange={onClangVersionChange} />
       </HeaderSlot>
 
       <div className="tests-toolbar">

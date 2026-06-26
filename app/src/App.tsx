@@ -39,7 +39,11 @@ export default function App() {
   const [outputCode, setOutputCode] = useState<string>('')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [showDiff, setShowDiff] = useState<boolean>(true)
-  const [clangVersion, setClangVersion] = useState<string | undefined>(undefined)
+  // the selected clang-format version is shared across tabs (playground + tests)
+  // and kept in the URL so a link is shareable
+  const [clangVersion, setClangVersion] = useState<string | undefined>(
+    () => getQueryParam('version') ?? undefined,
+  )
   const [view, setView] = useState<View>(
     () => (getQueryParam('view') === 'tests' ? 'tests' : 'playground'),
   )
@@ -58,6 +62,11 @@ export default function App() {
   useEffect(() => {
     setQueryParam('view', view === 'tests' ? 'tests' : null)
   }, [view])
+
+  // keep the shared clang-format version in the URL (both tabs read it)
+  useEffect(() => {
+    setQueryParam('version', clangVersion ?? null)
+  }, [clangVersion])
 
   const diffRanges = useMemo(
     () => outputCode ? computeDiff(inputCode, outputCode) : [],
@@ -79,6 +88,7 @@ export default function App() {
       setOutputCode('')
       setStatus({ kind: 'idle' })
       setView(getQueryParam('view') === 'tests' ? 'tests' : 'playground')
+      setClangVersion(getQueryParam('version') ?? undefined)
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
@@ -221,6 +231,8 @@ export default function App() {
             playgroundInput={inputCode}
             playgroundOutput={outputCode}
             playgroundLanguage={language}
+            clangVersion={clangVersion}
+            onClangVersionChange={setClangVersion}
             refreshKey={refreshKey}
             onOpenMatrix={() => setMatrixOpen(true)}
             focusTest={focusTest}
