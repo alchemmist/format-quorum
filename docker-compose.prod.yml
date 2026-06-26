@@ -20,14 +20,20 @@ services:
       RUFF_CONFIG: /app/configs/ruff.toml
       VERSIONS_DIR: /app/clang_versions
       TESTS_DIR: /app/tests
+      CONFIG_HISTORY_DIR: /app/config_history
     volumes:
       # installed clang-format versions persist across deploys
       - clang_versions:/app/clang_versions
       # tests live in a named volume so UI edits on prod survive deploys
       # (git reset --hard never touches it). The image seeds it once when empty.
       - tests_data:/app/tests
-      # configs stay git-backed (the canonical team config is the repo) — the
-      # deploy resets them to main, so curate .clang-format / ruff.toml via git
+      # config history (base + published patches) persists so a deploy can't lose
+      # the live config or the ability to roll it back. The git-backed configs
+      # below only seed the *base*; the current version is re-materialized from
+      # this volume on every start.
+      - config_data:/app/config_history
+      # configs are git-backed (the canonical team base config is the repo); the
+      # current published version is materialized over them from the volume above
       - ./backend/configs:/app/configs
     expose:
       - "3000"
@@ -48,5 +54,6 @@ services:
 volumes:
   clang_versions:
   tests_data:
+  config_data:
   caddy_data:
   caddy_config:

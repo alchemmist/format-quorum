@@ -137,7 +137,30 @@ def cmd_get_config(a):
 
 
 def cmd_put_config(a):
-    _pp(_req("PUT", f"/api/config/{a.lang}", {"content": _read(a.input_file)}))
+    payload = {"content": _read(a.input_file)}
+    if a.author:
+        payload["author"] = a.author
+    if a.message:
+        payload["message"] = a.message
+    _pp(_req("PUT", f"/api/config/{a.lang}", payload))
+
+
+def cmd_config_history(a):
+    res = _req("GET", f"/api/config/{a.lang}/history")
+    print(f"head: v{res['head']}")
+    for v in res["versions"]:
+        who = f" by {v['author']}" if v.get("author") else ""
+        msg = f" — {v['message']}" if v.get("message") else ""
+        print(f"  v{v['seq']:<3} {v.get('ts') or '(base)':<32}{who}{msg}")
+
+
+def cmd_config_rollback(a):
+    payload = {"seq": a.seq}
+    if a.author:
+        payload["author"] = a.author
+    if a.message:
+        payload["message"] = a.message
+    _pp(_req("POST", f"/api/config/{a.lang}/rollback", payload))
 
 
 def cmd_versions(a):
@@ -216,8 +239,15 @@ def main():
     s.add_argument("--lang"); s.add_argument("--version"); s.set_defaults(fn=cmd_run)
 
     s = sub.add_parser("get-config", help="print a config"); s.add_argument("lang"); s.set_defaults(fn=cmd_get_config)
-    s = sub.add_parser("put-config", help="write a config from --input-file or stdin")
-    s.add_argument("lang"); s.add_argument("--input-file", "-i", default="-"); s.set_defaults(fn=cmd_put_config)
+    s = sub.add_parser("put-config", help="publish a config from --input-file or stdin (records a version)")
+    s.add_argument("lang"); s.add_argument("--input-file", "-i", default="-")
+    s.add_argument("--author"); s.add_argument("--message", "-m"); s.set_defaults(fn=cmd_put_config)
+
+    s = sub.add_parser("config-history", help="list a config's version history")
+    s.add_argument("lang"); s.set_defaults(fn=cmd_config_history)
+    s = sub.add_parser("config-rollback", help="roll a config back to an earlier version")
+    s.add_argument("lang"); s.add_argument("seq", type=int)
+    s.add_argument("--author"); s.add_argument("--message", "-m"); s.set_defaults(fn=cmd_config_rollback)
 
     s = sub.add_parser("versions", help="list clang-format versions"); s.set_defaults(fn=cmd_versions)
 

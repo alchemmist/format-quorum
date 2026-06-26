@@ -22,6 +22,9 @@ __pycache__
 # runtime-installed clang-format versions
 backend/clang_versions
 
+# local config version history (persisted in a volume in prod)
+backend/config_history
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -34,8 +34,13 @@ FQ_BASE=https://fq.alchemmist.xyz python3 .claude/skills/format-quorum-api/scrip
 ```
 
 Commands: `list`, `get <id>`, `format`, `add`, `update <id>`, `delete <id>`,
-`run`, `get-config <lang>`, `put-config <lang>`, `whatif`. Run any with `-h`
-for flags.
+`run`, `get-config <lang>`, `put-config <lang>`, `config-history <lang>`,
+`config-rollback <lang> <seq>`, `whatif`. Run any with `-h` for flags.
+
+**Config is versioned.** `put-config` doesn't overwrite — it records a new
+version (with `--author` / `--message`). `config-history` lists every version
+with its patch; `config-rollback <lang> <seq>` restores an earlier one (`seq 0`
+= the original base). So a bad config edit is always reversible.
 
 **`whatif`** answers "config patch → which tests pass/fail" in one call without
 touching the stored config — the server runs the suite live vs candidate and
@@ -153,6 +158,9 @@ commit (author **alchemmist**, no `Co-Authored-By` — repo commit convention).
 `POST /api/tests/whatif` (`{language, clang_version?, patch?, config?, targets?}`
 → `{summary{baseline,patched}, flips{now_pass,now_fail,muted_would_pass}, results, targets?}`) ·
 `GET/POST /api/clang-versions` · `DELETE /api/clang-versions/{version}` ·
-`GET/PUT /api/config/{lang}` · `GET /clang-format` · `GET /ruff.toml`.
+`GET/PUT /api/config/{lang}` (PUT records a version; body may add `author`/`message`) ·
+`GET /api/config/{lang}/history` · `GET /api/config/{lang}/history/{seq}` ·
+`POST /api/config/{lang}/rollback` (`{seq, author?, message?}`) ·
+`GET /clang-format` · `GET /ruff.toml`.
 clang-format default is `18.1.8`; other versions must be installed via
 `POST /api/clang-versions` first (slow — pip-installs into a venv).

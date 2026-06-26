@@ -96,18 +96,35 @@ They're served at `/clang-format` and `/ruff.toml` (and via `GET /api/config/{la
 so the UI always shows the config formatting actually uses. The **Config** drawer
 edits them through `PUT /api/config/{lang}`.
 
+### Versioned config — so a good config can't be lost
+
+Config changes are **never a destructive overwrite**. Each published config is
+appended to a per-language **version history** (`config_store.py`): the repo
+config is version 0 (the *base*), and every `PUT` records a new version with its
+diff (`patch`), author and message. The current config — what the formatter and
+`GET /api/config/{lang}` use — is the latest version, *materialized* back into the
+config file. `GET`/`PUT` look exactly as before; underneath, anyone can change the
+config but nothing is irreversible:
+
+- `GET /api/config/{lang}/history` — the full version list with patches.
+- `POST /api/config/{lang}/rollback {seq}` — restore an earlier version (0 = base).
+  Rollback is append-only — it's recorded as a new version, so it too can be undone.
+
 ### Persistence on a deployed instance
 
-`docker-compose.prod.yml` separates the two:
+`docker-compose.prod.yml` keeps three things in named volumes so a deploy never
+loses live state:
 
-- **Configs** stay git-backed — the repo is the canonical team config, bind-mounted
-  from `./backend/configs`, so a deploy resets them to what's committed.
-- **Tests** live in a named volume (`tests_data`), so edits made in the UI survive
-  deploys. A fresh volume is seeded once from the image-baked snapshot
-  (`backend/tests/` → `/app/tests-seed`) by `entrypoint.sh`.
+- **Config history** (`config_data`) — base + every published version. On start the
+  current version is re-materialized from this volume over the git-backed config
+  file, so the live config (and its rollback history) survives a deploy that resets
+  the repo. The committed `backend/configs/` only seeds the *base* on a fresh volume.
+- **Tests** (`tests_data`) — UI edits survive deploys; a fresh volume is seeded once
+  from the image-baked snapshot (`backend/tests/` → `/app/tests-seed`).
+- **clang-format versions** (`clang_versions`) — installed versions persist.
 
-Locally, tests are just JSON under `backend/tests/` and version-controlled, so the
-baseline suite lives in the repo.
+Locally, tests are JSON under `backend/tests/` and the base configs live in
+`backend/configs/`, both version-controlled, so the baseline lives in the repo.
 
 ---
 
@@ -134,7 +151,10 @@ suite twice — live vs candidate — and returns what flips (`now_pass`,
 | POST | `/api/tests/run` | run the suite (`{clang_version?, config?}`) |
 | POST | `/api/tests/{id}/run` | run a single test |
 | POST | `/api/tests/whatif` | hypothesis check: `{patch?, config?, targets?}` → which tests flip pass/fail |
-| GET/PUT | `/api/config/{lang}` | get / update a formatter config (`cpp` \| `python`) |
+| GET/PUT | `/api/config/{lang}` | get current / publish a new version of a config (`cpp` \| `python`) |
+| GET | `/api/config/{lang}/history` | config version history (base + each change's patch) |
+| GET | `/api/config/{lang}/history/{seq}` | full config content at a version (0 = base) |
+| POST | `/api/config/{lang}/rollback` | roll the config back to version `{seq}` |
 | GET | `/clang-format`, `/ruff.toml` | raw config files |
 
 ---

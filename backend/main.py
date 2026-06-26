@@ -24,6 +24,7 @@ from formatters import (
 )
 from test_store import TestStore, run_all, run_test
 from versions import VersionManager
+from config_store import ConfigStore
 
 BACKEND_DIR = Path(__file__).resolve().parent
 # Where the built frontend lives. Set FRONTEND_DIST in Docker.
@@ -36,10 +37,21 @@ VERSIONS_DIR = Path(
 )
 # Where BEFORE/AFTER tests live (git-backed, bind-mounted in Docker).
 TESTS_DIR = Path(os.environ.get("TESTS_DIR", str(BACKEND_DIR / "tests")))
+# Where the per-language config history (base + patches) is persisted. A named
+# volume in Docker so published config changes — and the ability to roll them
+# back — survive a deploy that resets the git-backed config files.
+CONFIG_HISTORY_DIR = Path(
+    os.environ.get("CONFIG_HISTORY_DIR", str(BACKEND_DIR / "config_history"))
+)
 
-app = FastAPI(title="format-quorum", version="0.5.0")
+# Formatter config files (the single source of truth the formatter reads). The
+# config store materializes the current version into these paths.
+CONFIG_PATHS = {"cpp": CLANG_FORMAT_CONFIG, "python": RUFF_CONFIG}
+
+app = FastAPI(title="format-quorum", version="0.6.0")
 versions = VersionManager(VERSIONS_DIR, CLANG_FORMAT_BIN)
 tests = TestStore(TESTS_DIR)
+configs = ConfigStore(CONFIG_HISTORY_DIR, CONFIG_PATHS)
 
 
 def _resolve_clang(version: str | None):
@@ -282,10 +294,10 @@ def api_tests_whatif(body: WhatIfRequest):
     return out
 
 
-# ── Formatter configs (single source of truth) ────────────────────────────────
+# ── Formatter configs (single source of truth, versioned) ─────────────────────
 # The "Config" link in the UI points here, so it always shows the config that
-# formatting actually uses.
-CONFIG_PATHS = {"cpp": CLANG_FORMAT_CONFIG, "python": RUFF_CONFIG}
+# formatting actually uses. Every change is recorded by the config store so it
+# can be rolled back; GET/PUT keep their original shape.
 
 
 @app.get("/clang-format")
@@ -300,34 +312,76 @@ def serve_ruff_config():
 
 class ConfigBody(BaseModel):
     content: str
+    # Optional provenance for the history entry — who/why. Externally GET/PUT
+    # look the same as before; these just enrich the audit trail.
+    author: str | None = None
+    message: str | None = None
+
+
+class RollbackBody(BaseModel):
+    seq: int
+    author: str | None = None
+    message: str | None = None
 
 
 @app.get("/api/config/{lang}")
 def api_get_config(lang: str):
-    path = CONFIG_PATHS.get(lang)
-    if path is None:
+    if lang not in CONFIG_PATHS:
         return JSONResponse({"error": f"unknown config: {lang}"}, status_code=400)
-    try:
-        return {
-            "language": lang,
-            "filename": "clang-format" if lang == "cpp" else "ruff.toml",
-            "content": Path(path).read_text(encoding="utf-8"),
-        }
-    except OSError as exc:
-        return JSONResponse({"error": str(exc)}, status_code=500)
+    return {
+        "language": lang,
+        "filename": "clang-format" if lang == "cpp" else "ruff.toml",
+        "content": configs.current(lang),
+    }
 
 
 @app.put("/api/config/{lang}")
 def api_put_config(lang: str, body: ConfigBody):
-    """Write the config straight to the file used for formatting."""
-    path = CONFIG_PATHS.get(lang)
-    if path is None:
+    """Record the config as a new version (and materialize it for the formatter).
+    Looks the same to callers — but the change is now reversible."""
+    if lang not in CONFIG_PATHS:
         return JSONResponse({"error": f"unknown config: {lang}"}, status_code=400)
     try:
-        Path(path).write_text(body.content, encoding="utf-8")
+        result = configs.record(
+            lang, body.content, author=body.author or "", message=body.message or ""
+        )
     except OSError as exc:
         return JSONResponse({"error": str(exc)}, status_code=500)
-    return {"ok": True}
+    return {"ok": True, **result}
+
+
+@app.get("/api/config/{lang}/history")
+def api_config_history(lang: str):
+    """List the version history (base + each published change with its patch)."""
+    if lang not in CONFIG_PATHS:
+        return JSONResponse({"error": f"unknown config: {lang}"}, status_code=400)
+    return {"language": lang, "head": configs.head_seq(lang),
+            "versions": configs.history(lang)}
+
+
+@app.get("/api/config/{lang}/history/{seq}")
+def api_config_version(lang: str, seq: int):
+    """Full config content at a given version (0 = the original base)."""
+    if lang not in CONFIG_PATHS:
+        return JSONResponse({"error": f"unknown config: {lang}"}, status_code=400)
+    content = configs.get_version(lang, seq)
+    if content is None:
+        return JSONResponse({"error": f"no version {seq}"}, status_code=404)
+    return {"language": lang, "seq": seq, "content": content}
+
+
+@app.post("/api/config/{lang}/rollback")
+def api_config_rollback(lang: str, body: RollbackBody):
+    """Roll the live config back to an earlier version. Append-only: the rollback
+    is itself a new version, so it's auditable and can be undone."""
+    if lang not in CONFIG_PATHS:
+        return JSONResponse({"error": f"unknown config: {lang}"}, status_code=400)
+    result = configs.rollback(
+        lang, body.seq, author=body.author or "", message=body.message or ""
+    )
+    if result is None:
+        return JSONResponse({"error": f"no version {body.seq}"}, status_code=404)
+    return {"ok": True, **result}
 
 
 # ── Static frontend (production) ──────────────────────────────────────────────
