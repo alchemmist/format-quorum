@@ -203,9 +203,9 @@ export default function App() {
                 <Select.Option value="cpp">C++</Select.Option>
                 <Select.Option value="python">Python</Select.Option>
               </Select>
-              {language === 'cpp' && (
-                <ClangVersionControl value={clangVersion} onChange={setClangVersion} />
-              )}
+              {/* the version selector is shown on every tab; its value is shared
+                  (it just doesn't affect ruff/python formatting) */}
+              <ClangVersionControl value={clangVersion} onChange={setClangVersion} />
             </HeaderSlot>
             <HeaderSlot slot="right">
               <label className="diff-toggle">
