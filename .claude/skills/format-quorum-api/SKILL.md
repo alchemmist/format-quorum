@@ -157,6 +157,7 @@ commit (author **alchemmist**, no `Co-Authored-By` — repo commit convention).
 `POST /api/tests/run` · `POST /api/tests/{id}/run` ·
 `POST /api/tests/whatif` (`{language, clang_version?, patch?, config?, targets?}`
 → `{summary{baseline,patched}, flips{now_pass,now_fail,muted_would_pass}, results, targets?}`) ·
+`POST /api/tests/matrix` (`{language}` → `{versions, tests:[{id,name,muted,cells{ver:{status,passed}},muted_passes_somewhere}]}`) ·
 `GET/POST /api/clang-versions` · `DELETE /api/clang-versions/{version}` ·
 `GET/PUT /api/config/{lang}` (PUT records a version; body may add `author`/`message`) ·
 `GET /api/config/{lang}/history` · `GET /api/config/{lang}/history/{seq}` ·

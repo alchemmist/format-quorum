@@ -151,6 +151,7 @@ suite twice — live vs candidate — and returns what flips (`now_pass`,
 | POST | `/api/tests/run` | run the suite (`{clang_version?, config?}`) |
 | POST | `/api/tests/{id}/run` | run a single test |
 | POST | `/api/tests/whatif` | hypothesis check: `{patch?, config?, targets?}` → which tests flip pass/fail |
+| POST | `/api/tests/matrix` | run every test against every installed clang version → tests×versions grid |
 | GET/PUT | `/api/config/{lang}` | get current / publish a new version of a config (`cpp` \| `python`) |
 | GET | `/api/config/{lang}/history` | config version history (base + each change's patch) |
 | GET | `/api/config/{lang}/history/{seq}` | full config content at a version (0 = base) |

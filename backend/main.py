@@ -294,6 +294,53 @@ def api_tests_whatif(body: WhatIfRequest):
     return out
 
 
+class MatrixRequest(BaseModel):
+    # The matrix axis is clang-format versions, so it covers cpp tests; python
+    # output doesn't depend on the clang version.
+    language: str = "cpp"
+
+
+def _version_key(v: str):
+    return tuple(int(p) if p.isdigit() else 0 for p in v.replace("-", ".").split("."))
+
+
+@app.post("/api/tests/matrix")
+def api_tests_matrix(body: MatrixRequest):
+    """Run every test of a language against every installed clang-format version
+    and return a tests x versions grid. Each cell carries the status plus the raw
+    `passed` flag, so the UI can flag a muted test that actually passes on some
+    version (a candidate to un-mute / a behaviour change between versions)."""
+    lang = body.language or "cpp"
+    cols = sorted(versions.state()["versions"], key=_version_key)
+    test_list = [t for t in tests.list() if t["language"] == lang]
+
+    per_version: dict[str, dict] = {}
+    for v in cols:
+        binary = versions.get_binary(v)
+        if binary is None:
+            continue
+        res = run_all(tests, language=lang, clang_bin=binary)
+        per_version[v] = {
+            r["id"]: {"status": r["status"], "passed": r["passed"]}
+            for r in res["results"]
+        }
+
+    rows = []
+    for t in test_list:
+        cells = {v: per_version.get(v, {}).get(t["id"]) for v in cols}
+        # a muted test that passes on some version but not all is a "surprise"
+        passed_on = [v for v, c in cells.items() if c and c["passed"]]
+        rows.append({
+            "id": t["id"],
+            "name": t["name"],
+            "muted": t["muted"],
+            "cells": cells,
+            "muted_passes_somewhere": bool(t["muted"] and passed_on),
+        })
+
+    return {"language": lang, "versions": cols, "tests": rows}
+
+
 # ── Formatter configs (single source of truth, versioned) ─────────────────────
 # The "Config" link in the UI points here, so it always shows the config that
 # formatting actually uses. Every change is recorded by the config store so it
