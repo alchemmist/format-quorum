@@ -10,16 +10,7 @@ import {
   Text,
   TextInput,
 } from '@gravity-ui/uikit'
-import {
-  CurlyBrackets,
-  LayoutCells,
-  LogoPython,
-  Magnifier,
-  Pencil,
-  PlayFill,
-  Plus,
-  TrashBin,
-} from '@gravity-ui/icons'
+import { LayoutCells, Magnifier, Pencil, PlayFill, Plus, TrashBin } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import ClangVersionControl from './ClangVersionControl'
 import { HeaderSlot } from './HeaderSlot'
@@ -364,28 +355,11 @@ export default function TestsView({
           value={[filter]}
           onUpdate={(v) => setFilter(v[0] as 'all' | Language)}
           size="s"
-          width={92}
-          renderSelectedOption={(opt) =>
-            opt.value === 'all' ? (
-              <span>All</span>
-            ) : (
-              <span className="lang-opt">
-                <Icon data={opt.value === 'python' ? LogoPython : CurlyBrackets} size={15} />
-              </span>
-            )
-          }
+          width={120}
         >
           <Select.Option value="all">All</Select.Option>
-          <Select.Option value="cpp">
-            <span title="C++" className="lang-opt">
-              <Icon data={CurlyBrackets} size={15} /> C++
-            </span>
-          </Select.Option>
-          <Select.Option value="python">
-            <span title="Python" className="lang-opt">
-              <Icon data={LogoPython} size={15} /> Python
-            </span>
-          </Select.Option>
+          <Select.Option value="cpp">C++</Select.Option>
+          <Select.Option value="python">Python</Select.Option>
         </Select>
         <ClangVersionControl value={clangVersion} onChange={onClangVersionChange} />
       </HeaderSlot>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Button, Icon, Spin, Text } from '@gravity-ui/uikit'
 import { ArrowRotateLeft, Check, Minus, StarFill, Xmark } from '@gravity-ui/icons'
 import { draftCreatedShadows } from './draftStore'
+import { ShadowLabel } from './ShadowLabel'
 
 interface Cell {
   status: 'pass' | 'fail' | 'muted'
@@ -99,11 +100,11 @@ export default function MatrixDrawer({ open, onClose, onPickTest }: Props) {
   }, [open, data, loading, run])
 
   const surprises = data ? data.tests.filter((t) => t.muted_passes_somewhere) : []
-  // a column id → its display label + tooltip (shadow configs show "👻 name")
+  // a column id → its display label + tooltip (shadow configs show a ghost icon)
   const shadowById = new Map((data?.shadows ?? []).map((s) => [s.id, s]))
   const colLabel = (v: string) => {
     const sh = shadowById.get(v)
-    return sh ? `👻 ${sh.name} (${sh.base})` : v
+    return sh ? <ShadowLabel>{`${sh.name} (${sh.base})`}</ShadowLabel> : v
   }
   const colTitle = (v: string) => {
     const sh = shadowById.get(v)

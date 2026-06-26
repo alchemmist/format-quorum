@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ActionTooltip, Button, Icon, Select, Spin, Text, TextInput } from '@gravity-ui/uikit'
 import { Ghost } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
+import { ShadowLabel } from './ShadowLabel'
 import {
   draftConfig,
   setConfigDraft,
@@ -67,6 +68,11 @@ export default function ConfigDrawer({
   // the real clang-format version a selection runs on (a shadow → its base)
   const baseOf = (ver: string | undefined) =>
     shadows.find((s) => s.id === ver)?.base ?? ver
+  // a real version renders as its number; a shadow as the ghost icon + name
+  const renderVersion = (v: string) => {
+    const sh = shadows.find((s) => s.id === v)
+    return sh ? <ShadowLabel>{`${sh.name} (${sh.base})`}</ShadowLabel> : v
+  }
 
   // adopt the playground language/version each time the drawer is opened
   useEffect(() => {
@@ -246,13 +252,11 @@ export default function ConfigDrawer({
               // render the menu inside the drawer so it isn't trapped beneath
               // the drawer's stacking layer (the portal layer sits below it)
               disablePortal
+              renderSelectedOption={(opt) => <span>{renderVersion(String(opt.value))}</span>}
             >
-              {[
-                ...versions.map((v) => ({ value: v, label: v })),
-                ...shadows.map((s) => ({ value: s.id, label: `👻 ${s.name} (${s.base})` })),
-              ].map((o) => (
-                <Select.Option key={o.value} value={o.value}>
-                  {o.label}
+              {[...versions, ...shadows.map((s) => s.id)].map((v) => (
+                <Select.Option key={v} value={v}>
+                  {renderVersion(v)}
                 </Select.Option>
               ))}
             </Select>
@@ -266,7 +270,7 @@ export default function ConfigDrawer({
             <div className="shadow-anchor" ref={shadowBtnRef}>
               <ActionTooltip
                 title="Save as shadow config"
-                description="Store these edits as a separate, named config that reuses this clang-format binary but its own .clang-format. It shows up everywhere as a 👻 pseudo-version — run it and compare it in the matrix next to the real versions. Saved to your local draft; Publish pushes it to the server."
+                description="Store these edits as a separate, named config that reuses this clang-format binary but its own .clang-format. It shows up everywhere as a quasi-version — run it and compare it in the matrix next to the real versions. Saved to your local draft; Publish pushes it to the server."
               >
                 <Button
                   view="action"
@@ -406,9 +410,14 @@ export default function ConfigDrawer({
             {lang === 'cpp' && version
               ? (() => {
                   const sh = shadows.find((s) => s.id === version)
-                  return sh
-                    ? ` for shadow config 👻 ${sh.name} (clang-format ${sh.base})`
-                    : ` for clang-format ${version}`
+                  return sh ? (
+                    <>
+                      {' '}for shadow config <ShadowLabel>{sh.name}</ShadowLabel> (clang-format{' '}
+                      {sh.base})
+                    </>
+                  ) : (
+                    ` for clang-format ${version}`
+                  )
                 })()
               : ''}{' '}
             — Save keeps it in your local draft and applies to the next format /

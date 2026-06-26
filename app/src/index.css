@@ -121,8 +121,8 @@ body {
   gap: 8px;
 }
 
-/* language options: icon + label in the dropdown, icon-only when collapsed */
-.lang-opt {
+/* a shadow ("quasi-version") rendered as the ghost icon + its name */
+.shadow-label {
   display: inline-flex;
   align-items: center;
   gap: 6px;

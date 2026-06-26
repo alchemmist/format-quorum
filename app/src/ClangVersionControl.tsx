@@ -12,6 +12,7 @@ import {
 } from '@gravity-ui/uikit'
 import { Layers } from '@gravity-ui/icons'
 import { useShadows, deleteShadow, type ShadowMeta } from './draftStore'
+import { ShadowLabel } from './ShadowLabel'
 
 export interface VersionsState {
   versions: string[]
@@ -108,6 +109,12 @@ export default function ClangVersionControl({ value, onChange }: Props) {
   const shadows = useShadows(state?.shadows ?? [])
   const selected = value ?? state?.default ?? undefined
 
+  // a real version renders as its number; a shadow as the ghost icon + name
+  const renderVersion = (v: string) => {
+    const sh = shadows.find((s) => s.id === v)
+    return sh ? <ShadowLabel>{`${sh.name} (${sh.base})`}</ShadowLabel> : v
+  }
+
   return (
     <div className="clang-version-control">
       <Select
@@ -118,20 +125,18 @@ export default function ClangVersionControl({ value, onChange }: Props) {
         disabled={versions.length === 0}
         placeholder="version"
         title="clang-format version to format with"
+        renderSelectedOption={(opt) => <span>{renderVersion(String(opt.value))}</span>}
       >
-        {[
-          ...versions.map((v) => ({ value: v, label: v })),
-          ...shadows.map((s) => ({ value: s.id, label: `👻 ${s.name} (${s.base})` })),
-        ].map((o) => (
-          <Select.Option key={o.value} value={o.value}>
-            {o.label}
+        {[...versions, ...shadows.map((s) => s.id)].map((v) => (
+          <Select.Option key={v} value={v}>
+            {renderVersion(v)}
           </Select.Option>
         ))}
       </Select>
 
       <ActionTooltip
         title="clang-format versions"
-        description="Install another X.Y.Z to format and compare across versions in the matrix, and manage 👻 shadow configs. The selected version is what the playground / tests format with."
+        description="Install another X.Y.Z to format and compare across versions in the matrix, and manage shadow configs (quasi-versions). The selected version is what the playground / tests format with."
       >
         <Button
           view="outlined"
@@ -231,7 +236,7 @@ export default function ClangVersionControl({ value, onChange }: Props) {
               {shadows.map((s) => (
                 <div key={s.id} className="version-list-item">
                   <Text>
-                    👻 {s.name}{' '}
+                    <ShadowLabel>{s.name}</ShadowLabel>{' '}
                     <Text color="secondary" variant="caption-2">
                       ({s.base})
                     </Text>
