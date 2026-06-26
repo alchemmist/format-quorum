@@ -13,7 +13,9 @@ const KEY = 'fq-draft-v1'
 const JSON_H = { 'Content-Type': 'application/json' }
 
 export interface Draft {
-  configs: Partial<Record<Language, string>> // overridden config text per lang
+  // overridden config text per config key. The key is `python` or, since cpp
+  // configs are per clang-format version, `cpp@<version>` (see configKey()).
+  configs: Record<string, string>
   created: Record<string, TestCase> // draft-only tests (id starts with "draft-")
   updated: Record<string, Partial<TestCase>> // patches to existing server tests
   deleted: string[] // ids of server tests marked for deletion
@@ -66,15 +68,30 @@ export const newDraftId = () => `draft-${seq++}`
 export const isDraftId = (id: string) => id.startsWith('draft-')
 
 // ── config drafts ───────────────────────────────────────────────────────────
-export function setConfigDraft(lang: Language, content: string) {
-  commit({ ...state, configs: { ...state.configs, [lang]: content } })
+// cpp configs are per clang-format version, so a config draft is keyed by
+// `python` or `cpp@<version>`. configKey() builds that key; it returns undefined
+// for cpp when the version isn't known yet (e.g. versions still loading) so
+// callers fall back to the server's resolved-default config.
+export function configKey(lang: Language, version?: string): string | undefined {
+  if (lang === 'python') return 'python'
+  return version ? `cpp@${version}` : undefined
 }
-export function clearConfigDraft(lang: Language) {
+export function parseConfigKey(key: string): { lang: Language; version?: string } {
+  if (key.startsWith('cpp@')) return { lang: 'cpp', version: key.slice(4) }
+  if (key === 'cpp') return { lang: 'cpp' }
+  return { lang: 'python' }
+}
+
+export function setConfigDraft(key: string, content: string) {
+  commit({ ...state, configs: { ...state.configs, [key]: content } })
+}
+export function clearConfigDraft(key: string) {
   const configs = { ...state.configs }
-  delete configs[lang]
+  delete configs[key]
   commit({ ...state, configs })
 }
-export const draftConfig = (lang: Language): string | undefined => state.configs[lang]
+export const draftConfig = (key: string | undefined): string | undefined =>
+  key === undefined ? undefined : state.configs[key]
 
 // ── test drafts ─────────────────────────────────────────────────────────────
 export function addDraftTest(t: TestCase) {
@@ -116,11 +133,13 @@ export async function publishDraft(): Promise<{ ok: boolean; errors: string[] }>
   const fail = async (label: string, r: Response) =>
     errors.push(`${label}: ${(await r.json().catch(() => ({}))).error ?? r.status}`)
 
-  for (const lang of Object.keys(s.configs) as Language[]) {
+  for (const key of Object.keys(s.configs)) {
+    const { lang, version } = parseConfigKey(key)
     const r = await fetch(`/api/config/${lang}`, {
-      method: 'PUT', headers: JSON_H, body: JSON.stringify({ content: s.configs[lang] }),
+      method: 'PUT', headers: JSON_H,
+      body: JSON.stringify({ content: s.configs[key], ...(version ? { version } : {}) }),
     })
-    if (!r.ok) await fail(`config ${lang}`, r)
+    if (!r.ok) await fail(`config ${key}`, r)
   }
   for (const id of s.deleted) {
     const r = await fetch(`/api/tests/${id}`, { method: 'DELETE' })

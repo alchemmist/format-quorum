@@ -23,6 +23,7 @@ import {
   removeTest as draftRemoveTest,
   newDraftId,
   draftConfig,
+  configKey,
 } from './draftStore'
 
 export type { TestCase } from './types'
@@ -220,7 +221,9 @@ export default function TestsView({
   const formatAndCompare = useCallback(
     async (test: TestCase): Promise<RunResult> => {
       try {
-        const cfg = draftConfig(test.language)
+        // run against the local draft config for this (lang, run-version) if any;
+        // otherwise the server uses that version's published config
+        const cfg = draftConfig(configKey(test.language, runVersion))
         const res = await fetch('/api/format', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

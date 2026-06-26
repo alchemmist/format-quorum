@@ -16,7 +16,7 @@ import ConfigDrawer from './ConfigDrawer'
 import MatrixDrawer from './MatrixDrawer'
 import { computeDiff } from './useDiff'
 import { getQueryParam, setQueryParam } from './url'
-import { useDraftCount, publishDraft, discardAll, draftConfig } from './draftStore'
+import { useDraftCount, publishDraft, discardAll, draftConfig, configKey } from './draftStore'
 
 // @ts-ignore — Vite raw import
 import demoCpp from './demo.cpp?raw'
@@ -107,8 +107,11 @@ export default function App() {
           code: inputCode,
           language,
           ...(language === 'cpp' && clangVersion ? { clang_version: clangVersion } : {}),
-          // format against the local draft config if one exists
-          ...(draftConfig(language) !== undefined ? { config: draftConfig(language) } : {}),
+          // format against the local draft config for this (lang, version) if any;
+          // otherwise the server applies that version's published config
+          ...(draftConfig(configKey(language, clangVersion)) !== undefined
+            ? { config: draftConfig(configKey(language, clangVersion)) }
+            : {}),
         }),
       })
       const data = await res.json()
@@ -345,6 +348,7 @@ export default function App() {
         <ConfigDrawer
           open={configOpen}
           initialLang={language}
+          initialVersion={clangVersion}
           onClose={() => setConfigOpen(false)}
           onSaved={() => {
             // reflect the new config in the playground right away, like a

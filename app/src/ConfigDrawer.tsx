@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Spin, Text } from '@gravity-ui/uikit'
+import { Button, Select, Spin, Text } from '@gravity-ui/uikit'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
-import { draftConfig, setConfigDraft } from './draftStore'
+import { draftConfig, setConfigDraft, configKey } from './draftStore'
 import type { TestCase } from './types'
 
 interface Props {
   open: boolean
   /** which config to show first when opened */
   initialLang: Language
+  /** which clang-format version to show first (cpp only) */
+  initialVersion?: string
   onClose: () => void
   /** called after a successful save (config files changed) */
   onSaved?: () => void
@@ -26,8 +28,17 @@ interface Impact {
 
 const norm = (s: string) => s.replace(/\r\n/g, '\n').replace(/\n+$/, '')
 
-export default function ConfigDrawer({ open, initialLang, onClose, onSaved }: Props) {
+export default function ConfigDrawer({
+  open,
+  initialLang,
+  initialVersion,
+  onClose,
+  onSaved,
+}: Props) {
   const [lang, setLang] = useState<Language>(initialLang)
+  // clang-format version whose config we're editing (cpp only)
+  const [versions, setVersions] = useState<string[]>([])
+  const [version, setVersion] = useState<string | undefined>(initialVersion)
   const [content, setContent] = useState('')
   const [serverContent, setServerContent] = useState('')
   const [loading, setLoading] = useState(false)
@@ -36,37 +47,58 @@ export default function ConfigDrawer({ open, initialLang, onClose, onSaved }: Pr
   const [impact, setImpact] = useState<Impact | null>(null)
   const [checking, setChecking] = useState(false)
 
-  // adopt the playground language each time the drawer is opened
+  // adopt the playground language/version each time the drawer is opened
   useEffect(() => {
-    if (open) setLang(initialLang)
-  }, [open, initialLang])
-
-  const load = useCallback(async (which: Language) => {
-    setLoading(true)
-    setError(null)
-    setSaved(false)
-    setImpact(null)
-    try {
-      const res = await fetch(`/api/config/${which}`)
-      const data = await res.json()
-      if (!res.ok) {
-        setError(data.error ?? 'Failed to load config')
-        return
-      }
-      setServerContent(data.content)
-      // show the local draft if there is one, otherwise the live server config
-      const drafted = draftConfig(which)
-      setContent(drafted !== undefined ? drafted : data.content)
-    } catch (e) {
-      setError(String(e))
-    } finally {
-      setLoading(false)
+    if (open) {
+      setLang(initialLang)
+      setVersion(initialVersion)
     }
-  }, [])
+  }, [open, initialLang, initialVersion])
+
+  // installed clang-format versions for the picker; default-select one
+  useEffect(() => {
+    if (!open) return
+    fetch('/api/clang-versions')
+      .then((r) => r.json())
+      .then((d) => {
+        setVersions(d.versions ?? [])
+        setVersion((prev) => prev ?? d.default ?? (d.versions ?? [])[0])
+      })
+      .catch(() => {})
+  }, [open])
+
+  // the cpp config is per-version, so loading depends on the selected version
+  const load = useCallback(
+    async (which: Language, ver: string | undefined) => {
+      setLoading(true)
+      setError(null)
+      setSaved(false)
+      setImpact(null)
+      try {
+        const q = which === 'cpp' && ver ? `?version=${encodeURIComponent(ver)}` : ''
+        const res = await fetch(`/api/config/${which}${q}`)
+        const data = await res.json()
+        if (!res.ok) {
+          setError(data.error ?? 'Failed to load config')
+          return
+        }
+        setServerContent(data.content)
+        // show the local draft for this (lang, version) if there is one
+        const drafted = draftConfig(configKey(which, ver))
+        setContent(drafted !== undefined ? drafted : data.content)
+      } catch (e) {
+        setError(String(e))
+      } finally {
+        setLoading(false)
+      }
+    },
+    [],
+  )
 
   useEffect(() => {
-    if (open) load(lang)
-  }, [open, lang, load])
+    // wait for a concrete version before loading the cpp config
+    if (open && !(lang === 'cpp' && version === undefined)) load(lang, version)
+  }, [open, lang, version, load])
 
   const onChange = useCallback((next: string) => {
     setContent(next)
@@ -76,11 +108,16 @@ export default function ConfigDrawer({ open, initialLang, onClose, onSaved }: Pr
   const save = useCallback(() => {
     setError(null)
     // save to the local draft, not the server — Publish flushes it later
-    setConfigDraft(lang, content)
+    const key = configKey(lang, version)
+    if (key === undefined) {
+      setError('Pick a clang-format version first')
+      return
+    }
+    setConfigDraft(key, content)
     setSaved(true)
     onSaved?.()
     window.setTimeout(() => setSaved(false), 2000)
-  }, [lang, content, onSaved])
+  }, [lang, version, content, onSaved])
 
   const changed = content !== serverContent
 
@@ -93,7 +130,12 @@ export default function ConfigDrawer({ open, initialLang, onClose, onSaved }: Pr
       const res = await fetch('/api/format', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, language: lang, ...(config !== undefined ? { config } : {}) }),
+        body: JSON.stringify({
+          code,
+          language: lang,
+          ...(lang === 'cpp' && version ? { clang_version: version } : {}),
+          ...(config !== undefined ? { config } : {}),
+        }),
       })
       const d = await res.json()
       return res.ok ? (d.formatted as string) : null
@@ -126,7 +168,7 @@ export default function ConfigDrawer({ open, initialLang, onClose, onSaved }: Pr
     } finally {
       setChecking(false)
     }
-  }, [lang, content])
+  }, [lang, version, content])
 
   return (
     <>
@@ -150,6 +192,25 @@ export default function ConfigDrawer({ open, initialLang, onClose, onSaved }: Pr
               ruff.toml
             </Button>
           </div>
+          {lang === 'cpp' && versions.length > 0 && (
+            <Select
+              value={version ? [version] : []}
+              onUpdate={(v) => setVersion(v[0])}
+              size="s"
+              width={130}
+              label="clang"
+              title="Which clang-format version's config to edit"
+              // render the menu inside the drawer so it isn't trapped beneath
+              // the drawer's stacking layer (the portal layer sits below it)
+              disablePortal
+            >
+              {versions.map((v) => (
+                <Select.Option key={v} value={v}>
+                  {v}
+                </Select.Option>
+              ))}
+            </Select>
+          )}
           <span className="config-drawer-spacer" />
           {saved && <Text color="positive">draft saved ✓</Text>}
           <Button view="action" size="s" onClick={save} disabled={loading}>
@@ -173,7 +234,7 @@ export default function ConfigDrawer({ open, initialLang, onClose, onSaved }: Pr
             </div>
           ) : (
             <CodeMirrorEditor
-              key={lang}
+              key={`${lang}@${version ?? ''}`}
               value={content}
               language={lang}
               plainText
@@ -246,8 +307,10 @@ export default function ConfigDrawer({ open, initialLang, onClose, onSaved }: Pr
             )}
 
           <Text color="secondary" variant="caption-2">
-            Editing {TITLE[lang]} — Save keeps it in your local draft and applies
-            to the next format / test run. Publish pushes it to the server.
+            Editing {TITLE[lang]}
+            {lang === 'cpp' && version ? ` for clang-format ${version}` : ''} — Save
+            keeps it in your local draft and applies to the next format / test run.
+            Publish pushes it to the server.
           </Text>
         </div>
       </div>
