@@ -44,14 +44,64 @@ CONFIG_HISTORY_DIR = Path(
     os.environ.get("CONFIG_HISTORY_DIR", str(BACKEND_DIR / "config_history"))
 )
 
-# Formatter config files (the single source of truth the formatter reads). The
-# config store materializes the current version into these paths.
-CONFIG_PATHS = {"cpp": CLANG_FORMAT_CONFIG, "python": RUFF_CONFIG}
+# Languages that have a config (the "Config" UI knows these two).
+CONFIG_LANGS = ("cpp", "python")
 
-app = FastAPI(title="format-quorum", version="0.6.0")
+app = FastAPI(title="format-quorum", version="0.7.0")
 versions = VersionManager(VERSIONS_DIR, CLANG_FORMAT_BIN)
 tests = TestStore(TESTS_DIR)
-configs = ConfigStore(CONFIG_HISTORY_DIR, CONFIG_PATHS)
+configs = ConfigStore(CONFIG_HISTORY_DIR)
+
+# The default clang-format version (the image's built-in). Its config is the
+# template new versions clone from, and the one materialized to the .clang-format
+# file the raw endpoint serves.
+DEFAULT_CPP_VERSION = versions.base_version
+
+
+def _cpp_key(version: str | None) -> str:
+    """Config-store key for a clang-format version (default version when None).
+    Falls back to the legacy single 'cpp' key if there's no probed version."""
+    v = version or DEFAULT_CPP_VERSION
+    return f"cpp@{v}" if v else "cpp"
+
+
+def _ensure_cpp_config(version: str | None) -> str:
+    """Resolve the config key for a cpp version, lazily cloning it from the
+    default version's config if it doesn't exist yet."""
+    key = _cpp_key(version)
+    default_key = _cpp_key(None)
+    if key != default_key and not configs.exists(key):
+        configs.ensure_seeded(key, seed_from_key=default_key)
+    return key
+
+
+def _init_configs() -> None:
+    # python — one config, mirrored to ruff.toml
+    configs.set_materialize("python", RUFF_CONFIG)
+    configs.ensure_seeded(
+        "python", seed_text=Path(RUFF_CONFIG).read_text(encoding="utf-8")
+    )
+    configs.materialize("python")
+
+    # cpp default version — mirrored to the .clang-format file. Inherit the
+    # legacy single 'cpp' history (preserves published changes + rollbacks from
+    # before configs went per-version) before seeding fresh.
+    default_key = _cpp_key(None)
+    configs.set_materialize(default_key, CLANG_FORMAT_CONFIG)
+    if default_key != "cpp":
+        configs.migrate("cpp", default_key)
+    configs.ensure_seeded(
+        default_key, seed_text=Path(CLANG_FORMAT_CONFIG).read_text(encoding="utf-8")
+    )
+    configs.materialize(default_key)
+
+    # every other already-installed version gets its own config, cloned once
+    for v in versions.state().get("versions", []):
+        if _cpp_key(v) != default_key:
+            configs.ensure_seeded(_cpp_key(v), seed_from_key=default_key)
+
+
+_init_configs()
 
 
 def _resolve_clang(version: str | None):
@@ -87,13 +137,17 @@ class FormatRequest(BaseModel):
 @app.post("/api/format")
 def api_format(req: FormatRequest):
     clang_bin: str | None = None
+    config = req.config
     if req.language != "python":
         clang_bin, err = _resolve_clang(req.clang_version)
         if err:
             return err
+        # use the selected version's stored config unless an ad-hoc one is given
+        if config is None:
+            config = configs.current(_ensure_cpp_config(req.clang_version))
     try:
         formatted = format_code(
-            req.code, req.language, clang_format_bin=clang_bin, config=req.config
+            req.code, req.language, clang_format_bin=clang_bin, config=config
         )
     except FormatError as exc:
         return JSONResponse({"error": str(exc)}, status_code=500)
@@ -115,6 +169,8 @@ def api_add_version(req: AddVersionRequest):
     ok, error = versions.add_version(req.version)
     if not ok:
         return JSONResponse({"error": error}, status_code=400)
+    # give the new version its own config, copied once from the default version
+    configs.ensure_seeded(_cpp_key(req.version), seed_from_key=_cpp_key(None))
     return versions.state()
 
 
@@ -188,7 +244,10 @@ def api_tests_run(body: RunRequest):
     clang_bin, err = _resolve_clang(body.clang_version)
     if err:
         return err
-    return run_all(tests, language=body.language, clang_bin=clang_bin, config=body.config)
+    config = body.config
+    if config is None and body.language == "cpp":
+        config = configs.current(_ensure_cpp_config(body.clang_version))
+    return run_all(tests, language=body.language, clang_bin=clang_bin, config=config)
 
 
 @app.post("/api/tests/{test_id}/run")
@@ -199,7 +258,10 @@ def api_tests_run_one(test_id: str, body: RunRequest):
     clang_bin, err = _resolve_clang(body.clang_version)
     if err:
         return err
-    return run_test(rec, clang_bin, config=body.config)
+    config = body.config
+    if config is None and rec.get("language") == "cpp":
+        config = configs.current(_ensure_cpp_config(body.clang_version))
+    return run_test(rec, clang_bin, config=config)
 
 
 class WhatIfRequest(BaseModel):
@@ -226,8 +288,16 @@ def api_tests_whatif(body: WhatIfRequest):
     if err:
         return err
 
-    # Candidate config: a patch merges onto the live stored config; a full
-    # `config` is used as-is. Baseline is always the live stored config.
+    # Baseline = the live stored config for this language+version (cpp); for
+    # python it's None (ruff's materialized config).
+    live_cfg = (
+        configs.current(_ensure_cpp_config(body.clang_version))
+        if body.language == "cpp"
+        else None
+    )
+
+    # Candidate config: a patch merges onto the live config; a full `config` is
+    # used as-is.
     candidate = body.config
     if body.patch:
         if body.language != "cpp":
@@ -235,12 +305,9 @@ def api_tests_whatif(body: WhatIfRequest):
                 {"error": "patch is cpp-only; pass a full `config` for python"},
                 status_code=400,
             )
-        base = body.config
-        if base is None:
-            base = Path(CLANG_FORMAT_CONFIG).read_text(encoding="utf-8")
-        candidate = apply_config_patch(base, body.patch)
+        candidate = apply_config_patch(body.config or live_cfg or "", body.patch)
 
-    base_run = run_all(tests, language=body.language, clang_bin=clang_bin, config=None)
+    base_run = run_all(tests, language=body.language, clang_bin=clang_bin, config=live_cfg)
     cand_run = run_all(
         tests, language=body.language, clang_bin=clang_bin, config=candidate
     )
@@ -319,7 +386,9 @@ def api_tests_matrix(body: MatrixRequest):
         binary = versions.get_binary(v)
         if binary is None:
             continue
-        res = run_all(tests, language=lang, clang_bin=binary)
+        # each version runs against its OWN config (cpp); python is version-agnostic
+        cfg = configs.current(_ensure_cpp_config(v)) if lang == "cpp" else None
+        res = run_all(tests, language=lang, clang_bin=binary, config=cfg)
         per_version[v] = {
             r["id"]: {"status": r["status"], "passed": r["passed"]}
             for r in res["results"]
@@ -359,6 +428,9 @@ def serve_ruff_config():
 
 class ConfigBody(BaseModel):
     content: str
+    # cpp only: which clang-format version's config to write (default version
+    # when omitted). python ignores it.
+    version: str | None = None
     # Optional provenance for the history entry — who/why. Externally GET/PUT
     # look the same as before; these just enrich the audit trail.
     author: str | None = None
@@ -367,18 +439,27 @@ class ConfigBody(BaseModel):
 
 class RollbackBody(BaseModel):
     seq: int
+    version: str | None = None
     author: str | None = None
     message: str | None = None
 
 
+def _resolved_version(lang: str, version: str | None) -> str | None:
+    """The concrete clang-format version a cpp config request resolves to (so the
+    client can show which version it's editing); None for python."""
+    return None if lang == "python" else (version or DEFAULT_CPP_VERSION)
+
+
 @app.get("/api/config/{lang}")
-def api_get_config(lang: str):
-    if lang not in CONFIG_PATHS:
+def api_get_config(lang: str, version: str | None = None):
+    if lang not in CONFIG_LANGS:
         return JSONResponse({"error": f"unknown config: {lang}"}, status_code=400)
+    key = "python" if lang == "python" else _ensure_cpp_config(version)
     return {
         "language": lang,
+        "version": _resolved_version(lang, version),
         "filename": "clang-format" if lang == "cpp" else "ruff.toml",
-        "content": configs.current(lang),
+        "content": configs.current(key),
     }
 
 
@@ -386,49 +467,54 @@ def api_get_config(lang: str):
 def api_put_config(lang: str, body: ConfigBody):
     """Record the config as a new version (and materialize it for the formatter).
     Looks the same to callers — but the change is now reversible."""
-    if lang not in CONFIG_PATHS:
+    if lang not in CONFIG_LANGS:
         return JSONResponse({"error": f"unknown config: {lang}"}, status_code=400)
+    key = "python" if lang == "python" else _ensure_cpp_config(body.version)
     try:
         result = configs.record(
-            lang, body.content, author=body.author or "", message=body.message or ""
+            key, body.content, author=body.author or "", message=body.message or ""
         )
     except OSError as exc:
         return JSONResponse({"error": str(exc)}, status_code=500)
-    return {"ok": True, **result}
+    return {"ok": True, "version": _resolved_version(lang, body.version), **result}
 
 
 @app.get("/api/config/{lang}/history")
-def api_config_history(lang: str):
+def api_config_history(lang: str, version: str | None = None):
     """List the version history (base + each published change with its patch)."""
-    if lang not in CONFIG_PATHS:
+    if lang not in CONFIG_LANGS:
         return JSONResponse({"error": f"unknown config: {lang}"}, status_code=400)
-    return {"language": lang, "head": configs.head_seq(lang),
-            "versions": configs.history(lang)}
+    key = "python" if lang == "python" else _ensure_cpp_config(version)
+    return {"language": lang, "version": _resolved_version(lang, version),
+            "head": configs.head_seq(key), "versions": configs.history(key)}
 
 
 @app.get("/api/config/{lang}/history/{seq}")
-def api_config_version(lang: str, seq: int):
+def api_config_version(lang: str, seq: int, version: str | None = None):
     """Full config content at a given version (0 = the original base)."""
-    if lang not in CONFIG_PATHS:
+    if lang not in CONFIG_LANGS:
         return JSONResponse({"error": f"unknown config: {lang}"}, status_code=400)
-    content = configs.get_version(lang, seq)
+    key = "python" if lang == "python" else _ensure_cpp_config(version)
+    content = configs.get_version(key, seq)
     if content is None:
         return JSONResponse({"error": f"no version {seq}"}, status_code=404)
-    return {"language": lang, "seq": seq, "content": content}
+    return {"language": lang, "version": _resolved_version(lang, version),
+            "seq": seq, "content": content}
 
 
 @app.post("/api/config/{lang}/rollback")
 def api_config_rollback(lang: str, body: RollbackBody):
     """Roll the live config back to an earlier version. Append-only: the rollback
     is itself a new version, so it's auditable and can be undone."""
-    if lang not in CONFIG_PATHS:
+    if lang not in CONFIG_LANGS:
         return JSONResponse({"error": f"unknown config: {lang}"}, status_code=400)
+    key = "python" if lang == "python" else _ensure_cpp_config(body.version)
     result = configs.rollback(
-        lang, body.seq, author=body.author or "", message=body.message or ""
+        key, body.seq, author=body.author or "", message=body.message or ""
     )
     if result is None:
         return JSONResponse({"error": f"no version {body.seq}"}, status_code=404)
-    return {"ok": True, **result}
+    return {"ok": True, "version": _resolved_version(lang, body.version), **result}
 
 
 # ── Static frontend (production) ──────────────────────────────────────────────
