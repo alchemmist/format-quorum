@@ -3,6 +3,8 @@ import { Button, Icon, Spin, Text } from '@gravity-ui/uikit'
 import { ArrowRotateLeft, Check, Minus, StarFill, Xmark } from '@gravity-ui/icons'
 import { draftCreatedShadows } from './draftStore'
 import { ShadowLabel } from './ShadowLabel'
+import CodeMirrorEditor from './CodeMirrorEditor'
+import { computeDiff } from './useDiff'
 
 interface Cell {
   status: 'pass' | 'fail' | 'muted'
@@ -60,10 +62,22 @@ function cellContent(cell: Cell | null, muted: boolean) {
   )
 }
 
+interface CellView {
+  name: string
+  col: string
+  desired: string
+  actual: string
+  error: string | null
+}
+
 export default function MatrixDrawer({ open, onClose, onPickTest }: Props) {
   const [data, setData] = useState<Matrix | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // test inputs/expected, fetched so a cell click can recompute & diff the output
+  const [testMap, setTestMap] = useState<Record<string, { input: string; expected: string }>>({})
+  const [cell, setCell] = useState<CellView | null>(null)
+  const [cellLoading, setCellLoading] = useState(false)
 
   const run = useCallback(async () => {
     setLoading(true)
@@ -98,6 +112,60 @@ export default function MatrixDrawer({ open, onClose, onPickTest }: Props) {
   useEffect(() => {
     if (open && !data && !loading) run()
   }, [open, data, loading, run])
+
+  // test inputs/expected for the cell-diff popup
+  useEffect(() => {
+    if (!open) return
+    fetch('/api/tests')
+      .then((r) => r.json())
+      .then((rows: { id: string; input: string; expected: string }[]) => {
+        const m: Record<string, { input: string; expected: string }> = {}
+        for (const t of rows) m[t.id] = { input: t.input, expected: t.expected }
+        setTestMap(m)
+      })
+      .catch(() => {})
+  }, [open])
+
+  // click a cell → recompute that test on that column's config and show the diff
+  const openCell = useCallback(
+    async (row: Row, col: string) => {
+      const t = testMap[row.id]
+      if (!t) return
+      setCell({ name: row.name, col, desired: t.expected, actual: '', error: null })
+      setCellLoading(true)
+      try {
+        const sh = draftCreatedShadows().find((s) => s.id === col)
+        // match the matrix run exactly: a draft shadow runs its base binary with
+        // its draft config; a real version / published shadow is resolved by id
+        const body = sh
+          ? { code: t.input, language: 'cpp', clang_version: sh.base, config: sh.content }
+          : { code: t.input, language: 'cpp', clang_version: col }
+        const res = await fetch('/api/format', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+        const d = await res.json()
+        if (!res.ok) setCell((c) => (c ? { ...c, error: d.error ?? 'format failed' } : c))
+        else setCell((c) => (c ? { ...c, actual: d.formatted } : c))
+      } catch (e) {
+        setCell((c) => (c ? { ...c, error: String(e) } : c))
+      } finally {
+        setCellLoading(false)
+      }
+    },
+    [testMap],
+  )
+
+  // Escape closes the cell-diff popup
+  useEffect(() => {
+    if (!cell) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setCell(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [cell])
 
   const surprises = data ? data.tests.filter((t) => t.muted_passes_somewhere) : []
   // a column id → its display label + tooltip (shadow configs show a ghost icon)
@@ -187,7 +255,12 @@ export default function MatrixDrawer({ open, onClose, onPickTest }: Props) {
                             </button>
                           </td>
                           {data.versions.map((v) => (
-                            <td key={v} className="matrix-cell">
+                            <td
+                              key={v}
+                              className={`matrix-cell${t.cells[v] ? ' clickable' : ''}`}
+                              onClick={() => t.cells[v] && openCell(t, v)}
+                              title={t.cells[v] ? 'Show Desired vs Actual' : undefined}
+                            >
                               {cellContent(t.cells[v], t.muted)}
                             </td>
                           ))}
@@ -215,6 +288,49 @@ export default function MatrixDrawer({ open, onClose, onPickTest }: Props) {
           ) : null}
         </div>
       </div>
+
+      {cell && (
+        <div className="zoom-overlay shown cell-overlay" onClick={() => setCell(null)}>
+          <div className="cell-diff" onClick={(e) => e.stopPropagation()}>
+            <div className="cell-diff-title">
+              <span className="cell-diff-name">{cell.name}</span>
+              <span className="cell-diff-col">{colLabel(cell.col)}</span>
+            </div>
+            {cell.error ? (
+              <Text color="danger">{cell.error}</Text>
+            ) : cellLoading ? (
+              <div className="matrix-loading">
+                <Spin size="m" />
+              </div>
+            ) : (
+              <div className="cell-diff-panes">
+                <div className="cell-diff-pane">
+                  <Text color="secondary" variant="caption-2">
+                    Desired
+                  </Text>
+                  <div className="cell-diff-editor">
+                    <CodeMirrorEditor value={cell.desired} language="cpp" readOnly />
+                  </div>
+                </div>
+                <div className="cell-diff-pane">
+                  <Text color="secondary" variant="caption-2">
+                    Actual
+                  </Text>
+                  <div className="cell-diff-editor">
+                    <CodeMirrorEditor
+                      value={cell.actual}
+                      language="cpp"
+                      readOnly
+                      diffRanges={computeDiff(cell.desired, cell.actual)}
+                      showDiff
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   )
 }

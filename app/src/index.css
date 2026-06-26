@@ -174,6 +174,64 @@ body {
   color: #6ea8ff;
 }
 
+/* clickable matrix cells → Desired vs Actual diff popup.
+   Compound selector so it beats the later `.zoom-overlay { z-index: 1000 }`. */
+.zoom-overlay.cell-overlay {
+  z-index: 1100; /* above the matrix drawer (1001) it's launched from */
+}
+.matrix-cell.clickable {
+  cursor: pointer;
+}
+.matrix-cell.clickable:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.cell-diff {
+  width: min(1200px, 94vw);
+  height: 86vh;
+  background: #16161b;
+  border: 1px solid #2d2d35;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cell-diff-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cell-diff-name {
+  font-weight: 600;
+}
+.cell-diff-col {
+  color: var(--g-color-text-secondary, #9a9aa2);
+  font-size: 13px;
+}
+.cell-diff-panes {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  min-height: 0;
+}
+.cell-diff-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+}
+.cell-diff-editor {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid #2d2d35;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.cell-diff-editor .cm-editor {
+  height: 100%;
+}
+
 /* "Save as shadow config" name-entry panel (anchored under the 👻 button, kept
    inside the drawer's stacking context so it sits above the editor) */
 .shadow-anchor {
