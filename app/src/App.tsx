@@ -1,16 +1,10 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { ThemeProvider, Button, Spin, Select, Checkbox, Icon } from '@gravity-ui/uikit'
-import {
-  ArrowRotateLeft,
-  ArrowUpFromLine,
-  Code,
-  Flask,
-  Gear,
-  Sparkles,
-  TrashBin,
-} from '@gravity-ui/icons'
+import { ArrowRotateLeft, Sparkles } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import ClangVersionControl from './ClangVersionControl'
+import AppHeader, { type View } from './AppHeader'
+import { HeaderSlot } from './HeaderSlot'
 import TestsView from './TestsView'
 import ConfigDrawer from './ConfigDrawer'
 import MatrixDrawer from './MatrixDrawer'
@@ -46,7 +40,7 @@ export default function App() {
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [showDiff, setShowDiff] = useState<boolean>(true)
   const [clangVersion, setClangVersion] = useState<string | undefined>(undefined)
-  const [view, setView] = useState<'playground' | 'tests'>(
+  const [view, setView] = useState<View>(
     () => (getQueryParam('view') === 'tests' ? 'tests' : 'playground'),
   )
 
@@ -167,42 +161,20 @@ export default function App() {
   return (
     <ThemeProvider theme="dark">
       <div className="app-layout">
-        <header className="app-header">
-          <div className="app-header-left">
-          <h1 className="app-title">Format Quorum</h1>
+        <AppHeader
+          view={view}
+          onChangeView={setView}
+          onOpenConfig={() => setConfigOpen(true)}
+          draftCount={draftCount}
+          publishing={publishing}
+          onPublish={handlePublish}
+          onDiscard={discardAll}
+        />
 
-          <div className="view-toggle">
-            <Button
-              view={view === 'playground' ? 'action' : 'flat'}
-              size="s"
-              onClick={() => setView('playground')}
-            >
-              <Icon data={Code} size={15} />
-              Playground
-            </Button>
-            <Button
-              view={view === 'tests' ? 'action' : 'flat'}
-              size="s"
-              onClick={() => setView('tests')}
-            >
-              <Icon data={Flask} size={15} />
-              Tests
-            </Button>
-          </div>
-
-          <Button
-            view="outlined"
-            size="s"
-            className="config-open-btn"
-            onClick={() => setConfigOpen(true)}
-          >
-            <Icon data={Gear} size={15} />
-            Config
-          </Button>
-          </div>
-
-          {view === 'playground' && (
-            <div className="app-header-center">
+        {/* the playground contributes its own pickers + actions to the shared header */}
+        {view === 'playground' && (
+          <>
+            <HeaderSlot slot="center">
               <Select
                 value={[language]}
                 onUpdate={(val) => handleLanguageChange(val[0])}
@@ -213,73 +185,39 @@ export default function App() {
                 <Select.Option value="python">Python</Select.Option>
               </Select>
               {language === 'cpp' && (
-                <ClangVersionControl
-                  value={clangVersion}
-                  onChange={setClangVersion}
-                />
+                <ClangVersionControl value={clangVersion} onChange={setClangVersion} />
               )}
-            </div>
-          )}
-
-          {/* Tests view fills this with its own language/version pickers (via a
-              portal) so they sit in the same centered spot as on the playground */}
-          {view === 'tests' && <div className="app-header-center" id="tests-header-slot" />}
-
-          <div className="app-header-right">
-            {draftCount > 0 && (
-              <div className="draft-bar" title="Local unsaved changes (config + tests)">
-                <span className="draft-count">{draftCount} unsaved</span>
-                <Button view="action" size="s" onClick={handlePublish} disabled={publishing}>
-                  {publishing ? (
-                    <span className="btn-spin">
-                      <Spin size="xs" />
-                      Publishing
-                    </span>
-                  ) : (
-                    <>
-                      <Icon data={ArrowUpFromLine} size={14} />
-                      Publish
-                    </>
-                  )}
-                </Button>
-                <Button view="flat" size="s" onClick={discardAll} disabled={publishing}>
-                  <Icon data={TrashBin} size={14} />
-                  Discard
-                </Button>
-              </div>
-            )}
-            {view === 'playground' && (
-              <div className="app-header-actions">
-                <label className="diff-toggle">
-                  <Checkbox checked={showDiff} onUpdate={setShowDiff} size="m" />
-                  <span className="diff-toggle-label">Diff</span>
-                </label>
-                <Button view="outlined" size="s" onClick={handleReset}>
-                  <Icon data={ArrowRotateLeft} size={14} />
-                  Reset
-                </Button>
-                <Button
-                  view="action"
-                  size="s"
-                  onClick={handleFormat}
-                  disabled={status.kind === 'loading'}
-                >
-                  {status.kind === 'loading' ? (
-                    <span className="btn-spin">
-                      <Spin size="xs" />
-                      Formatting
-                    </span>
-                  ) : (
-                    <>
-                      <Icon data={Sparkles} size={14} />
-                      Format
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-          </div>
-        </header>
+            </HeaderSlot>
+            <HeaderSlot slot="right">
+              <label className="diff-toggle">
+                <Checkbox checked={showDiff} onUpdate={setShowDiff} size="m" />
+                <span className="diff-toggle-label">Diff</span>
+              </label>
+              <Button view="outlined" size="s" onClick={handleReset}>
+                <Icon data={ArrowRotateLeft} size={14} />
+                Reset
+              </Button>
+              <Button
+                view="action"
+                size="s"
+                onClick={handleFormat}
+                disabled={status.kind === 'loading'}
+              >
+                {status.kind === 'loading' ? (
+                  <span className="btn-spin">
+                    <Spin size="xs" />
+                    Formatting
+                  </span>
+                ) : (
+                  <>
+                    <Icon data={Sparkles} size={14} />
+                    Format
+                  </>
+                )}
+              </Button>
+            </HeaderSlot>
+          </>
+        )}
 
         {view === 'tests' ? (
           <TestsView

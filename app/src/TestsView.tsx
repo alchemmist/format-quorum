@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import {
   Button,
   Checkbox,
@@ -13,6 +12,8 @@ import {
 } from '@gravity-ui/uikit'
 import { LayoutCells, Magnifier, Pencil, PlayFill, Plus, TrashBin } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
+import ClangVersionControl from './ClangVersionControl'
+import { HeaderSlot } from './HeaderSlot'
 import { getQueryParam, setQueryParam, testShareUrl } from './url'
 import { computeDiff } from './useDiff'
 import type { TestCase } from './types'
@@ -110,7 +111,6 @@ export default function TestsView({
       ? initialStatus
       : 'all',
   )
-  const [versions, setVersions] = useState<string[]>([])
   const [runVersion, setRunVersion] = useState<string | undefined>(
     () => getQueryParam('version') ?? undefined,
   )
@@ -121,12 +121,6 @@ export default function TestsView({
   )
   const [error, setError] = useState<string | null>(null)
   const didScrollRef = useRef(false)
-  // header slot (rendered by App) where the language/version pickers go, so they
-  // sit in the same centered spot as the playground's pickers
-  const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null)
-  useEffect(() => {
-    setHeaderSlot(document.getElementById('tests-header-slot'))
-  }, [])
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -146,14 +140,6 @@ export default function TestsView({
 
   useEffect(() => {
     loadTests()
-    fetch('/api/clang-versions')
-      .then((r) => r.json())
-      .then((d) => {
-        setVersions(d.versions ?? [])
-        // don't override a version that came from the URL
-        setRunVersion((prev) => prev ?? d.default ?? undefined)
-      })
-      .catch(() => {})
   }, [loadTests])
 
   // keep the run parameters in the URL so the link is shareable
@@ -366,40 +352,21 @@ export default function TestsView({
 
   return (
     <div className="tests-view">
-      {/* language + clang-format pickers live in the header (same spot as the
-          playground), portaled into the slot App renders for the tests view */}
-      {headerSlot &&
-        createPortal(
-          <>
-            <Select
-              value={[filter]}
-              onUpdate={(v) => setFilter(v[0] as 'all' | Language)}
-              size="s"
-              width={120}
-            >
-              <Select.Option value="all">All</Select.Option>
-              <Select.Option value="cpp">C++</Select.Option>
-              <Select.Option value="python">Python</Select.Option>
-            </Select>
-            {versions.length > 0 && (
-              <Select
-                value={runVersion ? [runVersion] : []}
-                onUpdate={(v) => setRunVersion(v[0])}
-                size="s"
-                width={190}
-                label="clang-format"
-                title="clang-format version for the run"
-              >
-                {versions.map((v) => (
-                  <Select.Option key={v} value={v}>
-                    {v}
-                  </Select.Option>
-                ))}
-              </Select>
-            )}
-          </>,
-          headerSlot,
-        )}
+      {/* the tests view contributes its language filter + version control (with
+          the Versions manager) into the shared header, same spot as the playground */}
+      <HeaderSlot slot="center">
+        <Select
+          value={[filter]}
+          onUpdate={(v) => setFilter(v[0] as 'all' | Language)}
+          size="s"
+          width={120}
+        >
+          <Select.Option value="all">All</Select.Option>
+          <Select.Option value="cpp">C++</Select.Option>
+          <Select.Option value="python">Python</Select.Option>
+        </Select>
+        <ClangVersionControl value={runVersion} onChange={setRunVersion} />
+      </HeaderSlot>
 
       <div className="tests-toolbar">
         <Button view="action" size="m" onClick={runAll} disabled={running}>
