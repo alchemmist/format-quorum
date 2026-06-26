@@ -23,6 +23,8 @@ interface Matrix {
 interface Props {
   open: boolean
   onClose: () => void
+  /** jump to a test in the Tests view */
+  onPickTest?: (id: string) => void
 }
 
 function cellContent(cell: Cell | null, muted: boolean) {
@@ -49,7 +51,7 @@ function cellContent(cell: Cell | null, muted: boolean) {
   )
 }
 
-export default function MatrixDrawer({ open, onClose }: Props) {
+export default function MatrixDrawer({ open, onClose, onPickTest }: Props) {
   const [data, setData] = useState<Matrix | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -149,7 +151,14 @@ export default function MatrixDrawer({ open, onClose }: Props) {
                             {t.muted_passes_somewhere && (
                               <Icon data={StarFill} size={11} className="matrix-row-star" />
                             )}
-                            <span className="matrix-name-text">{t.name}</span>
+                            <button
+                              type="button"
+                              className="matrix-name-text matrix-name-link"
+                              onClick={() => onPickTest?.(t.id)}
+                              title="Go to this test"
+                            >
+                              {t.name}
+                            </button>
                           </td>
                           {data.versions.map((v) => (
                             <td key={v} className="matrix-cell">

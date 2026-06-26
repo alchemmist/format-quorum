@@ -47,6 +47,10 @@ interface Props {
   refreshKey?: number
   /** open the tests×versions matrix drawer */
   onOpenMatrix?: () => void
+  /** a test id to focus + scroll to (picked from the matrix) */
+  focusTest?: string | null
+  /** nonce: bumping it re-triggers the focus even for the same test id */
+  focusSeq?: number
 }
 
 function displayStatus(test: TestCase, result?: RunResult): Display {
@@ -84,6 +88,8 @@ export default function TestsView({
   playgroundLanguage,
   refreshKey,
   onOpenMatrix,
+  focusTest,
+  focusSeq,
 }: Props) {
   const initialFilter = getQueryParam('filter')
   const [serverTests, setServerTests] = useState<TestCase[]>([])
@@ -162,6 +168,24 @@ export default function TestsView({
       didScrollRef.current = true
     }
   }, [tests, focusedId])
+
+  // focus + scroll to a test picked from the version matrix; clear filters that
+  // could hide it, expand it, and update the shareable ?test= URL
+  useEffect(() => {
+    if (!focusSeq || !focusTest) return
+    setFilter('all')
+    setStatusFilter('all')
+    setFocusedId(focusTest)
+    setQueryParam('test', focusTest)
+    setExpanded((prev) => new Set(prev).add(focusTest))
+    const t = window.setTimeout(() => {
+      document
+        .getElementById(`test-${focusTest}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 80)
+    return () => window.clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusSeq])
 
   // tests after the language filter — summary counts are computed over these
   const langTests = useMemo(

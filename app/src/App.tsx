@@ -52,6 +52,10 @@ export default function App() {
 
   const [configOpen, setConfigOpen] = useState(false)
   const [matrixOpen, setMatrixOpen] = useState(false)
+  // a test picked from the matrix to jump to (id + a nonce so re-picking the
+  // same test re-triggers the focus in TestsView)
+  const [focusTest, setFocusTest] = useState<string | null>(null)
+  const [focusSeq, setFocusSeq] = useState(0)
   const draftCount = useDraftCount()
   const [publishing, setPublishing] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -118,6 +122,14 @@ export default function App() {
       setStatus({ kind: 'error', message: String(e) })
     }
   }, [inputCode, language, clangVersion])
+
+  // jump from the matrix to a specific test in the Tests view
+  const pickTest = useCallback((id: string) => {
+    setView('tests')
+    setFocusTest(id)
+    setFocusSeq((s) => s + 1)
+    setMatrixOpen(false)
+  }, [])
 
   const handleReset = useCallback(() => {
     setInputCode(demos[language])
@@ -269,6 +281,8 @@ export default function App() {
             playgroundLanguage={language}
             refreshKey={refreshKey}
             onOpenMatrix={() => setMatrixOpen(true)}
+            focusTest={focusTest}
+            focusSeq={focusSeq}
           />
         ) : (
         <div className="editors-container">
@@ -339,7 +353,11 @@ export default function App() {
           }}
         />
 
-        <MatrixDrawer open={matrixOpen} onClose={() => setMatrixOpen(false)} />
+        <MatrixDrawer
+          open={matrixOpen}
+          onClose={() => setMatrixOpen(false)}
+          onPickTest={pickTest}
+        />
       </div>
     </ThemeProvider>
   )

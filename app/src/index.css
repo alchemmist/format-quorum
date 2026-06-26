@@ -768,6 +768,23 @@ body {
   text-overflow: ellipsis;
 }
 
+.matrix-name-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.matrix-name-link:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
 .matrix-row:hover td {
   background: #1c1c22;
 }
