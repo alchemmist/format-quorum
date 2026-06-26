@@ -241,8 +241,7 @@ export default function ConfigDrawer({
               value={version ? [version] : []}
               onUpdate={(v) => setVersion(v[0])}
               size="s"
-              width={130}
-              label="clang"
+              width={180}
               title="Which clang-format version's config to edit"
               // render the menu inside the drawer so it isn't trapped beneath
               // the drawer's stacking layer (the portal layer sits below it)

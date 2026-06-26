@@ -160,11 +160,7 @@ export default function MatrixDrawer({ open, onClose, onPickTest }: Props) {
                       <tr>
                         <th className="matrix-th-name">Test</th>
                         {data.versions.map((v) => (
-                          <th
-                            key={v}
-                            className={`matrix-th-ver${shadowById.has(v) ? ' shadow' : ''}`}
-                            title={colTitle(v)}
-                          >
+                          <th key={v} className="matrix-th-ver" title={colTitle(v)}>
                             <span>{colLabel(v)}</span>
                           </th>
                         ))}

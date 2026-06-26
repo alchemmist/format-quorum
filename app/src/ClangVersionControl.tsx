@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
+  ActionTooltip,
   Button,
   Dialog,
+  Icon,
   Label,
   Select,
   Spin,
   Text,
   TextInput,
 } from '@gravity-ui/uikit'
+import { Layers } from '@gravity-ui/icons'
 import { useShadows, deleteShadow, type ShadowMeta } from './draftStore'
 
 export interface VersionsState {
@@ -111,10 +114,10 @@ export default function ClangVersionControl({ value, onChange }: Props) {
         value={selected ? [selected] : []}
         onUpdate={(v) => onChange(v[0])}
         size="s"
-        width={190}
-        label="clang-format"
+        width={160}
         disabled={versions.length === 0}
         placeholder="version"
+        title="clang-format version to format with"
       >
         {[
           ...versions.map((v) => ({ value: v, label: v })),
@@ -126,17 +129,22 @@ export default function ClangVersionControl({ value, onChange }: Props) {
         ))}
       </Select>
 
-      <Button
-        view="outlined"
-        size="s"
-        onClick={() => {
-          setError(null)
-          setOpen(true)
-        }}
-        title="Manage clang-format versions"
+      <ActionTooltip
+        title="clang-format versions"
+        description="Install another X.Y.Z to format and compare across versions in the matrix, and manage 👻 shadow configs. The selected version is what the playground / tests format with."
       >
-        Versions
-      </Button>
+        <Button
+          view="outlined"
+          size="s"
+          onClick={() => {
+            setError(null)
+            setOpen(true)
+          }}
+          aria-label="Manage clang-format versions"
+        >
+          <Icon data={Layers} size={16} />
+        </Button>
+      </ActionTooltip>
 
       <Dialog open={open} onClose={() => setOpen(false)} size="s">
         <Dialog.Header caption="clang-format versions" />
