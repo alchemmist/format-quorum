@@ -34,8 +34,10 @@ Then open `http://localhost:3000`.
 - **Playground** — format C++/Python and see a line-level diff of the changes.
 - **clang-format versions** — pick the version to format with, or **Try add** an
   arbitrary `X.Y.Z`. The backend installs it (`pip install clang-format==X.Y.Z`)
-  into an isolated venv; if there's no wheel for that version/platform it tells
-  you. Installed versions persist across restarts.
+  into an isolated venv; the **Quick add** list only suggests versions with a
+  wheel for this platform. Installed versions persist across restarts. Each
+  version keeps **its own config** (a newer clang-format is worth installing for
+  the options it adds), cloned once from the default version when added.
 - **Tests** — BEFORE → AFTER cases run against the current config:
   - green = pass, red = fail, **yellow = muted** (a conscious compromise / one to
     revisit later);
@@ -43,8 +45,9 @@ Then open `http://localhost:3000`.
     with its ▶ button; per-case panes show *Before / Desired / Actual* with the
     diff, plus an add-test form.
 - **Edit the config in the browser** — the **Config** drawer edits
-  `clang-format` / `ruff.toml` live. **Check impact** runs the whole suite
-  against the edited config and the live one and reports what flips:
+  `clang-format` / `ruff.toml` live; for C++ a version picker chooses which
+  clang-format version's config you're editing. **Check impact** runs the whole
+  suite against the edited config and the live one and reports what flips:
   `+N fixed · −N broken · N muted would pass`, so you see a change's blast radius
   before committing to it.
 - **Drafts & Publish** — config and test edits first land in a **local draft**
@@ -92,19 +95,26 @@ Formatter configs are the single source of truth in `backend/configs/`:
 - `clang-format` — C++ style (anonymised house conventions)
 - `ruff.toml` — Python style (line length 88, single quotes)
 
-They're served at `/clang-format` and `/ruff.toml` (and via `GET /api/config/{lang}`),
-so the UI always shows the config formatting actually uses. The **Config** drawer
-edits them through `PUT /api/config/{lang}`.
+They seed the *base* config; the live config is served at `/clang-format` and
+`/ruff.toml` (and via `GET /api/config/{lang}`), so the UI always shows the config
+formatting actually uses. The **Config** drawer edits them through
+`PUT /api/config/{lang}`.
+
+C++ configs are **per clang-format version** — the point of a newer clang-format
+is the options it adds. Each installed version has its own config (and its own
+history), cloned once from the default version when added; a request without a
+version targets the default version. Select one with `?version=X.Y.Z` (GET) or
+the `version` field (PUT/rollback). Python has a single config.
 
 ### Versioned config — so a good config can't be lost
 
 Config changes are **never a destructive overwrite**. Each published config is
-appended to a per-language **version history** (`config_store.py`): the repo
-config is version 0 (the *base*), and every `PUT` records a new version with its
-diff (`patch`), author and message. The current config — what the formatter and
-`GET /api/config/{lang}` use — is the latest version, *materialized* back into the
-config file. `GET`/`PUT` look exactly as before; underneath, anyone can change the
-config but nothing is irreversible:
+appended to a **version history** (`config_store.py`) keyed per config (python,
+or `cpp@<version>`): the repo config is version 0 (the *base*), and every `PUT`
+records a new version with its diff (`patch`), author and message. The current
+config — what the formatter and `GET /api/config/{lang}` use — is the latest
+version, *materialized* back into the config file. `GET`/`PUT` look exactly as
+before; underneath, anyone can change the config but nothing is irreversible:
 
 - `GET /api/config/{lang}/history` — the full version list with patches.
 - `POST /api/config/{lang}/rollback {seq}` — restore an earlier version (0 = base).

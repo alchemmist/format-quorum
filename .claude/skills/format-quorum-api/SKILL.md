@@ -42,6 +42,13 @@ version (with `--author` / `--message`). `config-history` lists every version
 with its patch; `config-rollback <lang> <seq>` restores an earlier one (`seq 0`
 = the original base). So a bad config edit is always reversible.
 
+**cpp configs are per clang-format version.** Each installed clang-format
+version keeps its own `.clang-format` (its own history/rollbacks) — the point of
+a newer version is its new options. Target one with `--clang-version X.Y.Z` on
+`get-config` / `put-config` / `config-history` / `config-rollback` (omit = the
+default version). A newly added version's config is copied once from the default
+version's current config. python has a single config (no version).
+
 **`whatif`** answers "config patch → which tests pass/fail" in one call without
 touching the stored config — the server runs the suite live vs candidate and
 diffs them. Use it to check a tuning hypothesis or a config edit's blast radius:
@@ -121,19 +128,23 @@ fq.py run                            # run all; add --lang cpp / --version 19.1.
 ```
 
 Read / write (download / change / upload) the formatter config. `put-config`
-writes straight to the file formatting actually uses, so the change takes effect
-immediately for both the playground and test runs:
+records a new version and re-materializes the file formatting uses, so the change
+takes effect immediately for the playground, test runs, and the matrix:
 ```bash
-fq.py get-config cpp                 # download (or: python)
+fq.py get-config cpp                                  # default version's config
+fq.py get-config cpp --clang-version 22.1.8           # a specific version's config
 fq.py get-config cpp > my.clang-format && $EDITOR my.clang-format
-fq.py put-config cpp -i my.clang-format   # upload (or pipe via stdin)
+fq.py put-config cpp -i my.clang-format               # upload to the default version
+fq.py put-config cpp --clang-version 22.1.8 -i my.clang-format   # to one version
+fq.py get-config python                               # python (single, no version)
 ```
 
-> ⚠️ Unlike tests, **configs are git-backed (bind-mounted from the repo), not a
-> volume.** A `put-config` on prod takes effect right away but is **reset to
-> `main` on the next deploy** (`git reset --hard`). To make a config change
-> permanent, also commit it to `backend/configs/` (`clang-format` / `ruff.toml`)
-> in the repo.
+> The config history lives in a **named volume** (`config_data`) and is
+> re-materialized on startup, so a `put-config` on prod **survives deploys**
+> (a `git reset --hard` of `backend/configs/` is overwritten by the stored
+> current on boot). Roll an accidental break back with `config-rollback`. To
+> also change the repo's seed (what a brand-new volume starts from), commit
+> `backend/configs/`.
 
 ## Bulk reseed
 
@@ -159,9 +170,12 @@ commit (author **alchemmist**, no `Co-Authored-By` — repo commit convention).
 → `{summary{baseline,patched}, flips{now_pass,now_fail,muted_would_pass}, results, targets?}`) ·
 `POST /api/tests/matrix` (`{language}` → `{versions, tests:[{id,name,muted,cells{ver:{status,passed}},muted_passes_somewhere}]}`) ·
 `GET/POST /api/clang-versions` · `DELETE /api/clang-versions/{version}` ·
-`GET/PUT /api/config/{lang}` (PUT records a version; body may add `author`/`message`) ·
-`GET /api/config/{lang}/history` · `GET /api/config/{lang}/history/{seq}` ·
-`POST /api/config/{lang}/rollback` (`{seq, author?, message?}`) ·
+`GET/PUT /api/config/{lang}` (cpp: `?version=X.Y.Z` on GET / `version` in the PUT
+body selects a clang-format version's config — default version if omitted; PUT
+records a version, body may add `author`/`message`) ·
+`GET /api/config/{lang}/history?version=` · `GET /api/config/{lang}/history/{seq}?version=` ·
+`POST /api/config/{lang}/rollback` (`{seq, version?, author?, message?}`) ·
 `GET /clang-format` · `GET /ruff.toml`.
-clang-format default is `18.1.8`; other versions must be installed via
+Each installed clang-format version has its own config (cloned once from the
+default version when added); other versions must be installed via
 `POST /api/clang-versions` first (slow — pip-installs into a venv).

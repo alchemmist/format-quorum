@@ -132,12 +132,20 @@ def cmd_run(a):
         print(f"  {r['status']:7} [{r['language']:6}] {r['name']}")
 
 
+# cpp configs are per clang-format version; --clang-version targets one (omit =
+# the default version). python ignores it.
+def _cfg_q(a):
+    return f"?version={a.clang_version}" if getattr(a, "clang_version", None) else ""
+
+
 def cmd_get_config(a):
-    sys.stdout.write(_req("GET", f"/api/config/{a.lang}")["content"])
+    sys.stdout.write(_req("GET", f"/api/config/{a.lang}{_cfg_q(a)}")["content"])
 
 
 def cmd_put_config(a):
     payload = {"content": _read(a.input_file)}
+    if a.clang_version:
+        payload["version"] = a.clang_version
     if a.author:
         payload["author"] = a.author
     if a.message:
@@ -146,8 +154,9 @@ def cmd_put_config(a):
 
 
 def cmd_config_history(a):
-    res = _req("GET", f"/api/config/{a.lang}/history")
-    print(f"head: v{res['head']}")
+    res = _req("GET", f"/api/config/{a.lang}/history{_cfg_q(a)}")
+    ver = f" (clang {res['version']})" if res.get("version") else ""
+    print(f"head: v{res['head']}{ver}")
     for v in res["versions"]:
         who = f" by {v['author']}" if v.get("author") else ""
         msg = f" — {v['message']}" if v.get("message") else ""
@@ -156,6 +165,8 @@ def cmd_config_history(a):
 
 def cmd_config_rollback(a):
     payload = {"seq": a.seq}
+    if a.clang_version:
+        payload["version"] = a.clang_version
     if a.author:
         payload["author"] = a.author
     if a.message:
@@ -238,15 +249,20 @@ def main():
     s = sub.add_parser("run", help="run tests")
     s.add_argument("--lang"); s.add_argument("--version"); s.set_defaults(fn=cmd_run)
 
-    s = sub.add_parser("get-config", help="print a config"); s.add_argument("lang"); s.set_defaults(fn=cmd_get_config)
+    s = sub.add_parser("get-config", help="print a config")
+    s.add_argument("lang"); s.add_argument("--clang-version", help="cpp: which clang-format version's config (default version if omitted)")
+    s.set_defaults(fn=cmd_get_config)
     s = sub.add_parser("put-config", help="publish a config from --input-file or stdin (records a version)")
     s.add_argument("lang"); s.add_argument("--input-file", "-i", default="-")
+    s.add_argument("--clang-version", help="cpp: which clang-format version's config")
     s.add_argument("--author"); s.add_argument("--message", "-m"); s.set_defaults(fn=cmd_put_config)
 
     s = sub.add_parser("config-history", help="list a config's version history")
-    s.add_argument("lang"); s.set_defaults(fn=cmd_config_history)
+    s.add_argument("lang"); s.add_argument("--clang-version", help="cpp: which clang-format version's config")
+    s.set_defaults(fn=cmd_config_history)
     s = sub.add_parser("config-rollback", help="roll a config back to an earlier version")
     s.add_argument("lang"); s.add_argument("seq", type=int)
+    s.add_argument("--clang-version", help="cpp: which clang-format version's config")
     s.add_argument("--author"); s.add_argument("--message", "-m"); s.set_defaults(fn=cmd_config_rollback)
 
     s = sub.add_parser("versions", help="list clang-format versions"); s.set_defaults(fn=cmd_versions)
