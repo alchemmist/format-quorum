@@ -169,6 +169,24 @@ export default function ConfigDrawer({
 
   const changed = content !== serverContent
 
+  // Escape closes the drawer, saving the current edits to the draft first (only
+  // if there are any, so an unchanged close doesn't create a phantom draft). If
+  // the "save as shadow" name popup is open, Escape just dismisses that.
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (shadowFormOpen) {
+        setShadowFormOpen(false)
+        return
+      }
+      if (changed) save()
+      onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, shadowFormOpen, changed, save, onClose])
+
   // run every test of this language against the live config and against this
   // draft config, and report which tests flip pass/fail.
   const checkImpact = useCallback(async () => {
