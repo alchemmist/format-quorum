@@ -68,6 +68,18 @@ export default function App() {
     setQueryParam('version', clangVersion ?? null)
   }, [clangVersion])
 
+  // Ctrl/Cmd + , toggles the Config drawer (it opens on the header's version)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+        e.preventDefault()
+        setConfigOpen((o) => !o)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   const diffRanges = useMemo(
     () => outputCode ? computeDiff(inputCode, outputCode) : [],
     [inputCode, outputCode],

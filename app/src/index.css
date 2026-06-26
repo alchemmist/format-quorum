@@ -358,7 +358,7 @@ body {
   top: 0;
   left: 0;
   height: 100vh;
-  width: min(820px, 94vw);
+  width: min(740px, 94vw);
   background: #16161b;
   border-right: 1px solid #2d2d35;
   transform: translateX(-100%);
