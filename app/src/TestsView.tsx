@@ -631,11 +631,22 @@ export default function TestsView({
 const PEEK_KEY = 'Alt'
 const PEEK_HINT = 'Alt'
 
-// Which pane the cursor is currently over — a single shared value so exactly one
-// pane can match on keydown. (Per-pane hover flags could get stuck true when the
-// overlay covers the cursor and a mouseleave is missed, opening the wrong pane.)
-let hoveredPaneId = 0
-let paneSeq = 0
+// Track the live cursor position so that on keydown we can hit-test it against
+// each pane's current rect. Keyboard events carry no coordinates, and
+// mouseenter/leave flags can get stuck (the overlay covers the cursor, a leave
+// is missed) — geometry from the real pointer is the reliable signal.
+let lastPointerX = -1
+let lastPointerY = -1
+if (typeof window !== 'undefined') {
+  window.addEventListener(
+    'mousemove',
+    (e) => {
+      lastPointerX = e.clientX
+      lastPointerY = e.clientY
+    },
+    { passive: true },
+  )
+}
 
 function TestPane({
   title,
@@ -650,7 +661,7 @@ function TestPane({
 }) {
   const [zoom, setZoom] = useState(false)
   const [shown, setShown] = useState(false)
-  const [paneId] = useState(() => ++paneSeq)
+  const paneRef = useRef<HTMLDivElement>(null)
   // true when the enlarged view was opened by holding the key (so releasing it
   // closes it); a click-opened view stays until backdrop/Escape
   const heldRef = useRef(false)
@@ -673,9 +684,17 @@ function TestPane({
   // hold PEEK_KEY while hovering this pane → open; release → close
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== PEEK_KEY || e.repeat) return
-      if (zoom || hoveredPaneId !== paneId) return
-      openZoom(true)
+      if (e.key !== PEEK_KEY || e.repeat || zoom) return
+      // open this pane only if the cursor is geometrically inside it right now
+      const el = paneRef.current
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      const inside =
+        lastPointerX >= r.left &&
+        lastPointerX <= r.right &&
+        lastPointerY >= r.top &&
+        lastPointerY <= r.bottom
+      if (inside) openZoom(true)
     }
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.key === PEEK_KEY && heldRef.current) closeZoom()
@@ -686,7 +705,7 @@ function TestPane({
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
     }
-  }, [zoom, paneId, openZoom, closeZoom])
+  }, [zoom, openZoom, closeZoom])
 
   // close the enlarged view on Escape, or if the window loses focus (so a
   // held-open peek can't get stuck when the keyup is swallowed)
@@ -704,15 +723,7 @@ function TestPane({
     }
   }, [zoom, closeZoom])
   return (
-    <div
-      className="test-pane"
-      onMouseEnter={() => {
-        hoveredPaneId = paneId
-      }}
-      onMouseLeave={() => {
-        if (hoveredPaneId === paneId) hoveredPaneId = 0
-      }}
-    >
+    <div className="test-pane" ref={paneRef}>
       <div className="test-pane-titlebar">
         <Text color="secondary" variant="caption-2" className="test-pane-title">
           {title}
