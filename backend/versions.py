@@ -114,6 +114,11 @@ class PipInstall(InstallStrategy):
         name = filename.lower()
         if not name.endswith(".whl"):
             return False  # sdist only → no bundled binary we can use
+        # a pure-Python wheel (…-none-any.whl) installs on ANY platform and still
+        # ships the console script — e.g. black, which has no linux/arm64 compiled
+        # wheel but installs fine everywhere via its py3-none-any wheel.
+        if name.endswith("-none-any.whl"):
+            return True
         machine = platform.machine().lower()
         plat: str = sys.platform
         if plat.startswith("linux"):
