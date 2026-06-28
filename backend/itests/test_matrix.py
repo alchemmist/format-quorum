@@ -15,9 +15,10 @@ def test_matrix_base_only(appctx):
 
 def test_matrix_includes_installed_extra_version(appctx, install_version):
     seed_passing_test(appctx.client, "cpp", CPP_MESSY, name="m2")
-    install_version("clang-format", "18.1.8")
+    # a version distinct from the probed base, so it's a genuine extra column
+    install_version("clang-format", "14.0.6")
     out = appctx.client.post("/api/tests/matrix", json={"formatter": "clang-format"}).json()
-    assert "18.1.8" in out["versions"]
+    assert "14.0.6" in out["versions"]
 
 
 def test_matrix_includes_published_shadow(appctx):

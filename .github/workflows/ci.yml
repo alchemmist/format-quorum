@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-tests:
+    name: Backend integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12" # matches the python:3.12-slim runtime image
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+
+      - name: Install backend deps + formatters
+        run: |
+          python -m venv backend/.venv
+          backend/.venv/bin/python -m pip install --upgrade pip
+          backend/.venv/bin/python -m pip install -r backend/requirements-dev.txt
+          # clang-format isn't in requirements (the Dockerfile installs it
+          # separately); the test harness picks it up from the venv.
+          backend/.venv/bin/python -m pip install clang-format==18.1.8
+
+      - name: Run pytest
+        working-directory: backend
+        run: .venv/bin/python -m pytest
+
+  frontend-build:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22" # matches the node:22-alpine build image
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - run: npm ci
+        working-directory: app
+
+      - name: Type-check + build (tsc -b && vite build)
+        run: npm run build
+        working-directory: app
+
+  docker-build:
+    name: Docker image build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the production image end-to-end
+        run: docker build -t format-quorum:ci .

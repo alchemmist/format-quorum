@@ -77,10 +77,10 @@ def test_clang_versions_alias_matches_generic(appctx):
 
 
 def test_clang_versions_add_remove_alias(appctx, enable_fake_install):
-    base = appctx.default_version("clang-format")
-    # pick any installable-looking version that isn't the base
-    r = appctx.client.post("/api/clang-versions", json={"version": "18.1.8"})
+    # a version distinct from the probed base, so add + remove both do real work
+    r = appctx.client.post("/api/clang-versions", json={"version": "14.0.6"})
     assert r.status_code == 200
-    assert "18.1.8" in r.json()["versions"]
-    if "18.1.8" != base:
-        assert appctx.client.delete("/api/clang-versions/18.1.8").status_code == 200
+    assert "14.0.6" in r.json()["versions"]
+    r = appctx.client.delete("/api/clang-versions/14.0.6")
+    assert r.status_code == 200
+    assert "14.0.6" not in r.json()["versions"]
