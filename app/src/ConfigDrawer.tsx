@@ -126,7 +126,7 @@ export default function ConfigDrawer({
   // installed clang-format versions for the picker; default-select one
   useEffect(() => {
     if (!open) return
-    fetch('/api/clang-versions')
+    fetch('/api/formatters/clang-format/versions')
       .then((r) => r.json())
       .then((d) => {
         setVersions(d.versions ?? [])

@@ -23,14 +23,21 @@ export interface VersionsState {
 }
 
 interface Props {
-  /** Currently selected clang-format version (undefined = backend default) */
+  /** Currently selected version (undefined = backend default) */
   value: string | undefined
   onChange: (version: string) => void
+  /** which versioned formatter this controls (default: clang-format) */
+  formatterId?: string
 }
 
 const VERSION_RE = /^\d+\.\d+\.\d+$/
 
-export default function ClangVersionControl({ value, onChange }: Props) {
+export default function ClangVersionControl({
+  value,
+  onChange,
+  formatterId = 'clang-format',
+}: Props) {
+  const versionsApi = `/api/formatters/${formatterId}/versions`
   const [state, setState] = useState<VersionsState | null>(null)
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
@@ -39,7 +46,7 @@ export default function ClangVersionControl({ value, onChange }: Props) {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch('/api/clang-versions')
+      const res = await fetch(versionsApi)
       const data: VersionsState = await res.json()
       setState(data)
       // Adopt the backend default once, so the Select shows something sensible.
@@ -64,7 +71,7 @@ export default function ClangVersionControl({ value, onChange }: Props) {
       }
       setAdding(true)
       try {
-        const res = await fetch('/api/clang-versions', {
+        const res = await fetch(versionsApi, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ version: version.trim() }),
@@ -90,7 +97,7 @@ export default function ClangVersionControl({ value, onChange }: Props) {
     async (version: string) => {
       setError(null)
       try {
-        const res = await fetch(`/api/clang-versions/${version}`, { method: 'DELETE' })
+        const res = await fetch(`${versionsApi}/${version}`, { method: 'DELETE' })
         const data = await res.json()
         if (!res.ok) {
           setError(data.error ?? 'Failed to remove version')
