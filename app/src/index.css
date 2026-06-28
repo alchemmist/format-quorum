@@ -78,6 +78,22 @@ body {
   gap: 6px;
 }
 
+.formatter-control {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.formatter-help {
+  display: inline-flex;
+  align-items: center;
+  color: var(--g-color-text-hint, #8c8c8c);
+  cursor: help;
+}
+.formatter-help:hover {
+  color: var(--g-color-text-secondary, #c0c0c0);
+}
+
 .version-add-row {
   display: flex;
   gap: 8px;

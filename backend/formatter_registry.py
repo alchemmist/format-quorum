@@ -47,6 +47,9 @@ class Formatter:
     install: InstallStrategy | None = None
     known_versions: tuple[str, ...] = ()  # quick-add suggestions
     patchable: bool = False  # top-level key patch (whatif/--set) applies to its config
+    # optional one-liner shown behind a "?" in the UI — what this formatter
+    # actually does (e.g. ruff runs check --fix then format)
+    description: str = ""
 
 
 # ── built-in formatters ───────────────────────────────────────────────────────
@@ -103,7 +106,7 @@ _register(
 _register(
     Formatter(
         id="ruff",
-        label="ruff format",
+        label="ruff",
         language="python",
         default=True,
         config=ConfigSpec("ruff.toml", "toml", _fmt.RUFF_CONFIG),
@@ -112,6 +115,11 @@ _register(
         install=PipInstall("ruff", "ruff", base_binary=_fmt.RUFF_BIN),
         known_versions=_RUFF_KNOWN,
         patchable=False,
+        description=(
+            "Runs the full ruff pass: `ruff check --fix` (safe lint autofixes — "
+            "e.g. removing unused imports) followed by `ruff format` (layout). "
+            "Both use the ruff.toml config."
+        ),
     )
 )
 _register(
@@ -170,6 +178,7 @@ def public_list() -> list[dict]:
             "default": f.default,
             "versioned": f.versioned,
             "patchable": f.patchable,
+            "description": f.description,
             "config": (
                 {"filename": f.config.filename, "syntax": f.config.syntax}
                 if f.config

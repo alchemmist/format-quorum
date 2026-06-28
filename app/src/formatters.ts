@@ -15,6 +15,7 @@ export interface FormatterInfo {
   versioned: boolean // supports the version axis (versions, matrix, shadows)
   patchable: boolean // top-level key patch (whatif) applies
   config: { filename: string; syntax: string } | null
+  description?: string // what this formatter does (shown behind a "?" hint)
 }
 
 let _formatters: FormatterInfo[] = []

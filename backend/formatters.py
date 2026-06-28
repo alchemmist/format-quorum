@@ -128,13 +128,21 @@ def format_cpp(
 
 
 def format_python(code: str, config: str | None = None, binary: str | None = None) -> str:
-    """Format Python source with `ruff format` using the house style config.
+    """Run the full ruff pass on Python source: lint autofixes then formatting.
+
+    This is what `ruff` does in practice: ``ruff check --fix`` applies safe lint
+    fixes (e.g. removing unused imports, rewriting comprehensions), then
+    ``ruff format`` lays the code out. Both use the house style config.
 
     `binary` lets callers pick a specific installed ruff version (the
     version-management feature); defaults to the base ruff on PATH.
     """
+    ruff = binary or RUFF_BIN
     with _config_file(config, RUFF_CONFIG, ".toml") as cfg:
-        return _run([binary or RUFF_BIN, "format", "--config", cfg, "-"], code)
+        # 1) lint autofix — reads stdin, writes the fixed source to stdout
+        fixed = _run([ruff, "check", "--fix-only", "--config", cfg, "-"], code)
+        # 2) format the fixed source
+        return _run([ruff, "format", "--config", cfg, "-"], fixed)
 
 
 def format_black(code: str, config: str | None = None, binary: str | None = None) -> str:

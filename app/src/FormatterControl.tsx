@@ -1,5 +1,6 @@
-import { Select } from '@gravity-ui/uikit'
-import { useFormatters, formattersForLanguage } from './formatters'
+import { Select, ActionTooltip, Icon } from '@gravity-ui/uikit'
+import { CircleQuestion } from '@gravity-ui/icons'
+import { useFormatters, formattersForLanguage, formatterById } from './formatters'
 
 interface Props {
   language: string
@@ -21,21 +22,33 @@ export default function FormatterControl({ language, value, onChange }: Props) {
   const only = fmts.length === 1
   // when locked to the single formatter, show it regardless of `value` (which may
   // briefly lag the language switch)
-  const selected = only ? [fmts[0].id] : value ? [value] : []
+  const selectedId = only ? fmts[0].id : value
+  const selected = selectedId ? [selectedId] : []
+  // the selected formatter's "what it does" note, if any → shown behind a "?"
+  const description = formatterById(selectedId)?.description
   return (
-    <Select
-      value={selected}
-      onUpdate={(v) => onChange(v[0])}
-      size="s"
-      width={150}
-      disabled={only}
-      title={only ? `${fmts[0].label} — the only formatter for this language` : 'Which formatter to use'}
-    >
-      {fmts.map((f) => (
-        <Select.Option key={f.id} value={f.id}>
-          {f.label}
-        </Select.Option>
-      ))}
-    </Select>
+    <div className="formatter-control">
+      <Select
+        value={selected}
+        onUpdate={(v) => onChange(v[0])}
+        size="s"
+        width={150}
+        disabled={only}
+        title={only ? `${fmts[0].label} — the only formatter for this language` : 'Which formatter to use'}
+      >
+        {fmts.map((f) => (
+          <Select.Option key={f.id} value={f.id}>
+            {f.label}
+          </Select.Option>
+        ))}
+      </Select>
+      {description && (
+        <ActionTooltip title={`What “${formatterById(selectedId)?.label}” does`} description={description}>
+          <span className="formatter-help" aria-label="What this formatter does">
+            <Icon data={CircleQuestion} size={15} />
+          </span>
+        </ActionTooltip>
+      )}
+    </div>
   )
 }
