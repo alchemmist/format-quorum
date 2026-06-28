@@ -195,6 +195,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  overflow: hidden; /* clip any stray overflow at the popup edge */
 }
 .cell-diff-title {
   display: flex;
@@ -220,16 +221,23 @@ body {
   flex-direction: column;
   gap: 4px;
   min-height: 0;
+  min-width: 0; /* let the pane shrink so long lines scroll instead of overflowing */
 }
 .cell-diff-editor {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   border: 1px solid #2d2d35;
   border-radius: 6px;
   overflow: hidden;
 }
 .cell-diff-editor .cm-editor {
   height: 100%;
+  max-width: 100%;
+}
+/* long, un-wrapped lines scroll horizontally inside the box */
+.cell-diff-editor .cm-scroller {
+  overflow: auto;
 }
 
 /* "Save as shadow config" name-entry panel (anchored under the 👻 button, kept
