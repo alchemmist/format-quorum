@@ -30,11 +30,14 @@ ARG SHFMT_VERSION=3.13.1
 ARG GJF_VERSION=1.25.2
 ARG NODE_MAJOR=22
 
-# Go (for gofmt), shfmt static binary, JRE + google-java-format jar + wrapper
+# Go (for gofmt), shfmt static binary, JDK + google-java-format jar + wrapper.
+# google-java-format reaches into the JDK compiler internals, so it needs a full
+# JDK (not a JRE) plus --add-exports to open jdk.compiler on JDK 16+. JDK 21 is
+# pinned: GJF 1.25.x targets the compiler API up to 21 and breaks on 22+.
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-        curl ca-certificates default-jre-headless; \
+        curl ca-certificates openjdk-21-jdk-headless; \
     arch="$(dpkg --print-architecture)"; \
     case "$arch" in \
         amd64) goa=amd64; sha=amd64 ;; \
@@ -47,7 +50,15 @@ RUN set -eux; \
     chmod +x /usr/local/bin/shfmt; \
     curl -fsSL -o /usr/local/lib/google-java-format.jar \
         "https://github.com/google/google-java-format/releases/download/v${GJF_VERSION}/google-java-format-${GJF_VERSION}-all-deps.jar"; \
-    printf '#!/bin/sh\nexec java -jar /usr/local/lib/google-java-format.jar "$@"\n' \
+    printf '%s\n' \
+        '#!/bin/sh' \
+        'exec java \' \
+        '  --add-exports jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED \' \
+        '  --add-exports jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED \' \
+        '  --add-exports jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED \' \
+        '  --add-exports jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED \' \
+        '  --add-exports jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED \' \
+        '  -jar /usr/local/lib/google-java-format.jar "$@"' \
         > /usr/local/bin/google-java-format; \
     chmod +x /usr/local/bin/google-java-format; \
     rm -rf /var/lib/apt/lists/*
@@ -78,14 +89,17 @@ ENV PATH="/usr/local/go/bin:/root/.cargo/bin:${PATH}" \
     TAPLO_BIN=taplo \
     GJF_BIN=/usr/local/bin/google-java-format
 
-# fail the build early if any toolchain didn't land
+# fail the build early if any toolchain didn't land. taplo and google-java-format
+# are smoke-tested by actually formatting: their --version exit codes are
+# unreliable (taplo --version exits 1), and a real run also proves gofmt is
+# usable and the JDK/--add-exports wiring works.
 RUN set -eux; \
     test -x "$GOFMT_BIN"; \
     rustfmt --version; \
     prettier --version; \
     shfmt --version; \
-    taplo --version; \
-    google-java-format --version
+    printf 'a=1\n' | taplo fmt - | grep -q 'a = 1'; \
+    printf 'class A{int x=1;}\n' | google-java-format - | grep -q 'class A'
 
 WORKDIR /app
 
