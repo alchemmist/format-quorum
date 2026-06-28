@@ -13,6 +13,7 @@ import {
 import { Layers } from '@gravity-ui/icons'
 import { useShadows, deleteShadow, type ShadowMeta } from './draftStore'
 import { ShadowLabel } from './ShadowLabel'
+import { formatterById } from './formatters'
 
 export interface VersionsState {
   versions: string[]
@@ -38,6 +39,7 @@ export default function ClangVersionControl({
   formatterId = 'clang-format',
 }: Props) {
   const versionsApi = `/api/formatters/${formatterId}/versions`
+  const label = formatterById(formatterId)?.label ?? formatterId
   const [state, setState] = useState<VersionsState | null>(null)
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
@@ -57,10 +59,11 @@ export default function ClangVersionControl({
   }, [value, onChange])
 
   useEffect(() => {
+    // reload whenever the formatter changes — each formatter has its own versions
+    setState(null)
     load()
-    // load once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [versionsApi])
 
   const addVersion = useCallback(
     async (version: string) => {
@@ -131,7 +134,7 @@ export default function ClangVersionControl({
         width={160}
         disabled={versions.length === 0}
         placeholder="version"
-        title="clang-format version to format with"
+        title={`${label} version to format with`}
         renderSelectedOption={(opt) => <span>{renderVersion(String(opt.value))}</span>}
       >
         {[...versions, ...shadows.map((s) => s.id)].map((v) => (
@@ -142,7 +145,7 @@ export default function ClangVersionControl({
       </Select>
 
       <ActionTooltip
-        title="clang-format versions"
+        title={`${label} versions`}
         description="Install another X.Y.Z to format and compare across versions in the matrix, and manage shadow configs (quasi-versions). The selected version is what the playground / tests format with."
       >
         <Button
@@ -152,14 +155,14 @@ export default function ClangVersionControl({
             setError(null)
             setOpen(true)
           }}
-          aria-label="Manage clang-format versions"
+          aria-label={`Manage ${label} versions`}
         >
           <Icon data={Layers} size={16} />
         </Button>
       </ActionTooltip>
 
       <Dialog open={open} onClose={() => setOpen(false)} size="s">
-        <Dialog.Header caption="clang-format versions" />
+        <Dialog.Header caption={`${label} versions`} />
         <Dialog.Body>
           <div className="version-add-row">
             <TextInput

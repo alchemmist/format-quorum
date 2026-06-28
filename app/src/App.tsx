@@ -223,9 +223,16 @@ export default function App() {
               </Select>
               {/* formatter picker — only appears when the language has >1 formatter */}
               <FormatterControl language={language} value={formatter} onChange={setFormatter} />
-              {/* the version selector is shown on every tab; its value is shared
-                  (it just doesn't affect ruff/python formatting) */}
-              <ClangVersionControl value={clangVersion} onChange={setClangVersion} />
+              {/* the version selector follows the selected formatter: it shows that
+                  formatter's own versions, and is hidden for an unversioned one
+                  (ruff/black have no version axis) */}
+              {formatterById(formatter)?.versioned && (
+                <ClangVersionControl
+                  formatterId={formatter}
+                  value={clangVersion}
+                  onChange={setClangVersion}
+                />
+              )}
             </HeaderSlot>
             <HeaderSlot slot="right">
               <label className="diff-toggle">
