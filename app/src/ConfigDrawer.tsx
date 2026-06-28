@@ -380,7 +380,7 @@ export default function ConfigDrawer({
             value={formatterById(formatterId) ? [formatterId] : []}
             onUpdate={(v) => setFormatterId(v[0])}
             size="s"
-            width={190}
+            width={240}
             title="Which formatter's config to edit"
             disablePortal
           >
@@ -399,7 +399,7 @@ export default function ConfigDrawer({
               value={version ? [version] : []}
               onUpdate={(v) => setVersion(v[0])}
               size="s"
-              width={180}
+              width={110}
               title="Which version's config to edit"
               // render the menu inside the drawer so it isn't trapped beneath
               // the drawer's stacking layer (the portal layer sits below it)
