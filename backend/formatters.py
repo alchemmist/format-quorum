@@ -24,6 +24,9 @@ CLANG_FORMAT_CONFIG = os.environ.get(
 RUFF_BIN = os.environ.get("RUFF_BIN", "ruff")
 RUFF_CONFIG = os.environ.get("RUFF_CONFIG", str(CONFIGS_DIR / "ruff.toml"))
 
+BLACK_BIN = os.environ.get("BLACK_BIN", "black")
+BLACK_CONFIG = os.environ.get("BLACK_CONFIG", str(CONFIGS_DIR / "black.toml"))
+
 # A formatter that hangs would block a worker thread forever.
 FORMAT_TIMEOUT_SEC = 30
 
@@ -128,6 +131,12 @@ def format_python(code: str, config: str | None = None) -> str:
     """Format Python source with `ruff format` using the house style config."""
     with _config_file(config, RUFF_CONFIG, ".toml") as cfg:
         return _run([RUFF_BIN, "format", "--config", cfg, "-"], code)
+
+
+def format_black(code: str, config: str | None = None) -> str:
+    """Format Python source with `black` using a pyproject-style config."""
+    with _config_file(config, BLACK_CONFIG, ".toml") as cfg:
+        return _run([BLACK_BIN, "-q", "--config", cfg, "-"], code)
 
 
 def format_code(

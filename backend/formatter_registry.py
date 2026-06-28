@@ -64,6 +64,10 @@ def _run_ruff(code: str, config: str | None, binary: str | None) -> str:
     return _fmt.format_python(code, config=config)
 
 
+def _run_black(code: str, config: str | None, binary: str | None) -> str:
+    return _fmt.format_black(code, config=config)
+
+
 # latest patch per major; any valid X.Y.Z can still be added by hand
 _CLANG_KNOWN = (
     "14.0.6", "15.0.7", "16.0.6", "17.0.6", "18.1.8",
@@ -99,6 +103,18 @@ _register(
         default=True,
         config=ConfigSpec("ruff.toml", "toml", _fmt.RUFF_CONFIG),
         run=_run_ruff,
+        versioned=False,
+        patchable=False,
+    )
+)
+_register(
+    Formatter(
+        id="black",
+        label="black",
+        language="python",
+        default=False,
+        config=ConfigSpec("black.toml", "toml", _fmt.BLACK_CONFIG),
+        run=_run_black,
         versioned=False,
         patchable=False,
     )

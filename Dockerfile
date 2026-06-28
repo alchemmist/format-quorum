@@ -17,9 +17,10 @@ RUN npm run build
 # ── Stage 2: Python runtime ──────────────────────────────────────────────────
 FROM python:3.12-slim AS runtime
 
-# clang-format (base/default version) and ruff are installed via pip; the
-# clang-format wheel ships a bundled binary at /usr/local/bin/clang-format.
-# 18.1.8 is the version the codebase was formatted with (LOGS-4271).
+# clang-format (base/default version) is installed via pip; the wheel ships a
+# bundled binary at /usr/local/bin/clang-format. 18.1.8 is the version the
+# codebase was formatted with (LOGS-4271). The Python formatters (ruff, black)
+# come from requirements.txt below.
 RUN pip install --no-cache-dir clang-format==18.1.8
 
 WORKDIR /app
