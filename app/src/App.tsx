@@ -3,6 +3,7 @@ import { ThemeProvider, Button, Spin, Select, Checkbox, Icon } from '@gravity-ui
 import { ArrowRotateLeft, Sparkles } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import ClangVersionControl from './ClangVersionControl'
+import FormatterControl from './FormatterControl'
 import AppHeader, { type View } from './AppHeader'
 import { HeaderSlot } from './HeaderSlot'
 import TestsView from './TestsView'
@@ -12,7 +13,13 @@ import { computeDiff } from './useDiff'
 import { getQueryParam, setQueryParam } from './url'
 import { useDraftCount, publishDraft, discardAll, formatOverrides } from './draftStore'
 import { languageDemo, languageLabel } from './languages'
-import { loadFormatters, availableLanguages, useFormatters } from './formatters'
+import {
+  loadFormatters,
+  availableLanguages,
+  useFormatters,
+  defaultFormatter,
+  formatterById,
+} from './formatters'
 
 type Status =
   | { kind: 'idle' }
@@ -27,12 +34,22 @@ function langFromPath(): Language {
 
 export default function App() {
   // load the backend formatter registry once; pickers below re-render when ready
-  useFormatters()
+  const formatters = useFormatters()
   useEffect(() => {
     loadFormatters()
   }, [])
 
   const [language, setLanguage]   = useState<Language>(langFromPath)
+  // which formatter the playground uses for the current language (only matters
+  // when a language has more than one). Kept valid as language/registry change.
+  const [formatter, setFormatter] = useState<string>('')
+  useEffect(() => {
+    const cur = formatterById(formatter)
+    if (!cur || cur.language !== language) {
+      const d = defaultFormatter(language)
+      if (d) setFormatter(d.id)
+    }
+  }, [language, formatters, formatter])
   const [inputCode, setInputCode] = useState<string>(() => languageDemo(langFromPath()))
   const [outputCode, setOutputCode] = useState<string>('')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
@@ -120,9 +137,9 @@ export default function App() {
         body: JSON.stringify({
           code: inputCode,
           language,
-          // clang_version + any local draft config (incl. shadow configs); the
-          // server applies the selected version's published config otherwise
-          ...formatOverrides(language, clangVersion),
+          // formatter + version + any local draft config (incl. shadow configs);
+          // the server applies the selected version's published config otherwise
+          ...formatOverrides(formatter || language, clangVersion),
         }),
       })
       const data = await res.json()
@@ -135,7 +152,7 @@ export default function App() {
     } catch (e) {
       setStatus({ kind: 'error', message: String(e) })
     }
-  }, [inputCode, language, clangVersion])
+  }, [inputCode, language, formatter, clangVersion])
 
   // jump from the matrix to a specific test in the Tests view
   const pickTest = useCallback((id: string) => {
@@ -204,6 +221,8 @@ export default function App() {
                   </Select.Option>
                 ))}
               </Select>
+              {/* formatter picker — only appears when the language has >1 formatter */}
+              <FormatterControl language={language} value={formatter} onChange={setFormatter} />
               {/* the version selector is shown on every tab; its value is shared
                   (it just doesn't affect ruff/python formatting) */}
               <ClangVersionControl value={clangVersion} onChange={setClangVersion} />
@@ -311,7 +330,7 @@ export default function App() {
 
         <ConfigDrawer
           open={configOpen}
-          initialLang={language}
+          initialFormatter={formatter || language}
           initialVersion={clangVersion}
           onClose={() => setConfigOpen(false)}
           onSaved={() => {

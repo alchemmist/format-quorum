@@ -6,9 +6,8 @@
 // renders "server merged with draft"; nothing reaches the server until the user
 // hits Publish (which flushes the whole draft) or Discard (which drops it).
 import { useSyncExternalStore } from 'react'
-import type { Language } from './CodeMirrorEditor'
 import type { TestCase } from './types'
-import { defaultFormatter } from './formatters'
+import { resolveFormatter } from './formatters'
 
 const KEY = 'fq-draft-v1'
 const JSON_H = { 'Content-Type': 'application/json' }
@@ -98,8 +97,9 @@ export const isDraftId = (id: string) => id.startsWith('draft-')
 // `clang-format@22.1.8`). configKey() resolves the formatter from the code's
 // language; it returns undefined for a versioned formatter when the version
 // isn't known yet so callers fall back to the server's resolved-default config.
-export function configKey(lang: Language, version?: string): string | undefined {
-  const fmt = defaultFormatter(lang)
+// `formatter` is a formatter id (or a legacy language, resolved to its default)
+export function configKey(formatter: string, version?: string): string | undefined {
+  const fmt = resolveFormatter(formatter)
   if (!fmt) return undefined
   if (!fmt.versioned) return fmt.id
   return version ? `${fmt.id}@${version}` : undefined
@@ -187,10 +187,10 @@ export function effectiveShadows(server: ShadowMeta[]): ShadowMeta[] {
  * the binary); a draft edit of its config rides along as a `config` override.
  */
 export function formatOverrides(
-  language: Language,
+  formatter: string,
   version: string | undefined,
 ): { formatter?: string; version?: string; config?: string } {
-  const fmt = defaultFormatter(language)
+  const fmt = resolveFormatter(formatter)
   if (!fmt) return {}
   if (!fmt.versioned) {
     const cfg = draftConfig(fmt.id)
