@@ -60,18 +60,27 @@ def _run_clang_format(code: str, config: str | None, binary: str | None) -> str:
 
 
 def _run_ruff(code: str, config: str | None, binary: str | None) -> str:
-    # ruff is a single binary here; `binary` is unused (no version axis yet)
-    return _fmt.format_python(code, config=config)
+    return _fmt.format_python(code, config=config, binary=binary)
 
 
 def _run_black(code: str, config: str | None, binary: str | None) -> str:
-    return _fmt.format_black(code, config=config)
+    return _fmt.format_black(code, config=config, binary=binary)
 
 
-# latest patch per major; any valid X.Y.Z can still be added by hand
+# Quick-add version suggestions per formatter (latest patch of recent releases;
+# any valid X.Y.Z can still be added by hand). Each is probed against PyPI for an
+# installable wheel before it's offered, so an unavailable one is dropped.
 _CLANG_KNOWN = (
     "14.0.6", "15.0.7", "16.0.6", "17.0.6", "18.1.8",
     "19.1.7", "20.1.8", "21.1.8", "22.1.5",
+)
+# ruff ships a binary wheel per release (X.Y.Z); a spread of recent minors
+_RUFF_KNOWN = (
+    "0.6.9", "0.7.4", "0.8.6", "0.9.10", "0.11.13", "0.12.7",
+)
+# black uses calendar versioning (YY.M.patch); recent stable releases
+_BLACK_KNOWN = (
+    "23.12.1", "24.4.2", "24.10.0", "25.1.0",
 )
 
 FORMATTERS: dict[str, Formatter] = {}
@@ -103,7 +112,9 @@ _register(
         default=True,
         config=ConfigSpec("ruff.toml", "toml", _fmt.RUFF_CONFIG),
         run=_run_ruff,
-        versioned=False,
+        versioned=True,
+        install=InstallStrategy("ruff", "ruff"),
+        known_versions=_RUFF_KNOWN,
         patchable=False,
     )
 )
@@ -115,7 +126,9 @@ _register(
         default=False,
         config=ConfigSpec("black.toml", "toml", _fmt.BLACK_CONFIG),
         run=_run_black,
-        versioned=False,
+        versioned=True,
+        install=InstallStrategy("black", "black"),
+        known_versions=_BLACK_KNOWN,
         patchable=False,
     )
 )

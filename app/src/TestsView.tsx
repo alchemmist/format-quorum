@@ -15,7 +15,7 @@ import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import ClangVersionControl from './ClangVersionControl'
 import { HeaderSlot } from './HeaderSlot'
 import { languageLabel } from './languages'
-import { availableLanguages, useFormatters } from './formatters'
+import { availableLanguages, useFormatters, defaultFormatter } from './formatters'
 import { getQueryParam, setQueryParam, testShareUrl } from './url'
 import { computeDiff } from './useDiff'
 import type { TestCase } from './types'
@@ -47,9 +47,9 @@ interface Props {
   playgroundInput: string
   playgroundOutput: string
   playgroundLanguage: Language
-  /** clang-format version, shared with the playground tab */
-  clangVersion?: string
-  onClangVersionChange: (version: string) => void
+  /** selected version per formatter, shared with the playground tab */
+  versionByFmt: Record<string, string | undefined>
+  onVersionChange: (formatterId: string, version: string | undefined) => void
   /** bumped after a Publish so the server tests reload */
   refreshKey?: number
   /** open the tests×versions matrix drawer */
@@ -93,8 +93,8 @@ export default function TestsView({
   playgroundInput,
   playgroundOutput,
   playgroundLanguage,
-  clangVersion,
-  onClangVersionChange,
+  versionByFmt,
+  onVersionChange,
   refreshKey,
   onOpenMatrix,
   focusTest,
@@ -215,15 +215,18 @@ export default function TestsView({
   const formatAndCompare = useCallback(
     async (test: TestCase): Promise<RunResult> => {
       try {
-        // run against the selected version + any local draft config (incl. a
-        // shadow config); the server uses the published config otherwise
+        // run against the selected version of this test's formatter + any local
+        // draft config (incl. a shadow config); the server uses the published
+        // config otherwise. Each language's formatter has its own version.
+        const tf = defaultFormatter(test.language)
+        const tv = tf ? versionByFmt[tf.id] : undefined
         const res = await fetch('/api/format', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             code: test.input,
             language: test.language,
-            ...formatOverrides(test.language, clangVersion),
+            ...formatOverrides(test.language, tv),
           }),
         })
         const data = await res.json()
@@ -240,7 +243,7 @@ export default function TestsView({
         return { id: test.id, passed: false, actual: '', error: String(e) }
       }
     },
-    [clangVersion],
+    [versionByFmt],
   )
 
   const runAll = useCallback(async () => {
@@ -369,7 +372,19 @@ export default function TestsView({
             </Select.Option>
           ))}
         </Select>
-        <ClangVersionControl value={clangVersion} onChange={onClangVersionChange} />
+        {(() => {
+          // the version control follows the filtered language's default formatter
+          // (the playground language when the filter is "all"); hidden when that
+          // formatter has no version axis
+          const tf = defaultFormatter(filter === 'all' ? playgroundLanguage : filter)
+          return tf?.versioned ? (
+            <ClangVersionControl
+              formatterId={tf.id}
+              value={versionByFmt[tf.id]}
+              onChange={(v) => onVersionChange(tf.id, v)}
+            />
+          ) : null
+        })()}
       </HeaderSlot>
 
       <div className="tests-toolbar">

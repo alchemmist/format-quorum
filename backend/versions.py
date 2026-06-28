@@ -1,10 +1,13 @@
-"""Dynamic clang-format version management.
+"""Dynamic formatter version management.
 
-The user can ask the backend to make an arbitrary clang-format version
-available. Each version is installed into its own virtualenv via
-`pip install clang-format==X.Y.Z` (the wheel ships a bundled binary). If pip
-has no installable wheel for that exact version / platform, the version simply
-does not exist and we report that back.
+One :class:`VersionManager` per *versioned* formatter (clang-format, ruff,
+black…). The user can ask the backend to make an arbitrary version of that
+formatter available. Each version is installed into its own virtualenv via
+`pip install <pypi_name>==X.Y.Z` (the wheel ships a bundled binary). If pip has
+no installable wheel for that exact version / platform, the version simply does
+not exist and we report that back. The PyPI package and the in-venv binary name
+are parameters (`pypi_name`/`binary_name`), so any pip-installable formatter is
+managed the same way.
 
 This ports the capability of the `clang-format-docker` scripts (cfmt.py picking
 a version, generate_dockerfile.py probing wheel availability) into the runtime.
@@ -133,7 +136,7 @@ class VersionManager:
             found.append(self.base_version)
         if self.dir.exists():
             for child in sorted(self.dir.iterdir()):
-                if (child / "bin" / "clang-format").exists():
+                if (child / "bin" / self.binary_name).exists():
                     found.append(child.name)
         # de-dupe, preserve order
         seen: set[str] = set()
@@ -217,7 +220,7 @@ class VersionManager:
         if version == self.base_version:
             return False, "Cannot remove the built-in default version"
         target = self.dir / version
-        if not (target / "bin" / "clang-format").exists():
+        if not (target / "bin" / self.binary_name).exists():
             return False, "Version is not installed"
         shutil.rmtree(target, ignore_errors=True)
         return True, None

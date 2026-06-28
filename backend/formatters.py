@@ -127,16 +127,24 @@ def format_cpp(
         )
 
 
-def format_python(code: str, config: str | None = None) -> str:
-    """Format Python source with `ruff format` using the house style config."""
+def format_python(code: str, config: str | None = None, binary: str | None = None) -> str:
+    """Format Python source with `ruff format` using the house style config.
+
+    `binary` lets callers pick a specific installed ruff version (the
+    version-management feature); defaults to the base ruff on PATH.
+    """
     with _config_file(config, RUFF_CONFIG, ".toml") as cfg:
-        return _run([RUFF_BIN, "format", "--config", cfg, "-"], code)
+        return _run([binary or RUFF_BIN, "format", "--config", cfg, "-"], code)
 
 
-def format_black(code: str, config: str | None = None) -> str:
-    """Format Python source with `black` using a pyproject-style config."""
+def format_black(code: str, config: str | None = None, binary: str | None = None) -> str:
+    """Format Python source with `black` using a pyproject-style config.
+
+    `binary` lets callers pick a specific installed black version; defaults to
+    the base black on PATH.
+    """
     with _config_file(config, BLACK_CONFIG, ".toml") as cfg:
-        return _run([BLACK_BIN, "-q", "--config", cfg, "-"], code)
+        return _run([binary or BLACK_BIN, "-q", "--config", cfg, "-"], code)
 
 
 def format_code(

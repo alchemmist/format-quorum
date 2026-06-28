@@ -136,10 +136,25 @@ export default function ConfigDrawer({
     }
   }, [configTabs, formatterId, initialFormatter])
 
-  // installed clang-format versions for the picker; default-select one
+  // switching the formatter tab drops the previous formatter's version, so the
+  // fetch below re-selects the new formatter's own default (a clang-format
+  // version must never linger when the ruff/black tab is opened)
+  const prevFmtRef = useRef(formatterId)
   useEffect(() => {
-    if (!open) return
-    fetch('/api/formatters/clang-format/versions')
+    if (prevFmtRef.current !== formatterId) {
+      prevFmtRef.current = formatterId
+      setVersion(undefined)
+    }
+  }, [formatterId])
+
+  // installed versions of the selected formatter for the picker; default-select one
+  useEffect(() => {
+    if (!open || !isVersioned(formatterId)) {
+      setVersions([])
+      setServerShadows([])
+      return
+    }
+    fetch(`/api/formatters/${formatterId}/versions`)
       .then((r) => r.json())
       .then((d) => {
         setVersions(d.versions ?? [])
@@ -147,7 +162,7 @@ export default function ConfigDrawer({
         setVersion((prev) => prev ?? d.default ?? (d.versions ?? [])[0])
       })
       .catch(() => {})
-  }, [open])
+  }, [open, formatterId])
 
   // the cpp config is per-version, so loading depends on the selected version
   const load = useCallback(
@@ -392,7 +407,9 @@ export default function ConfigDrawer({
             <div className="shadow-anchor" ref={shadowBtnRef}>
               <ActionTooltip
                 title="Save as shadow config"
-                description="Store these edits as a separate, named config that reuses this clang-format binary but its own .clang-format. It shows up everywhere as a quasi-version — run it and compare it in the matrix next to the real versions. Saved to your local draft; Publish pushes it to the server."
+                description={`Store these edits as a separate, named config that reuses this ${
+                  formatterById(formatterId)?.label ?? formatterId
+                } binary but its own ${filenameFor(formatterId)}. It shows up everywhere as a quasi-version — run it and compare it in the matrix next to the real versions. Saved to your local draft; Publish pushes it to the server.`}
               >
                 <Button
                   view="action"

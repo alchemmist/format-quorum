@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { ThemeProvider, Button, Spin, Select, Checkbox, Icon } from '@gravity-ui/uikit'
 import { ArrowRotateLeft, Sparkles } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
@@ -54,10 +54,15 @@ export default function App() {
   const [outputCode, setOutputCode] = useState<string>('')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [showDiff, setShowDiff] = useState<boolean>(true)
-  // the selected clang-format version is shared across tabs (playground + tests)
-  // and kept in the URL so a link is shareable
-  const [clangVersion, setClangVersion] = useState<string | undefined>(
-    () => getQueryParam('version') ?? undefined,
+  // the selected version *per formatter* — each versioned formatter (clang-format,
+  // ruff, black) has its own set of installed versions, so a single shared value
+  // would send e.g. a clang-format version to ruff. Shared across tabs (it's App
+  // state, passed to both); the active formatter's version is mirrored to the URL.
+  const [versionByFmt, setVersionByFmt] = useState<Record<string, string | undefined>>({})
+  const setVersionFor = useCallback(
+    (fid: string, v: string | undefined) =>
+      setVersionByFmt((m) => ({ ...m, [fid]: v })),
+    [],
   )
   const [view, setView] = useState<View>(
     () => (getQueryParam('view') === 'tests' ? 'tests' : 'playground'),
@@ -78,10 +83,22 @@ export default function App() {
     setQueryParam('view', view === 'tests' ? 'tests' : null)
   }, [view])
 
-  // keep the shared clang-format version in the URL (both tabs read it)
+  // the active (playground) formatter's selected version
+  const version = formatter ? versionByFmt[formatter] : undefined
+
+  // seed the active formatter's version from ?version= once the formatter is known
+  const versionSeeded = useRef(false)
   useEffect(() => {
-    setQueryParam('version', clangVersion ?? null)
-  }, [clangVersion])
+    if (versionSeeded.current || !formatter) return
+    versionSeeded.current = true
+    const v = getQueryParam('version')
+    if (v) setVersionFor(formatter, v)
+  }, [formatter, setVersionFor])
+
+  // mirror the active formatter's version to the URL so a link is shareable
+  useEffect(() => {
+    setQueryParam('version', version ?? null)
+  }, [version])
 
   // Ctrl/Cmd + , toggles the Config drawer (it opens on the header's version)
   useEffect(() => {
@@ -115,7 +132,6 @@ export default function App() {
       setOutputCode('')
       setStatus({ kind: 'idle' })
       setView(getQueryParam('view') === 'tests' ? 'tests' : 'playground')
-      setClangVersion(getQueryParam('version') ?? undefined)
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
@@ -139,7 +155,7 @@ export default function App() {
           language,
           // formatter + version + any local draft config (incl. shadow configs);
           // the server applies the selected version's published config otherwise
-          ...formatOverrides(formatter || language, clangVersion),
+          ...formatOverrides(formatter || language, version),
         }),
       })
       const data = await res.json()
@@ -152,7 +168,7 @@ export default function App() {
     } catch (e) {
       setStatus({ kind: 'error', message: String(e) })
     }
-  }, [inputCode, language, formatter, clangVersion])
+  }, [inputCode, language, formatter, version])
 
   // jump from the matrix to a specific test in the Tests view
   const pickTest = useCallback((id: string) => {
@@ -229,8 +245,8 @@ export default function App() {
               {formatterById(formatter)?.versioned && (
                 <ClangVersionControl
                   formatterId={formatter}
-                  value={clangVersion}
-                  onChange={setClangVersion}
+                  value={version}
+                  onChange={(v) => setVersionFor(formatter, v)}
                 />
               )}
             </HeaderSlot>
@@ -270,8 +286,8 @@ export default function App() {
             playgroundInput={inputCode}
             playgroundOutput={outputCode}
             playgroundLanguage={language}
-            clangVersion={clangVersion}
-            onClangVersionChange={setClangVersion}
+            versionByFmt={versionByFmt}
+            onVersionChange={setVersionFor}
             refreshKey={refreshKey}
             onOpenMatrix={() => setMatrixOpen(true)}
             focusTest={focusTest}
@@ -338,7 +354,7 @@ export default function App() {
         <ConfigDrawer
           open={configOpen}
           initialFormatter={formatter || language}
-          initialVersion={clangVersion}
+          initialVersion={version}
           onClose={() => setConfigOpen(false)}
           onSaved={() => {
             // reflect the new config in the playground right away, like a

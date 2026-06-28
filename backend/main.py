@@ -205,6 +205,13 @@ def _migrate_legacy_keys() -> None:
 
 def _init_configs() -> None:
     _migrate_legacy_keys()
+    # a formatter that just gained a version axis (ruff/black): its old single
+    # config history (`<id>`) becomes the default version's config (`<id>@<base>`),
+    # once, so a previously-published config survives the switch. Idempotent.
+    for fid, mgr in version_mgrs.items():
+        default_key = _config_key(fid, None)
+        if default_key != fid and configs.exists(fid) and not configs.exists(default_key):
+            configs.migrate(fid, default_key)
     # seed + materialize each formatter's default-version config
     for f in registry.FORMATTERS.values():
         if f.config is None:
