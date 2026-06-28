@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ActionTooltip, Button, Icon, Select, Spin, Text, TextInput } from '@gravity-ui/uikit'
 import { Ghost } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import { ShadowLabel } from './ShadowLabel'
+import { useFormatters, formatterById, resolveFormatter } from './formatters'
+import { languageLabel } from './languages'
 import {
   draftConfig,
   setConfigDraft,
@@ -17,19 +19,19 @@ import type { TestCase } from './types'
 
 interface Props {
   open: boolean
-  /** which config to show first when opened */
-  initialLang: Language
-  /** which clang-format version to show first (cpp only) */
+  /** which formatter's config to show first (a formatter id or legacy language) */
+  initialFormatter: string
+  /** which version to show first (versioned formatters only) */
   initialVersion?: string
   onClose: () => void
   /** called after a successful save (config files changed) */
   onSaved?: () => void
 }
 
-const TITLE: Record<Language, string> = {
-  cpp: '.clang-format',
-  python: 'ruff.toml',
-}
+// per-formatter-id helpers from the registry
+const filenameFor = (fid: string) => formatterById(fid)?.config?.filename ?? ''
+const isVersioned = (fid: string) => !!formatterById(fid)?.versioned
+const langOf = (fid: string): Language => formatterById(fid)?.language ?? 'cpp'
 
 interface Impact {
   nowPass: string[] // were failing on the live config, pass on this draft
@@ -72,16 +74,27 @@ const norm = (s: string) => s.replace(/\r\n/g, '\n').replace(/\n+$/, '')
 
 export default function ConfigDrawer({
   open,
-  initialLang,
+  initialFormatter,
   initialVersion,
   onClose,
   onSaved,
 }: Props) {
-  const [lang, setLang] = useState<Language>(initialLang)
+  // the selected formatter id (initialFormatter may be a legacy language)
+  const [formatterId, setFormatterId] = useState<string>(
+    () => resolveFormatter(initialFormatter)?.id ?? initialFormatter,
+  )
   // clang-format version (or shadow id) whose config we're editing (cpp only)
   const [versions, setVersions] = useState<string[]>([])
   const [serverShadows, setServerShadows] = useState<ShadowMeta[]>([])
   const shadows = useShadows(serverShadows)
+  // every formatter that has a config is selectable in the formatter dropdown,
+  // grouped by language (a flat tab strip wouldn't fit dozens of languages)
+  const configTabs = useFormatters().filter((f) => f.config)
+  const formatterGroups = useMemo(() => {
+    const by: Record<string, typeof configTabs> = {}
+    for (const f of configTabs) (by[f.language] ??= []).push(f)
+    return Object.entries(by)
+  }, [configTabs])
   const [version, setVersion] = useState<string | undefined>(initialVersion)
   const [content, setContent] = useState('')
   const [serverContent, setServerContent] = useState('')
@@ -121,10 +134,34 @@ export default function ConfigDrawer({
     }
   }, [open, initialVersion])
 
-  // installed clang-format versions for the picker; default-select one
+  // normalize the selected formatter to a real id (initialFormatter may be a
+  // legacy language, and the registry may load after first render)
   useEffect(() => {
-    if (!open) return
-    fetch('/api/clang-versions')
+    if (!formatterById(formatterId)) {
+      const r = resolveFormatter(formatterId) ?? resolveFormatter(initialFormatter)
+      if (r) setFormatterId(r.id)
+    }
+  }, [configTabs, formatterId, initialFormatter])
+
+  // switching the formatter tab drops the previous formatter's version, so the
+  // fetch below re-selects the new formatter's own default (a clang-format
+  // version must never linger when the ruff/black tab is opened)
+  const prevFmtRef = useRef(formatterId)
+  useEffect(() => {
+    if (prevFmtRef.current !== formatterId) {
+      prevFmtRef.current = formatterId
+      setVersion(undefined)
+    }
+  }, [formatterId])
+
+  // installed versions of the selected formatter for the picker; default-select one
+  useEffect(() => {
+    if (!open || !isVersioned(formatterId)) {
+      setVersions([])
+      setServerShadows([])
+      return
+    }
+    fetch(`/api/formatters/${formatterId}/versions`)
       .then((r) => r.json())
       .then((d) => {
         setVersions(d.versions ?? [])
@@ -132,11 +169,11 @@ export default function ConfigDrawer({
         setVersion((prev) => prev ?? d.default ?? (d.versions ?? [])[0])
       })
       .catch(() => {})
-  }, [open])
+  }, [open, formatterId])
 
   // the cpp config is per-version, so loading depends on the selected version
   const load = useCallback(
-    async (which: Language, ver: string | undefined) => {
+    async (which: string, ver: string | undefined) => {
       setLoading(true)
       setError(null)
       setSaved(false)
@@ -144,9 +181,9 @@ export default function ConfigDrawer({
       try {
         // a *draft* (unpublished) shadow isn't on the server — show its base
         // version's config as the baseline, its draft text as the content
-        const sh = which === 'cpp' ? draftShadow(ver) : undefined
+        const sh = isVersioned(which) ? draftShadow(ver) : undefined
         const fetchVer = sh ? sh.base : ver
-        const q = which === 'cpp' && fetchVer ? `?version=${encodeURIComponent(fetchVer)}` : ''
+        const q = isVersioned(which) && fetchVer ? `?version=${encodeURIComponent(fetchVer)}` : ''
         const res = await fetch(`/api/config/${which}${q}`)
         const data = await res.json()
         if (!res.ok) {
@@ -167,9 +204,9 @@ export default function ConfigDrawer({
   )
 
   useEffect(() => {
-    // wait for a concrete version before loading the cpp config
-    if (open && !(lang === 'cpp' && version === undefined)) load(lang, version)
-  }, [open, lang, version, load])
+    // wait for a concrete version before loading a versioned formatter's config
+    if (open && !(isVersioned(formatterId) && version === undefined)) load(formatterId, version)
+  }, [open, formatterId, version, load])
 
   const onChange = useCallback((next: string) => {
     setContent(next)
@@ -179,16 +216,16 @@ export default function ConfigDrawer({
   const save = useCallback(() => {
     setError(null)
     // save to the local draft, not the server — Publish flushes it later
-    const key = configKey(lang, version)
+    const key = configKey(formatterId, version)
     if (key === undefined) {
-      setError('Pick a clang-format version first')
+      setError('Pick a version first')
       return
     }
     setConfigDraft(key, content)
     setSaved(true)
     onSaved?.()
     window.setTimeout(() => setSaved(false), 2000)
-  }, [lang, version, content, onSaved])
+  }, [formatterId, version, content, onSaved])
 
   // store the current edits as a new shadow config (local draft) and switch to it
   const saveShadow = useCallback(() => {
@@ -236,13 +273,14 @@ export default function ConfigDrawer({
   }, [open, shadowFormOpen, showHistory, changed, save, onClose])
 
   // ── version history ───────────────────────────────────────────────────────
-  const cfgQuery = lang === 'cpp' && version ? `?version=${encodeURIComponent(version)}` : ''
+  const cfgQuery =
+    isVersioned(formatterId) && version ? `?version=${encodeURIComponent(version)}` : ''
   const isDraftShadow = !!draftShadow(version)
 
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true)
     try {
-      const res = await fetch(`/api/config/${lang}/history${cfgQuery}`)
+      const res = await fetch(`/api/config/${formatterId}/history${cfgQuery}`)
       const data = await res.json()
       // newest first
       setHistory([...(data.versions ?? [])].reverse())
@@ -252,7 +290,7 @@ export default function ConfigDrawer({
     } finally {
       setHistoryLoading(false)
     }
-  }, [lang, cfgQuery])
+  }, [formatterId, cfgQuery])
 
   useEffect(() => {
     if (open && showHistory) loadHistory()
@@ -262,13 +300,13 @@ export default function ConfigDrawer({
   // actually roll back on the server — consistent with the draft model)
   const restoreVersion = useCallback(
     async (seq: number) => {
-      const res = await fetch(`/api/config/${lang}/history/${seq}${cfgQuery}`)
+      const res = await fetch(`/api/config/${formatterId}/history/${seq}${cfgQuery}`)
       const data = await res.json()
       if (!res.ok) {
         setError(data.error ?? 'Failed to load version')
         return
       }
-      const key = configKey(lang, version)
+      const key = configKey(formatterId, version)
       setContent(data.content)
       if (key) setConfigDraft(key, data.content)
       setImpact(null)
@@ -276,7 +314,7 @@ export default function ConfigDrawer({
       setSaved(true)
       window.setTimeout(() => setSaved(false), 2000)
     },
-    [lang, version, cfgQuery],
+    [formatterId, version, cfgQuery],
   )
 
   // run every test of this language against the live config and against this
@@ -290,10 +328,10 @@ export default function ConfigDrawer({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code,
-          language: lang,
+          formatter: formatterId,
           // resolve a shadow to its base binary; baseline (no config) uses that
           // version's published config, candidate uses the edited content
-          ...(lang === 'cpp' && baseOf(version) ? { clang_version: baseOf(version) } : {}),
+          ...(isVersioned(formatterId) && baseOf(version) ? { version: baseOf(version) } : {}),
           ...(config !== undefined ? { config } : {}),
         }),
       })
@@ -302,7 +340,7 @@ export default function ConfigDrawer({
     }
     try {
       const all: TestCase[] = await (await fetch('/api/tests')).json()
-      const mine = all.filter((t) => t.language === lang)
+      const mine = all.filter((t) => t.language === langOf(formatterId))
       const nowPass: string[] = []
       const nowFail: string[] = []
       const mutedWouldPass: string[] = []
@@ -328,37 +366,40 @@ export default function ConfigDrawer({
     } finally {
       setChecking(false)
     }
-  }, [lang, version, content])
+  }, [formatterId, version, content])
 
   return (
     <>
       {open && <div className="drawer-overlay" onClick={onClose} />}
       <div className={`config-drawer${open ? ' open' : ''}`}>
         <div className="config-drawer-header">
-          <span className="config-drawer-title">Edit config</span>
-          <div className="config-lang-toggle">
-            <Button
-              view={lang === 'cpp' ? 'action' : 'flat'}
-              size="s"
-              onClick={() => setLang('cpp')}
-            >
-              .clang-format
-            </Button>
-            <Button
-              view={lang === 'python' ? 'action' : 'flat'}
-              size="s"
-              onClick={() => setLang('python')}
-            >
-              ruff.toml
-            </Button>
-          </div>
-          {lang === 'cpp' && versions.length > 0 && (
+          {/* pick which formatter's config to edit — one dropdown, grouped by
+              language, so it scales to many languages/formatters */}
+          <Select
+            value={formatterById(formatterId) ? [formatterId] : []}
+            onUpdate={(v) => setFormatterId(v[0])}
+            size="s"
+            width={240}
+            title="Which formatter's config to edit"
+            disablePortal
+          >
+            {formatterGroups.map(([lang, fs]) => (
+              <Select.OptionGroup key={lang} label={languageLabel(lang)}>
+                {fs.map((f) => (
+                  <Select.Option key={f.id} value={f.id}>
+                    {`${f.label} · ${f.config!.filename}`}
+                  </Select.Option>
+                ))}
+              </Select.OptionGroup>
+            ))}
+          </Select>
+          {isVersioned(formatterId) && versions.length > 0 && (
             <Select
               value={version ? [version] : []}
               onUpdate={(v) => setVersion(v[0])}
               size="s"
-              width={180}
-              title="Which clang-format version's config to edit"
+              width={110}
+              title="Which version's config to edit"
               // render the menu inside the drawer so it isn't trapped beneath
               // the drawer's stacking layer (the portal layer sits below it)
               disablePortal
@@ -374,13 +415,15 @@ export default function ConfigDrawer({
           <span className="config-drawer-spacer" />
           {shadowSaved && <Text color="positive">shadow saved ✓</Text>}
           {saved && <Text color="positive">draft saved ✓</Text>}
-          {lang === 'cpp' && (
+          {isVersioned(formatterId) && (
             // a plain anchored panel (not a portal) so it sits in the drawer's
             // stacking context, above the editor
             <div className="shadow-anchor" ref={shadowBtnRef}>
               <ActionTooltip
                 title="Save as shadow config"
-                description="Store these edits as a separate, named config that reuses this clang-format binary but its own .clang-format. It shows up everywhere as a quasi-version — run it and compare it in the matrix next to the real versions. Saved to your local draft; Publish pushes it to the server."
+                description={`Store these edits as a separate, named config that reuses this ${
+                  formatterById(formatterId)?.label ?? formatterId
+                } binary but its own ${filenameFor(formatterId)}. It shows up everywhere as a quasi-version — run it and compare it in the matrix next to the real versions. Saved to your local draft; Publish pushes it to the server.`}
               >
                 <Button
                   view="action"
@@ -511,9 +554,9 @@ export default function ConfigDrawer({
             </div>
           ) : (
             <CodeMirrorEditor
-              key={`${lang}@${version ?? ''}`}
+              key={`${formatterId}@${version ?? ''}`}
               value={content}
-              language={lang}
+              language={langOf(formatterId)}
               plainText
               onChange={onChange}
             />
@@ -584,17 +627,16 @@ export default function ConfigDrawer({
             )}
 
           <Text color="secondary" variant="caption-2">
-            Editing {TITLE[lang]}
-            {lang === 'cpp' && version
+            Editing {filenameFor(formatterId)}
+            {isVersioned(formatterId) && version
               ? (() => {
                   const sh = shadows.find((s) => s.id === version)
                   return sh ? (
                     <>
-                      {' '}for shadow config <ShadowLabel>{sh.name}</ShadowLabel> (clang-format{' '}
-                      {sh.base})
+                      {' '}for shadow config <ShadowLabel>{sh.name}</ShadowLabel> ({sh.base})
                     </>
                   ) : (
-                    ` for clang-format ${version}`
+                    ` for version ${version}`
                   )
                 })()
               : ''}{' '}

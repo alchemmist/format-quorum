@@ -58,9 +58,11 @@ class ShadowStore:
         return self.get(version) is not None
 
     # ── writes ───────────────────────────────────────────────────────────────
-    def create(self, shadow_id: str, base: str, name: str) -> dict:
+    def create(
+        self, shadow_id: str, base: str, name: str, formatter: str = "clang-format"
+    ) -> dict:
         """Register (or update) a shadow's identity. Idempotent on ``id``."""
-        entry = {"id": shadow_id, "base": base, "name": name}
+        entry = {"id": shadow_id, "base": base, "name": name, "formatter": formatter}
         with self._lock:
             items = self._load()
             existing = next((s for s in items if s["id"] == shadow_id), None)

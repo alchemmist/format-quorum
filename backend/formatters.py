@@ -24,6 +24,9 @@ CLANG_FORMAT_CONFIG = os.environ.get(
 RUFF_BIN = os.environ.get("RUFF_BIN", "ruff")
 RUFF_CONFIG = os.environ.get("RUFF_CONFIG", str(CONFIGS_DIR / "ruff.toml"))
 
+BLACK_BIN = os.environ.get("BLACK_BIN", "black")
+BLACK_CONFIG = os.environ.get("BLACK_CONFIG", str(CONFIGS_DIR / "black.toml"))
+
 # A formatter that hangs would block a worker thread forever.
 FORMAT_TIMEOUT_SEC = 30
 
@@ -124,18 +127,51 @@ def format_cpp(
         )
 
 
-def format_python(code: str, config: str | None = None) -> str:
-    """Format Python source with `ruff format` using the house style config."""
+def format_python(code: str, config: str | None = None, binary: str | None = None) -> str:
+    """Run the full ruff pass on Python source: lint autofixes then formatting.
+
+    This is what `ruff` does in practice: ``ruff check --fix`` applies safe lint
+    fixes (e.g. removing unused imports, rewriting comprehensions), then
+    ``ruff format`` lays the code out. Both use the house style config.
+
+    `binary` lets callers pick a specific installed ruff version (the
+    version-management feature); defaults to the base ruff on PATH.
+    """
+    ruff = binary or RUFF_BIN
     with _config_file(config, RUFF_CONFIG, ".toml") as cfg:
-        return _run([RUFF_BIN, "format", "--config", cfg, "-"], code)
+        # 1) lint autofix — reads stdin, writes the fixed source to stdout
+        fixed = _run([ruff, "check", "--fix-only", "--config", cfg, "-"], code)
+        # 2) format the fixed source
+        return _run([ruff, "format", "--config", cfg, "-"], fixed)
+
+
+def format_black(code: str, config: str | None = None, binary: str | None = None) -> str:
+    """Format Python source with `black` using a pyproject-style config.
+
+    `binary` lets callers pick a specific installed black version; defaults to
+    the base black on PATH.
+    """
+    with _config_file(config, BLACK_CONFIG, ".toml") as cfg:
+        return _run([binary or BLACK_BIN, "-q", "--config", cfg, "-"], code)
 
 
 def format_code(
     code: str,
-    language: str,
-    clang_format_bin: str | None = None,
+    target: str,
+    binary: str | None = None,
     config: str | None = None,
+    clang_format_bin: str | None = None,
 ) -> str:
-    if language == "python":
-        return format_python(code, config=config)
-    return format_cpp(code, clang_format_bin=clang_format_bin, config=config)
+    """Format `code` with the formatter `target` (a formatter id like
+    ``clang-format``/``ruff`` OR a legacy language ``cpp``/``python``).
+
+    `binary` overrides the formatter binary (a specific installed version);
+    `clang_format_bin` is the old name for it, kept for existing callers.
+    """
+    # imported lazily to avoid a formatters<->registry import cycle
+    from formatter_registry import resolve
+
+    fmt = resolve(target)
+    if fmt is None:
+        raise FormatError(f"unknown formatter/language: {target}")
+    return fmt.run(code, config, binary if binary is not None else clang_format_bin)

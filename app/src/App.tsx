@@ -1,8 +1,9 @@
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { ThemeProvider, Button, Spin, Select, Checkbox, Icon } from '@gravity-ui/uikit'
 import { ArrowRotateLeft, Sparkles } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import ClangVersionControl from './ClangVersionControl'
+import FormatterControl from './FormatterControl'
 import AppHeader, { type View } from './AppHeader'
 import { HeaderSlot } from './HeaderSlot'
 import TestsView from './TestsView'
@@ -11,16 +12,14 @@ import MatrixDrawer from './MatrixDrawer'
 import { computeDiff } from './useDiff'
 import { getQueryParam, setQueryParam } from './url'
 import { useDraftCount, publishDraft, discardAll, formatOverrides } from './draftStore'
-
-// @ts-ignore — Vite raw import
-import demoCpp from './demo.cpp?raw'
-// @ts-ignore — Vite raw import
-import demoPy from './demo.py?raw'
-
-const demos: Record<Language, string> = {
-  cpp:    demoCpp as string,
-  python: demoPy as string,
-}
+import { languageDemo, languageLabel } from './languages'
+import {
+  loadFormatters,
+  availableLanguages,
+  useFormatters,
+  defaultFormatter,
+  formatterById,
+} from './formatters'
 
 type Status =
   | { kind: 'idle' }
@@ -34,15 +33,36 @@ function langFromPath(): Language {
 }
 
 export default function App() {
+  // load the backend formatter registry once; pickers below re-render when ready
+  const formatters = useFormatters()
+  useEffect(() => {
+    loadFormatters()
+  }, [])
+
   const [language, setLanguage]   = useState<Language>(langFromPath)
-  const [inputCode, setInputCode] = useState<string>(() => demos[langFromPath()])
+  // which formatter the playground uses for the current language (only matters
+  // when a language has more than one). Kept valid as language/registry change.
+  const [formatter, setFormatter] = useState<string>('')
+  useEffect(() => {
+    const cur = formatterById(formatter)
+    if (!cur || cur.language !== language) {
+      const d = defaultFormatter(language)
+      if (d) setFormatter(d.id)
+    }
+  }, [language, formatters, formatter])
+  const [inputCode, setInputCode] = useState<string>(() => languageDemo(langFromPath()))
   const [outputCode, setOutputCode] = useState<string>('')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [showDiff, setShowDiff] = useState<boolean>(true)
-  // the selected clang-format version is shared across tabs (playground + tests)
-  // and kept in the URL so a link is shareable
-  const [clangVersion, setClangVersion] = useState<string | undefined>(
-    () => getQueryParam('version') ?? undefined,
+  // the selected version *per formatter* — each versioned formatter (clang-format,
+  // ruff, black) has its own set of installed versions, so a single shared value
+  // would send e.g. a clang-format version to ruff. Shared across tabs (it's App
+  // state, passed to both); the active formatter's version is mirrored to the URL.
+  const [versionByFmt, setVersionByFmt] = useState<Record<string, string | undefined>>({})
+  const setVersionFor = useCallback(
+    (fid: string, v: string | undefined) =>
+      setVersionByFmt((m) => ({ ...m, [fid]: v })),
+    [],
   )
   const [view, setView] = useState<View>(
     () => (getQueryParam('view') === 'tests' ? 'tests' : 'playground'),
@@ -63,10 +83,22 @@ export default function App() {
     setQueryParam('view', view === 'tests' ? 'tests' : null)
   }, [view])
 
-  // keep the shared clang-format version in the URL (both tabs read it)
+  // the active (playground) formatter's selected version
+  const version = formatter ? versionByFmt[formatter] : undefined
+
+  // seed the active formatter's version from ?version= once the formatter is known
+  const versionSeeded = useRef(false)
   useEffect(() => {
-    setQueryParam('version', clangVersion ?? null)
-  }, [clangVersion])
+    if (versionSeeded.current || !formatter) return
+    versionSeeded.current = true
+    const v = getQueryParam('version')
+    if (v) setVersionFor(formatter, v)
+  }, [formatter, setVersionFor])
+
+  // mirror the active formatter's version to the URL so a link is shareable
+  useEffect(() => {
+    setQueryParam('version', version ?? null)
+  }, [version])
 
   // Ctrl/Cmd + , toggles the Config drawer (it opens on the header's version)
   useEffect(() => {
@@ -96,11 +128,10 @@ export default function App() {
     const onPop = () => {
       const lang = langFromPath()
       setLanguage(lang)
-      setInputCode(demos[lang])
+      setInputCode(languageDemo(lang))
       setOutputCode('')
       setStatus({ kind: 'idle' })
       setView(getQueryParam('view') === 'tests' ? 'tests' : 'playground')
-      setClangVersion(getQueryParam('version') ?? undefined)
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
@@ -108,7 +139,7 @@ export default function App() {
 
   const handleLanguageChange = useCallback((lang: string) => {
     setLanguage(lang as Language)
-    setInputCode(demos[lang as Language])
+    setInputCode(languageDemo(lang))
     setOutputCode('')
     setStatus({ kind: 'idle' })
   }, [])
@@ -122,9 +153,9 @@ export default function App() {
         body: JSON.stringify({
           code: inputCode,
           language,
-          // clang_version + any local draft config (incl. shadow configs); the
-          // server applies the selected version's published config otherwise
-          ...formatOverrides(language, clangVersion),
+          // formatter + version + any local draft config (incl. shadow configs);
+          // the server applies the selected version's published config otherwise
+          ...formatOverrides(formatter || language, version),
         }),
       })
       const data = await res.json()
@@ -137,7 +168,7 @@ export default function App() {
     } catch (e) {
       setStatus({ kind: 'error', message: String(e) })
     }
-  }, [inputCode, language, clangVersion])
+  }, [inputCode, language, formatter, version])
 
   // jump from the matrix to a specific test in the Tests view
   const pickTest = useCallback((id: string) => {
@@ -148,7 +179,7 @@ export default function App() {
   }, [])
 
   const handleReset = useCallback(() => {
-    setInputCode(demos[language])
+    setInputCode(languageDemo(language))
     setOutputCode('')
     setStatus({ kind: 'idle' })
   }, [language])
@@ -200,12 +231,24 @@ export default function App() {
                 size="s"
                 width={120}
               >
-                <Select.Option value="cpp">C++</Select.Option>
-                <Select.Option value="python">Python</Select.Option>
+                {availableLanguages().map((l) => (
+                  <Select.Option key={l} value={l}>
+                    {languageLabel(l)}
+                  </Select.Option>
+                ))}
               </Select>
-              {/* the version selector is shown on every tab; its value is shared
-                  (it just doesn't affect ruff/python formatting) */}
-              <ClangVersionControl value={clangVersion} onChange={setClangVersion} />
+              {/* formatter picker — only appears when the language has >1 formatter */}
+              <FormatterControl language={language} value={formatter} onChange={setFormatter} />
+              {/* the version selector follows the selected formatter: it shows that
+                  formatter's own versions, and is hidden for an unversioned one
+                  (ruff/black have no version axis) */}
+              {formatterById(formatter)?.versioned && (
+                <ClangVersionControl
+                  formatterId={formatter}
+                  value={version}
+                  onChange={(v) => setVersionFor(formatter, v)}
+                />
+              )}
             </HeaderSlot>
             <HeaderSlot slot="right">
               <label className="diff-toggle">
@@ -240,11 +283,14 @@ export default function App() {
 
         {view === 'tests' ? (
           <TestsView
+            language={language}
+            onLanguageChange={handleLanguageChange}
+            formatter={formatter}
+            onFormatterChange={setFormatter}
             playgroundInput={inputCode}
             playgroundOutput={outputCode}
-            playgroundLanguage={language}
-            clangVersion={clangVersion}
-            onClangVersionChange={setClangVersion}
+            versionByFmt={versionByFmt}
+            onVersionChange={setVersionFor}
             refreshKey={refreshKey}
             onOpenMatrix={() => setMatrixOpen(true)}
             focusTest={focusTest}
@@ -310,8 +356,8 @@ export default function App() {
 
         <ConfigDrawer
           open={configOpen}
-          initialLang={language}
-          initialVersion={clangVersion}
+          initialFormatter={formatter || language}
+          initialVersion={version}
           onClose={() => setConfigOpen(false)}
           onSaved={() => {
             // reflect the new config in the playground right away, like a
@@ -322,6 +368,8 @@ export default function App() {
 
         <MatrixDrawer
           open={matrixOpen}
+          language={language}
+          formatter={formatter}
           onClose={() => setMatrixOpen(false)}
           onPickTest={pickTest}
         />

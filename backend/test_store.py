@@ -13,9 +13,11 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+import formatter_registry as registry
 from formatters import FormatError, format_code
 
-LANGUAGES = {"cpp", "python"}
+# the code languages we accept, derived from the registered formatters
+LANGUAGES = registry.languages()
 _FIELDS = ("name", "language", "input", "expected", "muted", "note")
 
 
@@ -101,13 +103,26 @@ class TestStore:
         return True
 
 
-def run_test(rec: dict, clang_bin: str | None = None, config: str | None = None) -> dict:
-    clang = clang_bin if rec["language"] == "cpp" else None
+def run_test(
+    rec: dict,
+    formatter: str | None = None,
+    binary: str | None = None,
+    config: str | None = None,
+) -> dict:
+    """Format a test's input with `formatter` (default: the default formatter for
+    the test's language) and compare to its expected output. `binary`/`config`
+    are only applied when the formatter matches the test's language (so a clang
+    binary/config never leaks into a python test on a mixed run)."""
+    lang = rec["language"]
+    fmt = registry.resolve(formatter) if formatter else registry.default_for_language(lang)
+    if fmt is None or fmt.language != lang:
+        fmt = registry.default_for_language(lang)
+        binary, config = None, None
     error: str | None = None
     try:
-        actual = format_code(
-            rec["input"], rec["language"], clang_format_bin=clang, config=config
-        )
+        if fmt is None:
+            raise FormatError(f"no formatter for language: {lang}")
+        actual = format_code(rec["input"], fmt.id, binary=binary, config=config)
     except FormatError as exc:
         actual = ""
         error = str(exc)
@@ -136,11 +151,12 @@ def run_test(rec: dict, clang_bin: str | None = None, config: str | None = None)
 def run_all(
     store: TestStore,
     language: str | None = None,
-    clang_bin: str | None = None,
+    formatter: str | None = None,
+    binary: str | None = None,
     config: str | None = None,
 ) -> dict:
     results = [
-        run_test(t, clang_bin, config=config)
+        run_test(t, formatter=formatter, binary=binary, config=config)
         for t in store.list()
         if language is None or t["language"] == language
     ]

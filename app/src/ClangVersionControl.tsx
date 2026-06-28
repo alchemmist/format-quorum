@@ -13,6 +13,7 @@ import {
 import { Layers } from '@gravity-ui/icons'
 import { useShadows, deleteShadow, type ShadowMeta } from './draftStore'
 import { ShadowLabel } from './ShadowLabel'
+import { formatterById } from './formatters'
 
 export interface VersionsState {
   versions: string[]
@@ -23,14 +24,22 @@ export interface VersionsState {
 }
 
 interface Props {
-  /** Currently selected clang-format version (undefined = backend default) */
+  /** Currently selected version (undefined = backend default) */
   value: string | undefined
   onChange: (version: string) => void
+  /** which versioned formatter this controls (default: clang-format) */
+  formatterId?: string
 }
 
 const VERSION_RE = /^\d+\.\d+\.\d+$/
 
-export default function ClangVersionControl({ value, onChange }: Props) {
+export default function ClangVersionControl({
+  value,
+  onChange,
+  formatterId = 'clang-format',
+}: Props) {
+  const versionsApi = `/api/formatters/${formatterId}/versions`
+  const label = formatterById(formatterId)?.label ?? formatterId
   const [state, setState] = useState<VersionsState | null>(null)
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
@@ -39,7 +48,7 @@ export default function ClangVersionControl({ value, onChange }: Props) {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch('/api/clang-versions')
+      const res = await fetch(versionsApi)
       const data: VersionsState = await res.json()
       setState(data)
       // Adopt the backend default once, so the Select shows something sensible.
@@ -50,10 +59,11 @@ export default function ClangVersionControl({ value, onChange }: Props) {
   }, [value, onChange])
 
   useEffect(() => {
+    // reload whenever the formatter changes — each formatter has its own versions
+    setState(null)
     load()
-    // load once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [versionsApi])
 
   const addVersion = useCallback(
     async (version: string) => {
@@ -64,7 +74,7 @@ export default function ClangVersionControl({ value, onChange }: Props) {
       }
       setAdding(true)
       try {
-        const res = await fetch('/api/clang-versions', {
+        const res = await fetch(versionsApi, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ version: version.trim() }),
@@ -90,7 +100,7 @@ export default function ClangVersionControl({ value, onChange }: Props) {
     async (version: string) => {
       setError(null)
       try {
-        const res = await fetch(`/api/clang-versions/${version}`, { method: 'DELETE' })
+        const res = await fetch(`${versionsApi}/${version}`, { method: 'DELETE' })
         const data = await res.json()
         if (!res.ok) {
           setError(data.error ?? 'Failed to remove version')
@@ -124,7 +134,7 @@ export default function ClangVersionControl({ value, onChange }: Props) {
         width={160}
         disabled={versions.length === 0}
         placeholder="version"
-        title="clang-format version to format with"
+        title={`${label} version to format with`}
         renderSelectedOption={(opt) => <span>{renderVersion(String(opt.value))}</span>}
       >
         {[...versions, ...shadows.map((s) => s.id)].map((v) => (
@@ -135,7 +145,7 @@ export default function ClangVersionControl({ value, onChange }: Props) {
       </Select>
 
       <ActionTooltip
-        title="clang-format versions"
+        title={`${label} versions`}
         description="Install another X.Y.Z to format and compare across versions in the matrix, and manage shadow configs (quasi-versions). The selected version is what the playground / tests format with."
       >
         <Button
@@ -145,14 +155,14 @@ export default function ClangVersionControl({ value, onChange }: Props) {
             setError(null)
             setOpen(true)
           }}
-          aria-label="Manage clang-format versions"
+          aria-label={`Manage ${label} versions`}
         >
           <Icon data={Layers} size={16} />
         </Button>
       </ActionTooltip>
 
       <Dialog open={open} onClose={() => setOpen(false)} size="s">
-        <Dialog.Header caption="clang-format versions" />
+        <Dialog.Header caption={`${label} versions`} />
         <Dialog.Body>
           <div className="version-add-row">
             <TextInput

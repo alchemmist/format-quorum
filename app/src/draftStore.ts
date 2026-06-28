@@ -6,8 +6,8 @@
 // renders "server merged with draft"; nothing reaches the server until the user
 // hits Publish (which flushes the whole draft) or Discard (which drops it).
 import { useSyncExternalStore } from 'react'
-import type { Language } from './CodeMirrorEditor'
 import type { TestCase } from './types'
+import { resolveFormatter } from './formatters'
 
 const KEY = 'fq-draft-v1'
 const JSON_H = { 'Content-Type': 'application/json' }
@@ -92,25 +92,30 @@ export const newDraftId = () => `draft-${seq++}`
 export const isDraftId = (id: string) => id.startsWith('draft-')
 
 // ── config drafts ───────────────────────────────────────────────────────────
-// cpp configs are per clang-format version, so a config draft is keyed by
-// `python` or `cpp@<version>`. configKey() builds that key; it returns undefined
-// for cpp when the version isn't known yet (e.g. versions still loading) so
-// callers fall back to the server's resolved-default config.
-export function configKey(lang: Language, version?: string): string | undefined {
-  if (lang === 'python') return 'python'
-  return version ? `cpp@${version}` : undefined
+// A config draft is keyed by *formatter*: `<formatter>` for an unversioned one
+// (e.g. `ruff`), or `<formatter>@<version>` for a versioned one (e.g.
+// `clang-format@22.1.8`). configKey() resolves the formatter from the code's
+// language; it returns undefined for a versioned formatter when the version
+// isn't known yet so callers fall back to the server's resolved-default config.
+// `formatter` is a formatter id (or a legacy language, resolved to its default)
+export function configKey(formatter: string, version?: string): string | undefined {
+  const fmt = resolveFormatter(formatter)
+  if (!fmt) return undefined
+  if (!fmt.versioned) return fmt.id
+  return version ? `${fmt.id}@${version}` : undefined
 }
-export function parseConfigKey(key: string): { lang: Language; version?: string } {
-  if (key.startsWith('cpp@')) return { lang: 'cpp', version: key.slice(4) }
-  if (key === 'cpp') return { lang: 'cpp' }
-  return { lang: 'python' }
+export function parseConfigKey(key: string): { formatter: string; version?: string } {
+  const at = key.indexOf('@')
+  if (at < 0) return { formatter: key }
+  return { formatter: key.slice(0, at), version: key.slice(at + 1) }
 }
 
-// a `cpp@<id>` key whose id is a locally-created shadow → that shadow's content
-// lives in shadowsCreated, not in `configs`
+// a `<formatter>@<id>` key whose id is a locally-created shadow → that shadow's
+// content lives in shadowsCreated, not in `configs`
 function shadowIdOfKey(key: string): string | undefined {
-  if (!key.startsWith('cpp@')) return undefined
-  const id = key.slice(4)
+  const at = key.indexOf('@')
+  if (at < 0) return undefined
+  const id = key.slice(at + 1)
   return state.shadowsCreated[id] ? id : undefined
 }
 
@@ -174,26 +179,28 @@ export function effectiveShadows(server: ShadowMeta[]): ShadowMeta[] {
 
 /**
  * What to send to /api/format (and friends) for a (language, selected version),
- * applying any local draft. Returns the `clang_version` + `config` overrides
- * ready to spread into the request body.
+ * applying any local draft. Returns the `formatter` + `version` + `config`
+ * overrides ready to spread into the request body.
  *
- * A *draft* shadow isn't on the server yet, so we run its base binary with its
+ * A *draft* shadow isn't on the server yet, so we run its base version with its
  * draft config. A *published* shadow is selected by its id (the server resolves
  * the binary); a draft edit of its config rides along as a `config` override.
  */
 export function formatOverrides(
-  language: Language,
+  formatter: string,
   version: string | undefined,
-): { clang_version?: string; config?: string } {
-  if (language !== 'cpp') {
-    const cfg = draftConfig('python')
-    return cfg !== undefined ? { config: cfg } : {}
+): { formatter?: string; version?: string; config?: string } {
+  const fmt = resolveFormatter(formatter)
+  if (!fmt) return {}
+  if (!fmt.versioned) {
+    const cfg = draftConfig(fmt.id)
+    return { formatter: fmt.id, ...(cfg !== undefined ? { config: cfg } : {}) }
   }
-  if (!version) return {}
+  if (!version) return { formatter: fmt.id }
   const sh = state.shadowsCreated[version]
-  if (sh) return { clang_version: sh.base, config: sh.content }
-  const cfg = draftConfig(`cpp@${version}`)
-  return { clang_version: version, ...(cfg !== undefined ? { config: cfg } : {}) }
+  if (sh) return { formatter: fmt.id, version: sh.base, config: sh.content }
+  const cfg = draftConfig(`${fmt.id}@${version}`)
+  return { formatter: fmt.id, version, ...(cfg !== undefined ? { config: cfg } : {}) }
 }
 
 // ── test drafts ─────────────────────────────────────────────────────────────
@@ -246,8 +253,8 @@ export async function publishDraft(): Promise<{ ok: boolean; errors: string[] }>
     if (!r.ok) await fail(`shadow "${sh.name}"`, r)
   }
   for (const key of Object.keys(s.configs)) {
-    const { lang, version } = parseConfigKey(key)
-    const r = await fetch(`/api/config/${lang}`, {
+    const { formatter, version } = parseConfigKey(key)
+    const r = await fetch(`/api/config/${formatter}`, {
       method: 'PUT', headers: JSON_H,
       body: JSON.stringify({ content: s.configs[key], ...(version ? { version } : {}) }),
     })

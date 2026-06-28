@@ -1,15 +1,16 @@
 import { useEffect, useRef, useMemo } from 'react'
 import CodeMirror from '@uiw/react-codemirror'
 import type { ReactCodeMirrorRef } from '@uiw/react-codemirror'
-import { cpp } from '@codemirror/lang-cpp'
-import { python } from '@codemirror/lang-python'
 import { EditorView } from '@codemirror/view'
 import { HighlightStyle, syntaxHighlighting, indentUnit } from '@codemirror/language'
 import { tags } from '@lezer/highlight'
 import type { Extension } from '@codemirror/state'
 import { createDiffExtension, setDiffEffect, type DiffRange } from './useDiff'
+import { LANGUAGE_DEFS } from './languages'
 
-export type Language = 'cpp' | 'python'
+// a code language id (e.g. "cpp", "python"); open-ended so new languages are
+// added by registering them, not by widening a union
+export type Language = string
 
 interface CodeMirrorEditorProps {
   value: string
@@ -90,11 +91,6 @@ const baseTheme: Extension = [
   indentUnit.of('    '),
 ]
 
-const langExtension: Record<Language, Extension> = {
-  cpp:    cpp(),
-  python: python(),
-}
-
 export default function CodeMirrorEditor({
   value,
   language,
@@ -113,9 +109,11 @@ export default function CodeMirrorEditor({
     diffExtRef.current = createDiffExtension()
   }
 
-  // Stable extensions array — only rebuilds when language changes
+  // Stable extensions array — only rebuilds when language changes. The syntax
+  // extension is resolved from the bundled language table (plaintext if unknown).
   const extensions = useMemo<Extension[]>(() => {
-    const exts: Extension[] = plainText ? [] : [langExtension[language]]
+    const def = LANGUAGE_DEFS[language]
+    const exts: Extension[] = plainText || !def ? [] : [def.cm()]
     if (hasDiff && diffExtRef.current !== null) {
       exts.push(diffExtRef.current)
     }

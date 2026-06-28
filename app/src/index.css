@@ -78,6 +78,22 @@ body {
   gap: 6px;
 }
 
+.formatter-control {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.formatter-help {
+  display: inline-flex;
+  align-items: center;
+  color: var(--g-color-text-hint, #8c8c8c);
+  cursor: help;
+}
+.formatter-help:hover {
+  color: var(--g-color-text-secondary, #c0c0c0);
+}
+
 .version-add-row {
   display: flex;
   gap: 8px;
@@ -498,17 +514,6 @@ body {
   padding: 10px 12px;
   border-bottom: 1px solid #2d2d35;
   flex-shrink: 0;
-}
-
-.config-drawer-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #e2e2e2;
-}
-
-.config-lang-toggle {
-  display: flex;
-  gap: 4px;
 }
 
 .config-drawer-spacer {

@@ -13,7 +13,10 @@ import {
 import { LayoutCells, Magnifier, Pencil, PlayFill, Plus, TrashBin } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import ClangVersionControl from './ClangVersionControl'
+import FormatterControl from './FormatterControl'
 import { HeaderSlot } from './HeaderSlot'
+import { languageLabel } from './languages'
+import { availableLanguages, useFormatters, formatterById } from './formatters'
 import { getQueryParam, setQueryParam, testShareUrl } from './url'
 import { computeDiff } from './useDiff'
 import type { TestCase } from './types'
@@ -42,12 +45,17 @@ interface RunResult {
 type Display = 'pass' | 'fail' | 'muted' | 'unknown'
 
 interface Props {
+  /** the selected language — tests are scoped to it (shared with the playground) */
+  language: Language
+  onLanguageChange: (lang: string) => void
+  /** the selected formatter for that language; the suite runs against it */
+  formatter: string
+  onFormatterChange: (formatterId: string) => void
   playgroundInput: string
   playgroundOutput: string
-  playgroundLanguage: Language
-  /** clang-format version, shared with the playground tab */
-  clangVersion?: string
-  onClangVersionChange: (version: string) => void
+  /** selected version per formatter, shared with the playground tab */
+  versionByFmt: Record<string, string | undefined>
+  onVersionChange: (formatterId: string, version: string | undefined) => void
   /** bumped after a Publish so the server tests reload */
   refreshKey?: number
   /** open the tests×versions matrix drawer */
@@ -88,17 +96,20 @@ const emptyForm = (lang: Language): Omit<TestCase, 'id'> => ({
 })
 
 export default function TestsView({
+  language,
+  onLanguageChange,
+  formatter,
+  onFormatterChange,
   playgroundInput,
   playgroundOutput,
-  playgroundLanguage,
-  clangVersion,
-  onClangVersionChange,
+  versionByFmt,
+  onVersionChange,
   refreshKey,
   onOpenMatrix,
   focusTest,
   focusSeq,
 }: Props) {
-  const initialFilter = getQueryParam('filter')
+  useFormatters() // re-render when the formatter registry loads (language options)
   const [serverTests, setServerTests] = useState<TestCase[]>([])
   const draft = useDraft()
   // what the UI shows: server tests with the local draft overlaid
@@ -106,9 +117,6 @@ export default function TestsView({
   const [results, setResults] = useState<Record<string, RunResult>>({})
   const [running, setRunning] = useState(false)
   const [runningId, setRunningId] = useState<string | null>(null)
-  const [filter, setFilter] = useState<'all' | Language>(
-    initialFilter === 'cpp' || initialFilter === 'python' ? initialFilter : 'all',
-  )
   const initialStatus = getQueryParam('status')
   const [statusFilter, setStatusFilter] = useState<'all' | Display>(
     initialStatus === 'pass' || initialStatus === 'fail' || initialStatus === 'muted'
@@ -125,7 +133,7 @@ export default function TestsView({
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm] = useState(emptyForm(playgroundLanguage))
+  const [form, setForm] = useState(emptyForm(language))
 
   const loadTests = useCallback(async () => {
     const res = await fetch('/api/tests')
@@ -143,10 +151,8 @@ export default function TestsView({
     loadTests()
   }, [loadTests])
 
-  // keep the run parameters in the URL so the link is shareable
-  useEffect(() => {
-    setQueryParam('filter', filter === 'all' ? null : filter)
-  }, [filter])
+  // keep the status filter in the URL so the link is shareable (the language
+  // lives in the path, shared with the playground)
   useEffect(() => {
     setQueryParam('status', statusFilter === 'all' ? null : statusFilter)
   }, [statusFilter])
@@ -165,7 +171,8 @@ export default function TestsView({
   // could hide it, expand it, and update the shareable ?test= URL
   useEffect(() => {
     if (!focusSeq || !focusTest) return
-    setFilter('all')
+    // the focused test belongs to the current language (the matrix runs on it),
+    // so it's already in view; just clear the status filter that could hide it
     setStatusFilter('all')
     setFocusedId(focusTest)
     setQueryParam('test', focusTest)
@@ -179,10 +186,10 @@ export default function TestsView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusSeq])
 
-  // tests after the language filter — summary counts are computed over these
+  // tests of the selected language — summary counts are computed over these
   const langTests = useMemo(
-    () => tests.filter((t) => filter === 'all' || t.language === filter),
-    [tests, filter],
+    () => tests.filter((t) => t.language === language),
+    [tests, language],
   )
 
   const summary = useMemo(() => {
@@ -212,15 +219,16 @@ export default function TestsView({
   const formatAndCompare = useCallback(
     async (test: TestCase): Promise<RunResult> => {
       try {
-        // run against the selected version + any local draft config (incl. a
-        // shadow config); the server uses the published config otherwise
+        // run against the selected formatter + version + any local draft config
+        // (incl. a shadow config); the server uses the published config otherwise.
+        // All visible tests are of `language`, which `formatter` formats.
         const res = await fetch('/api/format', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             code: test.input,
             language: test.language,
-            ...formatOverrides(test.language, clangVersion),
+            ...formatOverrides(formatter || language, versionByFmt[formatter]),
           }),
         })
         const data = await res.json()
@@ -237,7 +245,7 @@ export default function TestsView({
         return { id: test.id, passed: false, actual: '', error: String(e) }
       }
     },
-    [clangVersion],
+    [formatter, language, versionByFmt],
   )
 
   const runAll = useCallback(async () => {
@@ -301,10 +309,10 @@ export default function TestsView({
 
   const openCreate = useCallback(() => {
     setEditingId(null)
-    setForm(emptyForm(filter === 'all' ? playgroundLanguage : filter))
+    setForm(emptyForm(language))
     setError(null)
     setDialogOpen(true)
-  }, [filter, playgroundLanguage])
+  }, [language])
 
   const openEdit = useCallback((test: TestCase) => {
     setEditingId(test.id)
@@ -348,20 +356,31 @@ export default function TestsView({
 
   return (
     <div className="tests-view">
-      {/* the tests view contributes its language filter + version control (with
-          the Versions manager) into the shared header, same spot as the playground */}
+      {/* the tests view contributes the same language + formatter + version
+          pickers as the playground into the shared header. The suite runs on the
+          selected language's tests, formatted by the selected formatter@version. */}
       <HeaderSlot slot="center">
         <Select
-          value={[filter]}
-          onUpdate={(v) => setFilter(v[0] as 'all' | Language)}
+          value={[language]}
+          onUpdate={(v) => onLanguageChange(v[0])}
           size="s"
           width={120}
         >
-          <Select.Option value="all">All</Select.Option>
-          <Select.Option value="cpp">C++</Select.Option>
-          <Select.Option value="python">Python</Select.Option>
+          {availableLanguages().map((l) => (
+            <Select.Option key={l} value={l}>
+              {languageLabel(l)}
+            </Select.Option>
+          ))}
         </Select>
-        <ClangVersionControl value={clangVersion} onChange={onClangVersionChange} />
+        {/* formatter picker — only appears when the language has >1 formatter */}
+        <FormatterControl language={language} value={formatter} onChange={onFormatterChange} />
+        {formatterById(formatter)?.versioned && (
+          <ClangVersionControl
+            formatterId={formatter}
+            value={versionByFmt[formatter]}
+            onChange={(v) => onVersionChange(formatter, v)}
+          />
+        )}
       </HeaderSlot>
 
       <div className="tests-toolbar">
@@ -401,7 +420,7 @@ export default function TestsView({
           size="m"
           className="tests-matrix-btn"
           onClick={onOpenMatrix}
-          title="Run all tests on every installed clang-format version"
+          title="Run every test on every installed version of the selected formatter"
         >
           <Icon data={LayoutCells} size={16} />
           Matrix
@@ -451,7 +470,7 @@ export default function TestsView({
                   {copiedId === test.id ? 'link copied ✓' : `#${test.id}`}
                 </span>
                 <Label theme="unknown" size="xs">
-                  {test.language === 'cpp' ? 'C++' : 'Python'}
+                  {languageLabel(test.language)}
                 </Label>
                 <Label theme={STATUS_THEME[status]} size="xs">
                   {STATUS_LABEL[status]}
@@ -544,8 +563,11 @@ export default function TestsView({
               size="m"
               width={120}
             >
-              <Select.Option value="cpp">C++</Select.Option>
-              <Select.Option value="python">Python</Select.Option>
+              {availableLanguages().map((l) => (
+                <Select.Option key={l} value={l}>
+                  {languageLabel(l)}
+                </Select.Option>
+              ))}
             </Select>
             <Checkbox
               checked={form.muted}
@@ -560,7 +582,7 @@ export default function TestsView({
               onClick={() =>
                 setForm((f) => ({
                   ...f,
-                  language: playgroundLanguage,
+                  language,
                   input: playgroundInput,
                   expected: playgroundOutput || f.expected,
                 }))
