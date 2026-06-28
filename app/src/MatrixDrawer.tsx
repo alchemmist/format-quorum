@@ -3,7 +3,8 @@ import { Button, Icon, Spin, Text } from '@gravity-ui/uikit'
 import { ArrowRotateLeft, Check, Minus, StarFill, Xmark } from '@gravity-ui/icons'
 import { draftCreatedShadows } from './draftStore'
 import { ShadowLabel } from './ShadowLabel'
-import CodeMirrorEditor from './CodeMirrorEditor'
+import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
+import { formatterById } from './formatters'
 import { computeDiff } from './useDiff'
 
 interface Cell {
@@ -33,6 +34,10 @@ interface Matrix {
 
 interface Props {
   open: boolean
+  /** language whose tests fill the rows */
+  language: string
+  /** formatter whose installed versions are the columns */
+  formatter: string
   onClose: () => void
   /** jump to a test in the Tests view */
   onPickTest?: (id: string) => void
@@ -70,7 +75,7 @@ interface CellView {
   error: string | null
 }
 
-export default function MatrixDrawer({ open, onClose, onPickTest }: Props) {
+export default function MatrixDrawer({ open, language, formatter, onClose, onPickTest }: Props) {
   const [data, setData] = useState<Matrix | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -83,17 +88,19 @@ export default function MatrixDrawer({ open, onClose, onPickTest }: Props) {
     setLoading(true)
     setError(null)
     try {
-      // send locally-created (unpublished) shadows so they get matrix columns too
+      // send locally-created (unpublished) shadows so they get matrix columns too;
+      // tag them with the current formatter (the matrix is built for it)
       const shadows = draftCreatedShadows().map((s) => ({
         id: s.id,
         base: s.base,
         name: s.name,
         content: s.content,
+        formatter,
       }))
       const res = await fetch('/api/tests/matrix', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ language: 'cpp', shadows }),
+        body: JSON.stringify({ language, formatter, shadows }),
       })
       const d = await res.json()
       if (!res.ok) {
@@ -106,12 +113,14 @@ export default function MatrixDrawer({ open, onClose, onPickTest }: Props) {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [language, formatter])
 
-  // build the matrix the first time the drawer is opened
+  // (re)build the matrix when opened, or when the language/formatter changes
   useEffect(() => {
-    if (open && !data && !loading) run()
-  }, [open, data, loading, run])
+    if (open) run()
+    else setData(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, language, formatter])
 
   // test inputs/expected for the cell-diff popup
   useEffect(() => {
@@ -138,8 +147,8 @@ export default function MatrixDrawer({ open, onClose, onPickTest }: Props) {
         // match the matrix run exactly: a draft shadow runs its base binary with
         // its draft config; a real version / published shadow is resolved by id
         const body = sh
-          ? { code: t.input, language: 'cpp', clang_version: sh.base, config: sh.content }
-          : { code: t.input, language: 'cpp', clang_version: col }
+          ? { code: t.input, language, formatter, version: sh.base, config: sh.content }
+          : { code: t.input, language, formatter, version: col }
         const res = await fetch('/api/format', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -154,7 +163,7 @@ export default function MatrixDrawer({ open, onClose, onPickTest }: Props) {
         setCellLoading(false)
       }
     },
-    [testMap],
+    [testMap, language, formatter],
   )
 
   // Escape closes the cell-diff popup
@@ -174,9 +183,10 @@ export default function MatrixDrawer({ open, onClose, onPickTest }: Props) {
     const sh = shadowById.get(v)
     return sh ? <ShadowLabel>{`${sh.name} (${sh.base})`}</ShadowLabel> : v
   }
+  const fmtLabel = formatterById(formatter)?.label ?? formatter
   const colTitle = (v: string) => {
     const sh = shadowById.get(v)
-    return sh ? `shadow config "${sh.name}" · clang-format ${sh.base}` : v
+    return sh ? `shadow config "${sh.name}" · ${fmtLabel} ${sh.base}` : v
   }
 
   return (
@@ -205,12 +215,12 @@ export default function MatrixDrawer({ open, onClose, onPickTest }: Props) {
             <div className="matrix-loading">
               <Spin size="m" />
               <Text color="secondary" variant="caption-2">
-                Running every test on every installed clang-format version…
+                Running every test on every installed {fmtLabel} version…
               </Text>
             </div>
           ) : data ? (
             data.versions.length === 0 ? (
-              <Text color="secondary">No clang-format versions installed.</Text>
+              <Text color="secondary">No {fmtLabel} versions installed.</Text>
             ) : (
               <>
                 {surprises.length > 0 && (
@@ -309,7 +319,7 @@ export default function MatrixDrawer({ open, onClose, onPickTest }: Props) {
                     Desired
                   </Text>
                   <div className="cell-diff-editor">
-                    <CodeMirrorEditor value={cell.desired} language="cpp" readOnly />
+                    <CodeMirrorEditor value={cell.desired} language={language as Language} readOnly />
                   </div>
                 </div>
                 <div className="cell-diff-pane">
@@ -319,7 +329,7 @@ export default function MatrixDrawer({ open, onClose, onPickTest }: Props) {
                   <div className="cell-diff-editor">
                     <CodeMirrorEditor
                       value={cell.actual}
-                      language="cpp"
+                      language={language as Language}
                       readOnly
                       diffRanges={computeDiff(cell.desired, cell.actual)}
                       showDiff

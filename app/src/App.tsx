@@ -283,9 +283,12 @@ export default function App() {
 
         {view === 'tests' ? (
           <TestsView
+            language={language}
+            onLanguageChange={handleLanguageChange}
+            formatter={formatter}
+            onFormatterChange={setFormatter}
             playgroundInput={inputCode}
             playgroundOutput={outputCode}
-            playgroundLanguage={language}
             versionByFmt={versionByFmt}
             onVersionChange={setVersionFor}
             refreshKey={refreshKey}
@@ -365,6 +368,8 @@ export default function App() {
 
         <MatrixDrawer
           open={matrixOpen}
+          language={language}
+          formatter={formatter}
           onClose={() => setMatrixOpen(false)}
           onPickTest={pickTest}
         />
