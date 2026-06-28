@@ -132,10 +132,21 @@ def format_python(code: str, config: str | None = None) -> str:
 
 def format_code(
     code: str,
-    language: str,
-    clang_format_bin: str | None = None,
+    target: str,
+    binary: str | None = None,
     config: str | None = None,
+    clang_format_bin: str | None = None,
 ) -> str:
-    if language == "python":
-        return format_python(code, config=config)
-    return format_cpp(code, clang_format_bin=clang_format_bin, config=config)
+    """Format `code` with the formatter `target` (a formatter id like
+    ``clang-format``/``ruff`` OR a legacy language ``cpp``/``python``).
+
+    `binary` overrides the formatter binary (a specific installed version);
+    `clang_format_bin` is the old name for it, kept for existing callers.
+    """
+    # imported lazily to avoid a formatters<->registry import cycle
+    from formatter_registry import resolve
+
+    fmt = resolve(target)
+    if fmt is None:
+        raise FormatError(f"unknown formatter/language: {target}")
+    return fmt.run(code, config, binary if binary is not None else clang_format_bin)

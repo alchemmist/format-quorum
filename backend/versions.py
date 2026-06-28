@@ -44,14 +44,27 @@ INSTALL_TIMEOUT_SEC = 600
 
 
 class VersionManager:
-    def __init__(self, versions_dir: Path, base_bin: str):
+    def __init__(
+        self,
+        versions_dir: Path,
+        base_bin: str,
+        *,
+        pypi_name: str = "clang-format",
+        binary_name: str = "clang-format",
+        known_versions: list[str] | None = None,
+    ):
         self.dir = Path(versions_dir)
         self.dir.mkdir(parents=True, exist_ok=True)
         self.base_bin = base_bin
         self.base_version = self._probe(base_bin)
+        # the PyPI package that ships the binary, and the executable name inside
+        # the venv — parameterized so any pip-installable formatter can be managed
+        self.pypi_name = pypi_name
+        self.binary_name = binary_name
+        self.known_versions = list(known_versions) if known_versions is not None else KNOWN_VERSIONS
         self._lock = threading.Lock()
         self._installing: set[str] = set()
-        # which KNOWN_VERSIONS actually have an installable wheel for *this*
+        # which known_versions actually have an installable wheel for *this*
         # platform — probed against PyPI in the background. None until ready;
         # until then state() shows the full list (best effort).
         self._suggest_lock = threading.Lock()
@@ -71,7 +84,7 @@ class VersionManager:
         return m.group(1) if m else None
 
     def _venv_bin(self, version: str) -> Path:
-        return self.dir / version / "bin" / "clang-format"
+        return self.dir / version / "bin" / self.binary_name
 
     # ── suggestion availability ──────────────────────────────────────────────
     @staticmethod
@@ -97,14 +110,14 @@ class VersionManager:
         return True
 
     def _has_compatible_wheel(self, version: str) -> bool:
-        url = f"https://pypi.org/pypi/clang-format/{version}/json"
+        url = f"https://pypi.org/pypi/{self.pypi_name}/{version}/json"
         with urllib.request.urlopen(url, timeout=8) as resp:  # noqa: S310
             data = json.load(resp)
         return any(self._wheel_compatible(u["filename"]) for u in data.get("urls", []))
 
     def _warm_suggestions(self) -> None:
         installable: set[str] = set()
-        for v in KNOWN_VERSIONS:
+        for v in self.known_versions:
             try:
                 if self._has_compatible_wheel(v):
                     installable.add(v)
@@ -142,7 +155,11 @@ class VersionManager:
         with self._suggest_lock:
             installable = self._installable
         # before the probe finishes, fall back to the full list
-        pool = KNOWN_VERSIONS if installable is None else [v for v in KNOWN_VERSIONS if v in installable]
+        pool = (
+            self.known_versions
+            if installable is None
+            else [v for v in self.known_versions if v in installable]
+        )
         suggestions = [v for v in pool if v not in installed]
         return {
             "versions": installed,
@@ -177,7 +194,7 @@ class VersionManager:
             venv.EnvBuilder(with_pip=True).create(target)
             pip = target / "bin" / "pip"
             proc = subprocess.run(
-                [str(pip), "install", "--no-cache-dir", f"clang-format=={version}"],
+                [str(pip), "install", "--no-cache-dir", f"{self.pypi_name}=={version}"],
                 capture_output=True,
                 text=True,
                 timeout=INSTALL_TIMEOUT_SEC,
@@ -185,7 +202,7 @@ class VersionManager:
             if proc.returncode != 0 or not self._venv_bin(version).exists():
                 shutil.rmtree(target, ignore_errors=True)
                 return False, (
-                    f"clang-format {version} is not available "
+                    f"{self.pypi_name} {version} is not available "
                     "(no installable wheel for this version/platform)"
                 )
             return True, None
