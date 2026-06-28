@@ -373,7 +373,6 @@ export default function ConfigDrawer({
       {open && <div className="drawer-overlay" onClick={onClose} />}
       <div className={`config-drawer${open ? ' open' : ''}`}>
         <div className="config-drawer-header">
-          <span className="config-drawer-title">Edit config</span>
           {/* pick which formatter's config to edit — one dropdown, grouped by
               language, so it scales to many languages/formatters */}
           <Select

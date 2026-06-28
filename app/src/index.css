@@ -500,17 +500,6 @@ body {
   flex-shrink: 0;
 }
 
-.config-drawer-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #e2e2e2;
-}
-
-.config-lang-toggle {
-  display: flex;
-  gap: 4px;
-}
-
 .config-drawer-spacer {
   flex: 1;
 }
