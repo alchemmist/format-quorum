@@ -11,16 +11,8 @@ import MatrixDrawer from './MatrixDrawer'
 import { computeDiff } from './useDiff'
 import { getQueryParam, setQueryParam } from './url'
 import { useDraftCount, publishDraft, discardAll, formatOverrides } from './draftStore'
-
-// @ts-ignore — Vite raw import
-import demoCpp from './demo.cpp?raw'
-// @ts-ignore — Vite raw import
-import demoPy from './demo.py?raw'
-
-const demos: Record<Language, string> = {
-  cpp:    demoCpp as string,
-  python: demoPy as string,
-}
+import { languageDemo, languageLabel } from './languages'
+import { loadFormatters, availableLanguages, useFormatters } from './formatters'
 
 type Status =
   | { kind: 'idle' }
@@ -34,8 +26,14 @@ function langFromPath(): Language {
 }
 
 export default function App() {
+  // load the backend formatter registry once; pickers below re-render when ready
+  useFormatters()
+  useEffect(() => {
+    loadFormatters()
+  }, [])
+
   const [language, setLanguage]   = useState<Language>(langFromPath)
-  const [inputCode, setInputCode] = useState<string>(() => demos[langFromPath()])
+  const [inputCode, setInputCode] = useState<string>(() => languageDemo(langFromPath()))
   const [outputCode, setOutputCode] = useState<string>('')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [showDiff, setShowDiff] = useState<boolean>(true)
@@ -96,7 +94,7 @@ export default function App() {
     const onPop = () => {
       const lang = langFromPath()
       setLanguage(lang)
-      setInputCode(demos[lang])
+      setInputCode(languageDemo(lang))
       setOutputCode('')
       setStatus({ kind: 'idle' })
       setView(getQueryParam('view') === 'tests' ? 'tests' : 'playground')
@@ -108,7 +106,7 @@ export default function App() {
 
   const handleLanguageChange = useCallback((lang: string) => {
     setLanguage(lang as Language)
-    setInputCode(demos[lang as Language])
+    setInputCode(languageDemo(lang))
     setOutputCode('')
     setStatus({ kind: 'idle' })
   }, [])
@@ -148,7 +146,7 @@ export default function App() {
   }, [])
 
   const handleReset = useCallback(() => {
-    setInputCode(demos[language])
+    setInputCode(languageDemo(language))
     setOutputCode('')
     setStatus({ kind: 'idle' })
   }, [language])
@@ -200,8 +198,11 @@ export default function App() {
                 size="s"
                 width={120}
               >
-                <Select.Option value="cpp">C++</Select.Option>
-                <Select.Option value="python">Python</Select.Option>
+                {availableLanguages().map((l) => (
+                  <Select.Option key={l} value={l}>
+                    {languageLabel(l)}
+                  </Select.Option>
+                ))}
               </Select>
               {/* the version selector is shown on every tab; its value is shared
                   (it just doesn't affect ruff/python formatting) */}
