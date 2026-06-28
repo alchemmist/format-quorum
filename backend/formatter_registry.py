@@ -137,6 +137,44 @@ _register(
     )
 )
 
+# ── classic-language formatters ───────────────────────────────────────────────
+# First pass (issue #2): each runs from the image's toolchain with the tool's
+# canonical defaults — no config or version axis yet (those are per-formatter
+# capabilities added later via npm/go/cargo install strategies). One formatter
+# per language, so each is that language's default.
+
+# prettier backs several languages from one binary; registered once per language
+# (distinct id, all labelled "prettier"), each passing its parser extension.
+_PRETTIER_LANGS = [
+    ("prettier-js", "javascript", "js"),
+    ("prettier-ts", "typescript", "ts"),
+    ("prettier-json", "json", "json"),
+    ("prettier-css", "css", "css"),
+    ("prettier-html", "html", "html"),
+    ("prettier-md", "markdown", "md"),
+    ("prettier-yaml", "yaml", "yaml"),
+]
+for _pid, _plang, _pext in _PRETTIER_LANGS:
+    _register(
+        Formatter(
+            id=_pid, label="prettier", language=_plang, default=True,
+            config=None, run=_fmt.make_prettier(_pext),
+        )
+    )
+
+for _fid, _flabel, _flang, _frun in [
+    ("gofmt", "gofmt", "go", _fmt.format_go),
+    ("rustfmt", "rustfmt", "rust", _fmt.format_rust),
+    ("shfmt", "shfmt", "shell", _fmt.format_shell),
+    ("taplo", "taplo", "toml", _fmt.format_toml),
+    ("google-java-format", "google-java-format", "java", _fmt.format_java),
+]:
+    _register(
+        Formatter(id=_fid, label=_flabel, language=_flang, default=True,
+                  config=None, run=_frun)
+    )
+
+
 # legacy language name → default formatter id (keeps the old API working)
 _LANG_ALIAS = {f.language: f.id for f in FORMATTERS.values() if f.default}
 

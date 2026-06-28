@@ -27,6 +27,16 @@ RUFF_CONFIG = os.environ.get("RUFF_CONFIG", str(CONFIGS_DIR / "ruff.toml"))
 BLACK_BIN = os.environ.get("BLACK_BIN", "black")
 BLACK_CONFIG = os.environ.get("BLACK_CONFIG", str(CONFIGS_DIR / "black.toml"))
 
+# Classic-language formatters. These ship from the image's toolchains and (in
+# this first pass) run with each tool's canonical defaults — no config or version
+# axis yet (tracked as follow-ups). Binary paths are overridable via env.
+GOFMT_BIN = os.environ.get("GOFMT_BIN", "gofmt")
+RUSTFMT_BIN = os.environ.get("RUSTFMT_BIN", "rustfmt")
+PRETTIER_BIN = os.environ.get("PRETTIER_BIN", "prettier")
+SHFMT_BIN = os.environ.get("SHFMT_BIN", "shfmt")
+TAPLO_BIN = os.environ.get("TAPLO_BIN", "taplo")
+GJF_BIN = os.environ.get("GJF_BIN", "google-java-format")
+
 # A formatter that hangs would block a worker thread forever.
 FORMAT_TIMEOUT_SEC = 30
 
@@ -153,6 +163,45 @@ def format_black(code: str, config: str | None = None, binary: str | None = None
     """
     with _config_file(config, BLACK_CONFIG, ".toml") as cfg:
         return _run([binary or BLACK_BIN, "-q", "--config", cfg, "-"], code)
+
+
+# ── classic-language formatters (stdin → stdout, canonical defaults) ───────────
+def format_go(code: str, config: str | None = None, binary: str | None = None) -> str:
+    """Format Go with gofmt. gofmt is opinionated and takes no config."""
+    return _run([binary or GOFMT_BIN], code)
+
+
+def format_rust(code: str, config: str | None = None, binary: str | None = None) -> str:
+    """Format Rust with rustfmt (canonical style; reads stdin, writes stdout)."""
+    return _run([binary or RUSTFMT_BIN, "--emit", "stdout", "--edition", "2021"], code)
+
+
+def make_prettier(parser_ext: str):
+    """Build a prettier runner for one language. prettier picks its parser from the
+    stdin filename, so each language passes the matching extension (ts/css/…)."""
+
+    def _format(code: str, config: str | None = None, binary: str | None = None) -> str:
+        return _run(
+            [binary or PRETTIER_BIN, "--no-config", "--stdin-filepath", f"input.{parser_ext}"],
+            code,
+        )
+
+    return _format
+
+
+def format_shell(code: str, config: str | None = None, binary: str | None = None) -> str:
+    """Format shell scripts with shfmt (reads stdin by default)."""
+    return _run([binary or SHFMT_BIN], code)
+
+
+def format_toml(code: str, config: str | None = None, binary: str | None = None) -> str:
+    """Format TOML with taplo."""
+    return _run([binary or TAPLO_BIN, "fmt", "-"], code)
+
+
+def format_java(code: str, config: str | None = None, binary: str | None = None) -> str:
+    """Format Java with google-java-format (reads stdin via the `-` arg)."""
+    return _run([binary or GJF_BIN, "-"], code)
 
 
 def format_code(

@@ -47,6 +47,13 @@ def _resolve_bin(name: str) -> str:
     return shutil.which(name) or name
 
 
+def binary_present(name: str) -> bool:
+    """Is a runnable binary for `name` available here? Tests for the classic
+    formatters skip when their toolchain isn't installed (CI/Docker have them)."""
+    resolved = _resolve_bin(name)
+    return Path(resolved).exists() or shutil.which(resolved) is not None
+
+
 @dataclass
 class AppCtx:
     client: "object"  # starlette TestClient
@@ -99,6 +106,13 @@ def appctx(tmp_path, monkeypatch):
         "CLANG_FORMAT_BIN": _resolve_bin("clang-format"),
         "RUFF_BIN": _resolve_bin("ruff"),
         "BLACK_BIN": _resolve_bin("black"),
+        # classic-language formatters (skipped in tests when their binary is absent)
+        "GOFMT_BIN": _resolve_bin("gofmt"),
+        "RUSTFMT_BIN": _resolve_bin("rustfmt"),
+        "PRETTIER_BIN": _resolve_bin("prettier"),
+        "SHFMT_BIN": _resolve_bin("shfmt"),
+        "TAPLO_BIN": _resolve_bin("taplo"),
+        "GJF_BIN": _resolve_bin("google-java-format"),
         "PATH": f"{VENV_BIN}{os.pathsep}{os.environ.get('PATH', '')}",
     }
     for k, v in env.items():
