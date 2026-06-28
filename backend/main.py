@@ -22,7 +22,6 @@ from pydantic import BaseModel
 
 import formatter_registry as registry
 from formatters import (
-    CLANG_FORMAT_BIN,
     CLANG_FORMAT_CONFIG,
     RUFF_CONFIG,
     FormatError,
@@ -57,20 +56,16 @@ configs = ConfigStore(CONFIG_HISTORY_DIR)
 # but carry their own config text. They surface as pseudo-versions.
 shadows = ShadowStore(CONFIG_HISTORY_DIR / "shadows.json")
 
-# one VersionManager per *versioned* formatter. clang-format keeps the existing
+# one VersionManager per *versioned* formatter, each driven by its formatter's
+# install strategy (pip today, anything later). clang-format keeps the existing
 # layout (rooted at VERSIONS_DIR) so its persisted volume is untouched; any other
 # versioned formatter gets its own subdir.
 version_mgrs: dict[str, VersionManager] = {}
 for _f in registry.FORMATTERS.values():
     if _f.versioned and _f.install:
         _root = VERSIONS_DIR if _f.id == "clang-format" else VERSIONS_DIR / _f.id
-        _base = CLANG_FORMAT_BIN if _f.id == "clang-format" else _f.install.binary_name
         version_mgrs[_f.id] = VersionManager(
-            _root,
-            _base,
-            pypi_name=_f.install.pypi_name,
-            binary_name=_f.install.binary_name,
-            known_versions=list(_f.known_versions),
+            _root, _f.install, known_versions=list(_f.known_versions)
         )
 
 # the languages that have a config (derived from the registry)

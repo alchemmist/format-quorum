@@ -20,14 +20,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 import formatters as _fmt
-
-
-@dataclass(frozen=True)
-class InstallStrategy:
-    """How to install a specific version of a formatter into an isolated venv."""
-
-    pypi_name: str  # the PyPI package that ships the binary (pip install pypi_name==X)
-    binary_name: str  # the executable inside the venv's bin/
+from versions import InstallStrategy, PipInstall
 
 
 @dataclass(frozen=True)
@@ -49,7 +42,9 @@ class Formatter:
     # run(code, config_text_or_None, binary_or_None) -> formatted text
     run: Callable[[str, str | None, str | None], str]
     versioned: bool = False  # supports the version axis (matrix, shadows, versions)
-    install: InstallStrategy | None = None  # how to install versions (None = not installable)
+    # how to install/locate versions (None = not installable). Any InstallStrategy
+    # subclass — PipInstall today; npm/go/binary-download strategies later.
+    install: InstallStrategy | None = None
     known_versions: tuple[str, ...] = ()  # quick-add suggestions
     patchable: bool = False  # top-level key patch (whatif/--set) applies to its config
 
@@ -99,7 +94,7 @@ _register(
         config=ConfigSpec(".clang-format", "yaml", _fmt.CLANG_FORMAT_CONFIG),
         run=_run_clang_format,
         versioned=True,
-        install=InstallStrategy("clang-format", "clang-format"),
+        install=PipInstall("clang-format", "clang-format", base_binary=_fmt.CLANG_FORMAT_BIN),
         known_versions=_CLANG_KNOWN,
         patchable=True,
     )
@@ -113,7 +108,7 @@ _register(
         config=ConfigSpec("ruff.toml", "toml", _fmt.RUFF_CONFIG),
         run=_run_ruff,
         versioned=True,
-        install=InstallStrategy("ruff", "ruff"),
+        install=PipInstall("ruff", "ruff", base_binary=_fmt.RUFF_BIN),
         known_versions=_RUFF_KNOWN,
         patchable=False,
     )
@@ -127,7 +122,7 @@ _register(
         config=ConfigSpec("black.toml", "toml", _fmt.BLACK_CONFIG),
         run=_run_black,
         versioned=True,
-        install=InstallStrategy("black", "black"),
+        install=PipInstall("black", "black", base_binary=_fmt.BLACK_BIN),
         known_versions=_BLACK_KNOWN,
         patchable=False,
     )
