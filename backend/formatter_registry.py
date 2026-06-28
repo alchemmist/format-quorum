@@ -73,9 +73,10 @@ _CLANG_KNOWN = (
 _RUFF_KNOWN = (
     "0.6.9", "0.7.4", "0.8.6", "0.9.10", "0.11.13", "0.12.7",
 )
-# black uses calendar versioning (YY.M.patch); recent stable releases
+# black uses calendar versioning (YY.M.patch); a spread of recent stable releases
 _BLACK_KNOWN = (
-    "23.12.1", "24.4.2", "24.10.0", "25.1.0",
+    "24.4.2", "24.8.0", "24.10.0", "25.1.0",
+    "25.9.0", "25.12.0", "26.1.0", "26.3.1", "26.5.0",
 )
 
 FORMATTERS: dict[str, Formatter] = {}
