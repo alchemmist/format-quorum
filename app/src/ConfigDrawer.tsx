@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ActionTooltip, Button, Icon, Select, Spin, Text, TextInput } from '@gravity-ui/uikit'
 import { Ghost } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import { ShadowLabel } from './ShadowLabel'
 import { useFormatters, formatterById, resolveFormatter } from './formatters'
+import { languageLabel } from './languages'
 import {
   draftConfig,
   setConfigDraft,
@@ -86,8 +87,14 @@ export default function ConfigDrawer({
   const [versions, setVersions] = useState<string[]>([])
   const [serverShadows, setServerShadows] = useState<ShadowMeta[]>([])
   const shadows = useShadows(serverShadows)
-  // formatters that have a config become the editor tabs (.clang-format, ruff.toml…)
+  // every formatter that has a config is selectable in the formatter dropdown,
+  // grouped by language (a flat tab strip wouldn't fit dozens of languages)
   const configTabs = useFormatters().filter((f) => f.config)
+  const formatterGroups = useMemo(() => {
+    const by: Record<string, typeof configTabs> = {}
+    for (const f of configTabs) (by[f.language] ??= []).push(f)
+    return Object.entries(by)
+  }, [configTabs])
   const [version, setVersion] = useState<string | undefined>(initialVersion)
   const [content, setContent] = useState('')
   const [serverContent, setServerContent] = useState('')
@@ -367,18 +374,26 @@ export default function ConfigDrawer({
       <div className={`config-drawer${open ? ' open' : ''}`}>
         <div className="config-drawer-header">
           <span className="config-drawer-title">Edit config</span>
-          <div className="config-lang-toggle">
-            {configTabs.map((f) => (
-              <Button
-                key={f.id}
-                view={formatterId === f.id ? 'action' : 'flat'}
-                size="s"
-                onClick={() => setFormatterId(f.id)}
-              >
-                {f.config!.filename}
-              </Button>
+          {/* pick which formatter's config to edit — one dropdown, grouped by
+              language, so it scales to many languages/formatters */}
+          <Select
+            value={formatterById(formatterId) ? [formatterId] : []}
+            onUpdate={(v) => setFormatterId(v[0])}
+            size="s"
+            width={190}
+            title="Which formatter's config to edit"
+            disablePortal
+          >
+            {formatterGroups.map(([lang, fs]) => (
+              <Select.OptionGroup key={lang} label={languageLabel(lang)}>
+                {fs.map((f) => (
+                  <Select.Option key={f.id} value={f.id}>
+                    {`${f.label} · ${f.config!.filename}`}
+                  </Select.Option>
+                ))}
+              </Select.OptionGroup>
             ))}
-          </div>
+          </Select>
           {isVersioned(formatterId) && versions.length > 0 && (
             <Select
               value={version ? [version] : []}
