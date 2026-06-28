@@ -14,6 +14,8 @@ import { LayoutCells, Magnifier, Pencil, PlayFill, Plus, TrashBin } from '@gravi
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import ClangVersionControl from './ClangVersionControl'
 import { HeaderSlot } from './HeaderSlot'
+import { languageLabel } from './languages'
+import { availableLanguages, useFormatters } from './formatters'
 import { getQueryParam, setQueryParam, testShareUrl } from './url'
 import { computeDiff } from './useDiff'
 import type { TestCase } from './types'
@@ -98,6 +100,7 @@ export default function TestsView({
   focusTest,
   focusSeq,
 }: Props) {
+  useFormatters() // re-render when the formatter registry loads (language options)
   const initialFilter = getQueryParam('filter')
   const [serverTests, setServerTests] = useState<TestCase[]>([])
   const draft = useDraft()
@@ -357,9 +360,14 @@ export default function TestsView({
           size="s"
           width={120}
         >
-          <Select.Option value="all">All</Select.Option>
-          <Select.Option value="cpp">C++</Select.Option>
-          <Select.Option value="python">Python</Select.Option>
+          {[
+            { value: 'all', label: 'All' },
+            ...availableLanguages().map((l) => ({ value: l, label: languageLabel(l) })),
+          ].map((o) => (
+            <Select.Option key={o.value} value={o.value}>
+              {o.label}
+            </Select.Option>
+          ))}
         </Select>
         <ClangVersionControl value={clangVersion} onChange={onClangVersionChange} />
       </HeaderSlot>
@@ -451,7 +459,7 @@ export default function TestsView({
                   {copiedId === test.id ? 'link copied ✓' : `#${test.id}`}
                 </span>
                 <Label theme="unknown" size="xs">
-                  {test.language === 'cpp' ? 'C++' : 'Python'}
+                  {languageLabel(test.language)}
                 </Label>
                 <Label theme={STATUS_THEME[status]} size="xs">
                   {STATUS_LABEL[status]}
@@ -544,8 +552,11 @@ export default function TestsView({
               size="m"
               width={120}
             >
-              <Select.Option value="cpp">C++</Select.Option>
-              <Select.Option value="python">Python</Select.Option>
+              {availableLanguages().map((l) => (
+                <Select.Option key={l} value={l}>
+                  {languageLabel(l)}
+                </Select.Option>
+              ))}
             </Select>
             <Checkbox
               checked={form.muted}

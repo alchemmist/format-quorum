@@ -3,6 +3,7 @@ import { ActionTooltip, Button, Icon, Select, Spin, Text, TextInput } from '@gra
 import { Ghost } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import { ShadowLabel } from './ShadowLabel'
+import { useFormatters, defaultFormatter } from './formatters'
 import {
   draftConfig,
   setConfigDraft,
@@ -19,17 +20,16 @@ interface Props {
   open: boolean
   /** which config to show first when opened */
   initialLang: Language
-  /** which clang-format version to show first (cpp only) */
+  /** which version to show first (versioned formatters only) */
   initialVersion?: string
   onClose: () => void
   /** called after a successful save (config files changed) */
   onSaved?: () => void
 }
 
-const TITLE: Record<Language, string> = {
-  cpp: '.clang-format',
-  python: 'ruff.toml',
-}
+// the config filename + whether the version axis applies, from the registry
+const filenameFor = (lang: string) => defaultFormatter(lang)?.config?.filename ?? ''
+const isVersioned = (lang: string) => !!defaultFormatter(lang)?.versioned
 
 interface Impact {
   nowPass: string[] // were failing on the live config, pass on this draft
@@ -82,6 +82,8 @@ export default function ConfigDrawer({
   const [versions, setVersions] = useState<string[]>([])
   const [serverShadows, setServerShadows] = useState<ShadowMeta[]>([])
   const shadows = useShadows(serverShadows)
+  // formatters that have a config become the editor tabs (.clang-format, ruff.toml…)
+  const configTabs = useFormatters().filter((f) => f.config)
   const [version, setVersion] = useState<string | undefined>(initialVersion)
   const [content, setContent] = useState('')
   const [serverContent, setServerContent] = useState('')
@@ -144,9 +146,9 @@ export default function ConfigDrawer({
       try {
         // a *draft* (unpublished) shadow isn't on the server — show its base
         // version's config as the baseline, its draft text as the content
-        const sh = which === 'cpp' ? draftShadow(ver) : undefined
+        const sh = isVersioned(which) ? draftShadow(ver) : undefined
         const fetchVer = sh ? sh.base : ver
-        const q = which === 'cpp' && fetchVer ? `?version=${encodeURIComponent(fetchVer)}` : ''
+        const q = isVersioned(which) && fetchVer ? `?version=${encodeURIComponent(fetchVer)}` : ''
         const res = await fetch(`/api/config/${which}${q}`)
         const data = await res.json()
         if (!res.ok) {
@@ -168,7 +170,7 @@ export default function ConfigDrawer({
 
   useEffect(() => {
     // wait for a concrete version before loading the cpp config
-    if (open && !(lang === 'cpp' && version === undefined)) load(lang, version)
+    if (open && !(isVersioned(lang) && version === undefined)) load(lang, version)
   }, [open, lang, version, load])
 
   const onChange = useCallback((next: string) => {
@@ -181,7 +183,7 @@ export default function ConfigDrawer({
     // save to the local draft, not the server — Publish flushes it later
     const key = configKey(lang, version)
     if (key === undefined) {
-      setError('Pick a clang-format version first')
+      setError('Pick a version first')
       return
     }
     setConfigDraft(key, content)
@@ -236,7 +238,7 @@ export default function ConfigDrawer({
   }, [open, shadowFormOpen, showHistory, changed, save, onClose])
 
   // ── version history ───────────────────────────────────────────────────────
-  const cfgQuery = lang === 'cpp' && version ? `?version=${encodeURIComponent(version)}` : ''
+  const cfgQuery = isVersioned(lang) && version ? `?version=${encodeURIComponent(version)}` : ''
   const isDraftShadow = !!draftShadow(version)
 
   const loadHistory = useCallback(async () => {
@@ -293,7 +295,7 @@ export default function ConfigDrawer({
           language: lang,
           // resolve a shadow to its base binary; baseline (no config) uses that
           // version's published config, candidate uses the edited content
-          ...(lang === 'cpp' && baseOf(version) ? { clang_version: baseOf(version) } : {}),
+          ...(isVersioned(lang) && baseOf(version) ? { clang_version: baseOf(version) } : {}),
           ...(config !== undefined ? { config } : {}),
         }),
       })
@@ -337,28 +339,24 @@ export default function ConfigDrawer({
         <div className="config-drawer-header">
           <span className="config-drawer-title">Edit config</span>
           <div className="config-lang-toggle">
-            <Button
-              view={lang === 'cpp' ? 'action' : 'flat'}
-              size="s"
-              onClick={() => setLang('cpp')}
-            >
-              .clang-format
-            </Button>
-            <Button
-              view={lang === 'python' ? 'action' : 'flat'}
-              size="s"
-              onClick={() => setLang('python')}
-            >
-              ruff.toml
-            </Button>
+            {configTabs.map((f) => (
+              <Button
+                key={f.id}
+                view={lang === f.language ? 'action' : 'flat'}
+                size="s"
+                onClick={() => setLang(f.language)}
+              >
+                {f.config!.filename}
+              </Button>
+            ))}
           </div>
-          {lang === 'cpp' && versions.length > 0 && (
+          {isVersioned(lang) && versions.length > 0 && (
             <Select
               value={version ? [version] : []}
               onUpdate={(v) => setVersion(v[0])}
               size="s"
               width={180}
-              title="Which clang-format version's config to edit"
+              title="Which version's config to edit"
               // render the menu inside the drawer so it isn't trapped beneath
               // the drawer's stacking layer (the portal layer sits below it)
               disablePortal
@@ -374,7 +372,7 @@ export default function ConfigDrawer({
           <span className="config-drawer-spacer" />
           {shadowSaved && <Text color="positive">shadow saved ✓</Text>}
           {saved && <Text color="positive">draft saved ✓</Text>}
-          {lang === 'cpp' && (
+          {isVersioned(lang) && (
             // a plain anchored panel (not a portal) so it sits in the drawer's
             // stacking context, above the editor
             <div className="shadow-anchor" ref={shadowBtnRef}>
@@ -584,17 +582,16 @@ export default function ConfigDrawer({
             )}
 
           <Text color="secondary" variant="caption-2">
-            Editing {TITLE[lang]}
-            {lang === 'cpp' && version
+            Editing {filenameFor(lang)}
+            {isVersioned(lang) && version
               ? (() => {
                   const sh = shadows.find((s) => s.id === version)
                   return sh ? (
                     <>
-                      {' '}for shadow config <ShadowLabel>{sh.name}</ShadowLabel> (clang-format{' '}
-                      {sh.base})
+                      {' '}for shadow config <ShadowLabel>{sh.name}</ShadowLabel> ({sh.base})
                     </>
                   ) : (
-                    ` for clang-format ${version}`
+                    ` for version ${version}`
                   )
                 })()
               : ''}{' '}
