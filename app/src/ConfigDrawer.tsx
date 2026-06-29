@@ -147,7 +147,12 @@ export default function ConfigDrawer({
   useEffect(() => {
     if (!formatterById(formatterId)) {
       const r = resolveFormatter(formatterId) ?? resolveFormatter(initialFormatter)
-      if (r) setFormatterId(r.id)
+      // registry-driven normalization, not a manual switch — advance prevFmtRef
+      // in step so the version-reset effect below keeps the header-selected version
+      if (r) {
+        prevFmtRef.current = r.id
+        setFormatterId(r.id)
+      }
     }
   }, [configTabs, formatterId, initialFormatter])
 
