@@ -1,0 +1,2 @@
+# rustfmt configuration (style options; edition is set on the CLI)
+max_width = 100
