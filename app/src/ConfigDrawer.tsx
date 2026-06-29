@@ -124,15 +124,23 @@ export default function ConfigDrawer({
     return sh ? <ShadowLabel>{`${sh.name} (${sh.base})`}</ShadowLabel> : v
   }
 
-  // sync to the header's version each time the drawer is opened, but keep the
-  // language tab (.clang-format / ruff.toml) where it was last left, so reopening
-  // returns to the tab you closed on rather than always the playground language
+  // tracks the last formatter so a *manual* formatter switch can drop its version
+  const prevFmtRef = useRef(formatterId)
+
+  // each time the drawer opens, sync to the header: edit the config for the
+  // formatter AND the version currently selected in the playground/tests header.
+  // prevFmtRef is advanced in step so the formatter-change effect below doesn't
+  // then clobber the version back to the formatter's default.
   useEffect(() => {
     if (open) {
+      const fid = resolveFormatter(initialFormatter)?.id ?? initialFormatter
+      setFormatterId(fid)
+      prevFmtRef.current = fid
       setVersion(initialVersion)
       setShowHistory(false) // always reopen on the editor, not the history panel
     }
-  }, [open, initialVersion])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialFormatter, initialVersion])
 
   // normalize the selected formatter to a real id (initialFormatter may be a
   // legacy language, and the registry may load after first render)
@@ -146,7 +154,6 @@ export default function ConfigDrawer({
   // switching the formatter tab drops the previous formatter's version, so the
   // fetch below re-selects the new formatter's own default (a clang-format
   // version must never linger when the ruff/black tab is opened)
-  const prevFmtRef = useRef(formatterId)
   useEffect(() => {
     if (prevFmtRef.current !== formatterId) {
       prevFmtRef.current = formatterId
