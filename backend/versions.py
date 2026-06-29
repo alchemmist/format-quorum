@@ -83,8 +83,11 @@ class PipInstall(InstallStrategy):
         self.binary_name = binary_name
         self.base_binary = base_binary or binary_name
 
+    def bin_path(self, version_dir: Path) -> Path:
+        return version_dir / "bin" / self.binary_name
+
     def installed_binary(self, version_dir: Path) -> Path | None:
-        p = version_dir / "bin" / self.binary_name
+        p = self.bin_path(version_dir)
         return p if p.exists() else None
 
     def install(self, version: str, version_dir: Path) -> tuple[bool, str | None]:
@@ -141,6 +144,152 @@ class PipInstall(InstallStrategy):
         return any(self._wheel_compatible(u["filename"]) for u in data.get("urls", []))
 
 
+def _machine_arch() -> str:
+    """This host's arch as the common release-asset token (amd64 / arm64)."""
+    m = platform.machine().lower()
+    if m in ("aarch64", "arm64"):
+        return "arm64"
+    return "amd64"
+
+
+class NpmInstall(InstallStrategy):
+    """Install a version as an npm package into its own prefix.
+
+    ``npm install --prefix <version_dir> <package>@X.Y.Z`` drops the package's
+    console script at ``<version_dir>/node_modules/.bin/<binary_name>`` — e.g.
+    ``prettier`` and ``@taplo/cli`` (whose binary is ``taplo``)."""
+
+    def __init__(self, package: str, binary_name: str, *, base_binary: str | None = None):
+        self.package = package
+        self.binary_name = binary_name
+        self.base_binary = base_binary or binary_name
+
+    def bin_path(self, version_dir: Path) -> Path:
+        return version_dir / "node_modules" / ".bin" / self.binary_name
+
+    def installed_binary(self, version_dir: Path) -> Path | None:
+        p = self.bin_path(version_dir)
+        return p if p.exists() else None
+
+    def install(self, version: str, version_dir: Path) -> tuple[bool, str | None]:
+        version_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            proc = subprocess.run(
+                ["npm", "install", "--prefix", str(version_dir),
+                 "--no-save", "--no-audit", "--no-fund", f"{self.package}@{version}"],
+                capture_output=True, text=True, timeout=INSTALL_TIMEOUT_SEC,
+            )
+            if proc.returncode != 0 or self.installed_binary(version_dir) is None:
+                return False, (proc.stderr.strip()[:400] or
+                               f"npm install {self.package}@{version} failed")
+            return True, None
+        except subprocess.TimeoutExpired:
+            return False, "Installation timed out"
+        except Exception as exc:  # noqa: BLE001
+            return False, str(exc)
+
+    def available(self, version: str) -> bool:
+        # the npm registry returns 200 for a published version, 404 otherwise
+        url = f"https://registry.npmjs.org/{self.package}/{version}"
+        try:
+            with urllib.request.urlopen(url, timeout=8) as resp:  # noqa: S310
+                return resp.status == 200
+        except Exception:  # noqa: BLE001
+            return False
+
+
+class UrlBinaryInstall(InstallStrategy):
+    """Download a single prebuilt executable per version from a templated URL.
+
+    ``url_template`` is formatted with ``{version}`` and ``{arch}`` (amd64/arm64)
+    — e.g. shfmt's GitHub release assets. The file is saved to
+    ``<version_dir>/bin/<binary_name>`` and made executable."""
+
+    def __init__(self, url_template: str, binary_name: str, *, base_binary: str):
+        self.url_template = url_template
+        self.binary_name = binary_name
+        self.base_binary = base_binary
+
+    def _url(self, version: str) -> str:
+        return self.url_template.format(version=version, arch=_machine_arch())
+
+    def bin_path(self, version_dir: Path) -> Path:
+        return version_dir / "bin" / self.binary_name
+
+    def installed_binary(self, version_dir: Path) -> Path | None:
+        p = self.bin_path(version_dir)
+        return p if p.exists() else None
+
+    def install(self, version: str, version_dir: Path) -> tuple[bool, str | None]:
+        dst = self.bin_path(version_dir)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            urllib.request.urlretrieve(self._url(version), dst)  # noqa: S310
+            dst.chmod(0o755)
+            return True, None
+        except Exception as exc:  # noqa: BLE001
+            return False, str(exc)
+
+    def available(self, version: str) -> bool:
+        req = urllib.request.Request(self._url(version), method="HEAD")  # noqa: S310
+        try:
+            with urllib.request.urlopen(req, timeout=8) as resp:  # noqa: S310
+                return resp.status == 200
+        except Exception:  # noqa: BLE001
+            return False
+
+
+class JarInstall(InstallStrategy):
+    """Download a runnable jar per version and wrap it in a launcher script.
+
+    The jar is fetched to ``<version_dir>/app.jar`` and a ``<version_dir>/bin/
+    <binary_name>`` shell wrapper runs it via ``java [java_args] -jar`` — e.g.
+    google-java-format, whose ``java_args`` open the compiler internals."""
+
+    def __init__(self, url_template: str, binary_name: str, *, base_binary: str,
+                 java_args: tuple[str, ...] = ()):
+        self.url_template = url_template
+        self.binary_name = binary_name
+        self.base_binary = base_binary
+        self.java_args = list(java_args)
+
+    def _jar(self, version_dir: Path) -> Path:
+        return version_dir / "app.jar"
+
+    def bin_path(self, version_dir: Path) -> Path:
+        return version_dir / "bin" / self.binary_name
+
+    def installed_binary(self, version_dir: Path) -> Path | None:
+        p = self.bin_path(version_dir)
+        return p if p.exists() and self._jar(version_dir).exists() else None
+
+    def install(self, version: str, version_dir: Path) -> tuple[bool, str | None]:
+        jar = self._jar(version_dir)
+        jar.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            urllib.request.urlretrieve(  # noqa: S310
+                self.url_template.format(version=version), jar
+            )
+        except Exception as exc:  # noqa: BLE001
+            return False, str(exc)
+        wrapper = self.bin_path(version_dir)
+        wrapper.parent.mkdir(parents=True, exist_ok=True)
+        flags = " ".join(self.java_args)
+        wrapper.write_text(f'#!/bin/sh\nexec java {flags} -jar "{jar}" "$@"\n')
+        wrapper.chmod(0o755)
+        return True, None
+
+    def available(self, version: str) -> bool:
+        req = urllib.request.Request(  # noqa: S310
+            self.url_template.format(version=version), method="HEAD"
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=8) as resp:  # noqa: S310
+                return resp.status == 200
+        except Exception:  # noqa: BLE001
+            return False
+
+
 # ── version manager ───────────────────────────────────────────────────────────
 class VersionManager:
     """Manages the installed versions of one formatter via an InstallStrategy."""
@@ -174,7 +323,8 @@ class VersionManager:
             )
         except Exception:
             return None
-        m = re.search(r"(\d+\.\d+\.\d+)", out.stdout)
+        # some tools print their version to stderr (e.g. google-java-format)
+        m = re.search(r"(\d+\.\d+\.\d+)", f"{out.stdout}\n{out.stderr}")
         return m.group(1) if m else None
 
     # ── suggestion availability ──────────────────────────────────────────────

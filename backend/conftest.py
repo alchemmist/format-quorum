@@ -15,7 +15,6 @@ from __future__ import annotations
 import importlib
 import os
 import shutil
-import stat
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -67,18 +66,19 @@ class AppCtx:
         return mgr.base_version if mgr else None
 
 
-def _fake_install_fn(base_binary: str):
-    """An InstallStrategy.install replacement that 'installs' a version by copying
-    the real base binary into ``<version_dir>/bin/<binary_name>`` — offline, but
-    the result is a genuinely runnable formatter so matrix/format tests are real."""
-    src = Path(shutil.which(base_binary) or base_binary)
+def _fake_install_fn(strategy):
+    """An InstallStrategy.install replacement that 'installs' a version offline by
+    symlinking the strategy's expected binary path (pip/npm/url/jar layout differ)
+    to the real base binary — so the 'installed version' is a genuinely runnable
+    formatter and matrix/format tests are real, with no network or package manager."""
+    src = Path(shutil.which(strategy.base_binary) or strategy.base_binary).resolve()
 
     def _install(version: str, version_dir: Path):  # noqa: ARG001
-        bindir = Path(version_dir) / "bin"
-        bindir.mkdir(parents=True, exist_ok=True)
-        dst = bindir / src.name
-        shutil.copy2(src, dst)
-        dst.chmod(dst.stat().st_mode | stat.S_IEXEC)
+        dst = strategy.bin_path(Path(version_dir))
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        if dst.exists() or dst.is_symlink():
+            dst.unlink()
+        dst.symlink_to(src)
         return True, None
 
     return _install
@@ -122,7 +122,8 @@ def appctx(tmp_path, monkeypatch):
     for mod in _BACKEND_MODULES:
         sys.modules.pop(mod, None)
     versions = importlib.import_module("versions")
-    monkeypatch.setattr(versions.PipInstall, "available", lambda self, v: True)
+    for _cls in ("PipInstall", "NpmInstall", "UrlBinaryInstall", "JarInstall"):
+        monkeypatch.setattr(getattr(versions, _cls), "available", lambda self, v: True)
     main = importlib.import_module("main")
 
     from starlette.testclient import TestClient
@@ -143,7 +144,7 @@ def install_version(appctx):
 
     def _do(formatter_id: str, version: str) -> None:
         mgr = appctx.main.version_mgrs[formatter_id]
-        mgr.strategy.install = _fake_install_fn(mgr.strategy.base_binary)
+        mgr.strategy.install = _fake_install_fn(mgr.strategy)
         ok, err = mgr.add_version(version)
         assert ok, err
         # give it a config like the API would
@@ -161,7 +162,7 @@ def enable_fake_install(appctx):
     for every versioned formatter, so the real install path is exercised without
     pip or the network."""
     for mgr in appctx.main.version_mgrs.values():
-        mgr.strategy.install = _fake_install_fn(mgr.strategy.base_binary)
+        mgr.strategy.install = _fake_install_fn(mgr.strategy)
     return appctx
 
 
