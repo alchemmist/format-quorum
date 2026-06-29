@@ -27,6 +27,21 @@ RUFF_CONFIG = os.environ.get("RUFF_CONFIG", str(CONFIGS_DIR / "ruff.toml"))
 BLACK_BIN = os.environ.get("BLACK_BIN", "black")
 BLACK_CONFIG = os.environ.get("BLACK_CONFIG", str(CONFIGS_DIR / "black.toml"))
 
+# Classic-language formatters, run from the image's toolchains. Binary paths are
+# overridable via env.
+GOFMT_BIN = os.environ.get("GOFMT_BIN", "gofmt")
+RUSTFMT_BIN = os.environ.get("RUSTFMT_BIN", "rustfmt")
+PRETTIER_BIN = os.environ.get("PRETTIER_BIN", "prettier")
+SHFMT_BIN = os.environ.get("SHFMT_BIN", "shfmt")
+TAPLO_BIN = os.environ.get("TAPLO_BIN", "taplo")
+GJF_BIN = os.environ.get("GJF_BIN", "google-java-format")
+
+# config files for the formatters that read one (gofmt, shfmt and
+# google-java-format are config-less by design, so they have none)
+PRETTIER_CONFIG = os.environ.get("PRETTIER_CONFIG", str(CONFIGS_DIR / "prettierrc"))
+RUSTFMT_CONFIG = os.environ.get("RUSTFMT_CONFIG", str(CONFIGS_DIR / "rustfmt.toml"))
+TAPLO_CONFIG = os.environ.get("TAPLO_CONFIG", str(CONFIGS_DIR / "taplo.toml"))
+
 # A formatter that hangs would block a worker thread forever.
 FORMAT_TIMEOUT_SEC = 30
 
@@ -153,6 +168,60 @@ def format_black(code: str, config: str | None = None, binary: str | None = None
     """
     with _config_file(config, BLACK_CONFIG, ".toml") as cfg:
         return _run([binary or BLACK_BIN, "-q", "--config", cfg, "-"], code)
+
+
+# ── classic-language formatters (stdin → stdout, canonical defaults) ───────────
+def format_go(code: str, config: str | None = None, binary: str | None = None) -> str:
+    """Format Go with gofmt. gofmt is opinionated and takes no config."""
+    return _run([binary or GOFMT_BIN], code)
+
+
+def format_rust(code: str, config: str | None = None, binary: str | None = None) -> str:
+    """Format Rust with rustfmt. `config` is a rustfmt.toml passed via --config-path
+    (the stored config when None); the edition is fixed on the CLI."""
+    with _config_file(config, RUSTFMT_CONFIG, ".toml") as cfg:
+        return _run(
+            [binary or RUSTFMT_BIN, "--emit", "stdout", "--edition", "2021",
+             "--config-path", cfg],
+            code,
+        )
+
+
+def make_prettier(parser_ext: str):
+    """Build a prettier runner for one language. prettier picks its parser from the
+    stdin filename, so each language passes the matching extension (ts/css/…).
+    `config` is a .prettierrc (JSON) passed via --config."""
+
+    def _format(code: str, config: str | None = None, binary: str | None = None) -> str:
+        prettier = binary or PRETTIER_BIN
+        tail = ["--stdin-filepath", f"input.{parser_ext}"]
+        if config is None:
+            return _run([prettier, "--no-config", *tail], code)
+        with _config_file(config, PRETTIER_CONFIG, ".json") as cfg:
+            return _run([prettier, "--config", cfg, *tail], code)
+
+    return _format
+
+
+def format_shell(code: str, config: str | None = None, binary: str | None = None) -> str:
+    """Format shell scripts with shfmt (reads stdin by default). shfmt is
+    flag/.editorconfig driven and takes no config file."""
+    return _run([binary or SHFMT_BIN], code)
+
+
+def format_toml(code: str, config: str | None = None, binary: str | None = None) -> str:
+    """Format TOML with taplo. `config` is a taplo.toml passed via --config (the
+    stored config when None; --no-auto-config keeps it from finding a stray one)."""
+    taplo = binary or TAPLO_BIN
+    if config is None:
+        return _run([taplo, "fmt", "--no-auto-config", "-"], code)
+    with _config_file(config, TAPLO_CONFIG, ".toml") as cfg:
+        return _run([taplo, "fmt", "--config", cfg, "-"], code)
+
+
+def format_java(code: str, config: str | None = None, binary: str | None = None) -> str:
+    """Format Java with google-java-format (reads stdin via the `-` arg)."""
+    return _run([binary or GJF_BIN, "-"], code)
 
 
 def format_code(

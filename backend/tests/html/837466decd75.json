@@ -1,0 +1,10 @@
+{
+  "id": "837466decd75",
+  "name": "nesting is indented",
+  "language": "html",
+  "input": "<div>\n<p>hi</p>\n</div>\n",
+  "expected": "<div>\n  <p>hi</p>\n</div>\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T06:15:37.222058+00:00"
+}

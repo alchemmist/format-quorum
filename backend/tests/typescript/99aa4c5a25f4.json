@@ -1,0 +1,10 @@
+{
+  "id": "99aa4c5a25f4",
+  "name": "interface expands",
+  "language": "typescript",
+  "input": "interface P{a:number;b:string}\n",
+  "expected": "interface P {\n  a: number;\n  b: string;\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T06:15:36.888770+00:00"
+}

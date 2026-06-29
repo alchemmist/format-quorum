@@ -18,6 +18,7 @@ venv
 __pycache__
 *.pyc
 .ruff_cache
+.pytest_cache
 
 # runtime-installed clang-format versions
 backend/clang_versions

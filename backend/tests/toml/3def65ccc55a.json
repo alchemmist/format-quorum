@@ -1,0 +1,10 @@
+{
+  "id": "3def65ccc55a",
+  "name": "table and key",
+  "language": "toml",
+  "input": "[x]\ny=1\n",
+  "expected": "[x]\ny = 1\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T06:15:37.624677+00:00"
+}

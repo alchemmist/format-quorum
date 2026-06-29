@@ -1,0 +1,10 @@
+{
+  "id": "467e96a20a78",
+  "name": "heading spacing",
+  "language": "markdown",
+  "input": "#   Title\n",
+  "expected": "# Title\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T06:15:37.361390+00:00"
+}

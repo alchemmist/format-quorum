@@ -20,7 +20,13 @@ from dataclasses import dataclass
 from typing import Callable
 
 import formatters as _fmt
-from versions import InstallStrategy, PipInstall
+from versions import (
+    InstallStrategy,
+    JarInstall,
+    NpmInstall,
+    PipInstall,
+    UrlBinaryInstall,
+)
 
 
 @dataclass(frozen=True)
@@ -29,7 +35,11 @@ class ConfigSpec:
 
     filename: str  # display name, e.g. ".clang-format" / "ruff.toml"
     syntax: str  # "yaml" | "toml" | "json" | "ini" | "none" (for the editor)
-    seed_path: str  # the repo seed file; also the materialize target for the default
+    seed_path: str  # the repo seed file the history is seeded from
+    # also mirror the current config to ``seed_path`` on every change (so a raw
+    # file endpoint / the on-disk file stays current). Off for formatters that
+    # only ever receive their config as text via stdin (prettier/rustfmt/taplo).
+    materialize: bool = True
 
 
 @dataclass(frozen=True)
@@ -136,6 +146,84 @@ _register(
         patchable=False,
     )
 )
+
+# ── classic-language formatters ───────────────────────────────────────────────
+# Each is that language's default. Those with a pluggable install strategy carry
+# a full version axis (install arbitrary versions, pick one, see them in the
+# matrix). Those that read a config file (prettier/rustfmt/taplo) get an editable
+# config; gofmt, shfmt and google-java-format are config-less by design (gofmt and
+# gjf are opinionated; shfmt is flag/.editorconfig driven).
+# gofmt and rustfmt stay unversioned: gofmt has no standalone version (it tracks
+# the Go release and has no --version), and rustfmt ships only inside a full Rust
+# toolchain — neither offers per-version binaries to install.
+
+# config files. materialize=False: these only ever receive their config as text
+# (via stdin in the run callable), so nothing is mirrored to a file on disk.
+_PRETTIER_CFG = ConfigSpec(".prettierrc", "json", _fmt.PRETTIER_CONFIG, materialize=False)
+_RUSTFMT_CFG = ConfigSpec("rustfmt.toml", "toml", _fmt.RUSTFMT_CONFIG, materialize=False)
+_TAPLO_CFG = ConfigSpec("taplo.toml", "toml", _fmt.TAPLO_CONFIG, materialize=False)
+
+# quick-add version suggestions (probed for real availability before being shown)
+_PRETTIER_KNOWN = ("3.0.3", "3.1.1", "3.2.5", "3.3.3", "3.4.2", "3.5.3", "3.6.2")
+_TAPLO_KNOWN = ("0.4.1", "0.5.2", "0.6.0", "0.7.0")
+_SHFMT_KNOWN = ("3.7.0", "3.8.0", "3.9.0", "3.10.0", "3.11.0", "3.12.0", "3.13.1")
+_GJF_KNOWN = ("1.19.2", "1.21.0", "1.22.0", "1.23.0", "1.24.0", "1.25.0", "1.25.2")
+
+# google-java-format needs the compiler internals opened on JDK 16+ (mirrors the
+# image wrapper) so an installed version runs the same way the base one does.
+_GJF_JAVA_ARGS = tuple(
+    f"--add-exports jdk.compiler/com.sun.tools.javac.{m}=ALL-UNNAMED"
+    for m in ("api", "file", "parser", "tree", "util")
+)
+_SHFMT_URL = "https://github.com/mvdan/sh/releases/download/v{version}/shfmt_v{version}_linux_{arch}"
+_GJF_URL = (
+    "https://github.com/google/google-java-format/releases/download/"
+    "v{version}/google-java-format-{version}-all-deps.jar"
+)
+
+# prettier's 7 language entries share one npm install strategy (same package)
+_prettier_strategy = NpmInstall("prettier", "prettier", base_binary=_fmt.PRETTIER_BIN)
+
+# prettier backs several languages from one binary; registered once per language
+# (distinct id, all labelled "prettier"), each passing its parser extension. They
+# share one npm install strategy (the same prettier package).
+_PRETTIER_LANGS = [
+    ("prettier-js", "javascript", "js"),
+    ("prettier-ts", "typescript", "ts"),
+    ("prettier-json", "json", "json"),
+    ("prettier-css", "css", "css"),
+    ("prettier-html", "html", "html"),
+    ("prettier-md", "markdown", "md"),
+    ("prettier-yaml", "yaml", "yaml"),
+]
+for _pid, _plang, _pext in _PRETTIER_LANGS:
+    _register(
+        Formatter(
+            id=_pid, label="prettier", language=_plang, default=True,
+            config=_PRETTIER_CFG, run=_fmt.make_prettier(_pext),
+            versioned=True, install=_prettier_strategy, known_versions=_PRETTIER_KNOWN,
+        )
+    )
+
+# (id, label, language, run, install-or-None, known_versions, config-or-None)
+_CLASSIC = [
+    ("gofmt", "gofmt", "go", _fmt.format_go, None, (), None),
+    ("rustfmt", "rustfmt", "rust", _fmt.format_rust, None, (), _RUSTFMT_CFG),
+    ("shfmt", "shfmt", "shell", _fmt.format_shell,
+     UrlBinaryInstall(_SHFMT_URL, "shfmt", base_binary=_fmt.SHFMT_BIN), _SHFMT_KNOWN, None),
+    ("taplo", "taplo", "toml", _fmt.format_toml,
+     NpmInstall("@taplo/cli", "taplo", base_binary=_fmt.TAPLO_BIN), _TAPLO_KNOWN, _TAPLO_CFG),
+    ("google-java-format", "google-java-format", "java", _fmt.format_java,
+     JarInstall(_GJF_URL, "google-java-format", base_binary=_fmt.GJF_BIN,
+                java_args=_GJF_JAVA_ARGS), _GJF_KNOWN, None),
+]
+for _fid, _flabel, _flang, _frun, _finstall, _fknown, _fcfg in _CLASSIC:
+    _register(
+        Formatter(id=_fid, label=_flabel, language=_flang, default=True,
+                  config=_fcfg, run=_frun, versioned=bool(_finstall),
+                  install=_finstall, known_versions=_fknown)
+    )
+
 
 # legacy language name → default formatter id (keeps the old API working)
 _LANG_ALIAS = {f.language: f.id for f in FORMATTERS.values() if f.default}
