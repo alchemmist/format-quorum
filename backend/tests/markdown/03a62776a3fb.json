@@ -1,0 +1,10 @@
+{
+  "id": "03a62776a3fb",
+  "name": "list markers",
+  "language": "markdown",
+  "input": "-  one\n- two\n",
+  "expected": "- one\n- two\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T06:15:37.433045+00:00"
+}

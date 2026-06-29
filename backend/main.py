@@ -207,16 +207,18 @@ def _init_configs() -> None:
         default_key = _config_key(fid, None)
         if default_key != fid and configs.exists(fid) and not configs.exists(default_key):
             configs.migrate(fid, default_key)
-    # seed + materialize each formatter's default-version config
+    # seed (+ optionally materialize) each formatter's default-version config
     for f in registry.FORMATTERS.values():
         if f.config is None:
             continue
         key = _config_key(f.id, None)
-        configs.set_materialize(key, f.config.seed_path)
+        if f.config.materialize:
+            configs.set_materialize(key, f.config.seed_path)
         configs.ensure_seeded(
             key, seed_text=Path(f.config.seed_path).read_text(encoding="utf-8")
         )
-        configs.materialize(key)
+        if f.config.materialize:
+            configs.materialize(key)
     # every other already-installed version of a versioned formatter gets its own
     # config, cloned once from that formatter's default (skip configless formatters
     # like prettier/shfmt — they have a version axis but no per-version config)

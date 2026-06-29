@@ -1,0 +1,10 @@
+{
+  "id": "c246fdb48eba",
+  "name": "statements get tabs and spacing",
+  "language": "go",
+  "input": "package main\nfunc main(){\nx:=1\n_=x\n}\n",
+  "expected": "package main\n\nfunc main() {\n\tx := 1\n\t_ = x\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T06:15:36.454874+00:00"
+}
