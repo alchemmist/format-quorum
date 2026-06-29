@@ -32,6 +32,23 @@ jobs:
           # separately); the test harness picks it up from the venv.
           backend/.venv/bin/python -m pip install clang-format==18.1.8
 
+      - name: Install the classic-language formatters
+        # so the classic + version-axis tests actually run (not skip). Go, Rust
+        # (rustfmt) and Java come preinstalled on the runner; add the rest.
+        run: |
+          set -eux
+          npm install -g prettier@3 @taplo/cli@0.7
+          sudo curl -fsSL -o /usr/local/bin/shfmt \
+            https://github.com/mvdan/sh/releases/download/v3.13.1/shfmt_v3.13.1_linux_amd64
+          sudo chmod +x /usr/local/bin/shfmt
+          sudo curl -fsSL -o /usr/local/lib/google-java-format.jar \
+            https://github.com/google/google-java-format/releases/download/v1.25.2/google-java-format-1.25.2-all-deps.jar
+          printf '%s\n' '#!/bin/sh' \
+            'exec java --add-exports jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED -jar /usr/local/lib/google-java-format.jar "$@"' \
+            | sudo tee /usr/local/bin/google-java-format > /dev/null
+          sudo chmod +x /usr/local/bin/google-java-format
+          gofmt --help >/dev/null 2>&1 || true; rustfmt --version; prettier --version; shfmt --version; google-java-format --version || true
+
       - name: Run pytest
         working-directory: backend
         run: .venv/bin/python -m pytest
