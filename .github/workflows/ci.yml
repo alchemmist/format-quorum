@@ -10,12 +10,18 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# least privilege: every job only reads the repo
+permissions:
+  contents: read
+
 jobs:
   backend-tests:
     name: Backend integration tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-python@v5
         with:
@@ -37,7 +43,7 @@ jobs:
         # (rustfmt) and Java come preinstalled on the runner; add the rest.
         run: |
           set -eux
-          npm install -g prettier@3 @taplo/cli@0.7
+          npm install -g prettier@3.4.2 @taplo/cli@0.7.0
           sudo curl -fsSL -o /usr/local/bin/shfmt \
             https://github.com/mvdan/sh/releases/download/v3.13.1/shfmt_v3.13.1_linux_amd64
           sudo chmod +x /usr/local/bin/shfmt
@@ -58,6 +64,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v4
         with:
@@ -77,6 +85,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Build the production image end-to-end
         run: docker build -t format-quorum:ci .
