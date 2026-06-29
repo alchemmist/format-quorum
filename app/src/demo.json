@@ -1,0 +1,1 @@
+{"name":"format-quorum","version":1,"private":true,"keywords":["fmt","quorum","playground"],"engines":{"node":">=18"},"scripts":{"build":"vite build","dev":"vite"},"nested":{"flags":[true,false,null],"matrix":[[1,2],[3,4]],"deep":{"a":{"b":{"c":42}}}},"items":[{"id":1,"tags":["x"]},{"id":2,"tags":["y","z"]}]}

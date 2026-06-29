@@ -21,5 +21,8 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // demo.ts / demo.js are playground samples consumed only as `?raw` strings;
+  // they aren't part of the app's program (and use non-erasable syntax like enum)
+  "exclude": ["src/demo.ts", "src/demo.js"]
 }

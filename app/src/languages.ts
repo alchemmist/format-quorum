@@ -9,7 +9,6 @@ import type { Extension } from '@codemirror/state'
 import { StreamLanguage } from '@codemirror/language'
 import { cpp } from '@codemirror/lang-cpp'
 import { python } from '@codemirror/lang-python'
-import { go } from '@codemirror/lang-go'
 import { rust } from '@codemirror/lang-rust'
 import { javascript } from '@codemirror/lang-javascript'
 import { json } from '@codemirror/lang-json'
@@ -23,6 +22,17 @@ import { toml } from '@codemirror/legacy-modes/mode/toml'
 
 import demoCpp from './demo.cpp?raw'
 import demoPy from './demo.py?raw'
+import demoRs from './demo.rs?raw'
+import demoJs from './demo.js?raw'
+import demoTs from './demo.ts?raw'
+import demoJson from './demo.json?raw'
+import demoCss from './demo.css?raw'
+import demoHtml from './demo.html?raw'
+import demoMd from './demo.md?raw'
+import demoYaml from './demo.yaml?raw'
+import demoJava from './demo.java?raw'
+import demoSh from './demo.sh?raw'
+import demoToml from './demo.toml?raw'
 
 export interface LanguageDef {
   label: string // display name, e.g. "C++"
@@ -33,66 +43,21 @@ export interface LanguageDef {
 export const LANGUAGE_DEFS: Record<string, LanguageDef> = {
   cpp: { label: 'C++', cm: cpp, demo: demoCpp as string },
   python: { label: 'Python', cm: python, demo: demoPy as string },
-  go: {
-    label: 'Go',
-    cm: go,
-    demo: 'package main\n\nfunc main() {\n\tx := 1\n\t_ = x\n}\n',
-  },
-  rust: {
-    label: 'Rust',
-    cm: rust,
-    demo: 'fn main(){let x=1;let _=x;}\n',
-  },
-  javascript: {
-    label: 'JavaScript',
-    cm: () => javascript(),
-    demo: 'const x={a:1,b:2}\nfunction f(a,b){return a+b}\n',
-  },
+  rust: { label: 'Rust', cm: rust, demo: demoRs as string },
+  javascript: { label: 'JavaScript', cm: () => javascript(), demo: demoJs as string },
   typescript: {
     label: 'TypeScript',
     cm: () => javascript({ typescript: true }),
-    demo: 'const x:number=1\ninterface P{a:number;b:string}\n',
+    demo: demoTs as string,
   },
-  json: {
-    label: 'JSON',
-    cm: json,
-    demo: '{"a":1,"b":[1,2,3],"c":{"d":true}}\n',
-  },
-  css: {
-    label: 'CSS',
-    cm: css,
-    demo: 'a{color:red;margin:0}\n.box{padding:1px;border:none}\n',
-  },
-  html: {
-    label: 'HTML',
-    cm: () => html(),
-    demo: '<div>\n<p>hi</p>\n<span>x</span>\n</div>\n',
-  },
-  markdown: {
-    label: 'Markdown',
-    cm: () => markdown(),
-    demo: '#   Title\n\n-  one\n- two\n',
-  },
-  yaml: {
-    label: 'YAML',
-    cm: yaml,
-    demo: 'a:   1\nb:  2\nlist:\n- x\n- y\n',
-  },
-  java: {
-    label: 'Java',
-    cm: java,
-    demo: 'class A{int x=1;public int f(){return x;}}\n',
-  },
-  shell: {
-    label: 'Shell',
-    cm: () => StreamLanguage.define(shell),
-    demo: 'if [ "$x" = 1 ];then echo hi;fi\n',
-  },
-  toml: {
-    label: 'TOML',
-    cm: () => StreamLanguage.define(toml),
-    demo: 'a={b=1,c=2}\n[x]\ny=1\n',
-  },
+  json: { label: 'JSON', cm: json, demo: demoJson as string },
+  css: { label: 'CSS', cm: css, demo: demoCss as string },
+  html: { label: 'HTML', cm: () => html(), demo: demoHtml as string },
+  markdown: { label: 'Markdown', cm: () => markdown(), demo: demoMd as string },
+  yaml: { label: 'YAML', cm: yaml, demo: demoYaml as string },
+  java: { label: 'Java', cm: java, demo: demoJava as string },
+  shell: { label: 'Shell', cm: () => StreamLanguage.define(shell), demo: demoSh as string },
+  toml: { label: 'TOML', cm: () => StreamLanguage.define(toml), demo: demoToml as string },
 }
 
 export const hasLanguage = (lang: string): boolean => lang in LANGUAGE_DEFS
