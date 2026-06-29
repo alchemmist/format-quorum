@@ -35,7 +35,7 @@ test-deps: ## Install the backend test dependencies into backend/.venv
 	test -d $(VENV) || python3 -m venv $(VENV)
 	$(VENV)/bin/python -m pip install -q -r backend/requirements-dev.txt
 
-test: ## Run the backend integration test suite
+test: test-deps ## Run the backend integration test suite
 	cd backend && .venv/bin/python -m pytest
 
 .PHONY: help fmt-cpp fmt-py run down test-deps test

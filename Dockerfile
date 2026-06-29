@@ -29,6 +29,10 @@ ARG GO_VERSION=1.23.4
 ARG SHFMT_VERSION=3.13.1
 ARG GJF_VERSION=1.25.2
 ARG NODE_MAJOR=22
+# exact formatter versions so the backend's reported defaults don't drift build-to-build
+ARG PRETTIER_VERSION=3.4.2
+ARG TAPLO_VERSION=0.7.0
+ARG RUST_VERSION=1.83.0
 
 # Go (for gofmt), shfmt static binary, JDK + google-java-format jar + wrapper.
 # google-java-format reaches into the JDK compiler internals, so it needs a full
@@ -69,7 +73,7 @@ RUN set -eux; \
     apt-get install -y --no-install-recommends curl ca-certificates; \
     curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | bash -; \
     apt-get install -y --no-install-recommends nodejs; \
-    npm install -g prettier@3 @taplo/cli@0.7; \
+    npm install -g "prettier@${PRETTIER_VERSION}" "@taplo/cli@${TAPLO_VERSION}"; \
     rm -rf /var/lib/apt/lists/* /root/.npm
 
 # rustfmt via rustup (minimal toolchain + the rustfmt component)
@@ -77,7 +81,7 @@ RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends curl ca-certificates; \
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
-        sh -s -- -y --profile minimal --default-toolchain stable --component rustfmt; \
+        sh -s -- -y --profile minimal --default-toolchain "${RUST_VERSION}" --component rustfmt; \
     rm -rf /var/lib/apt/lists/*
 
 # binary locations the backend resolves (overridable, like CLANG_FORMAT_BIN)
@@ -95,11 +99,11 @@ ENV PATH="/usr/local/go/bin:/root/.cargo/bin:${PATH}" \
 # usable and the JDK/--add-exports wiring works.
 RUN set -eux; \
     test -x "$GOFMT_BIN"; \
-    rustfmt --version; \
-    prettier --version; \
-    shfmt --version; \
-    printf 'a=1\n' | taplo fmt - | grep -q 'a = 1'; \
-    printf 'class A{int x=1;}\n' | google-java-format - | grep -q 'class A'
+    "$RUSTFMT_BIN" --version; \
+    "$PRETTIER_BIN" --version; \
+    "$SHFMT_BIN" --version; \
+    printf 'a=1\n' | "$TAPLO_BIN" fmt - | grep -q 'a = 1'; \
+    printf 'class A{int x=1;}\n' | "$GJF_BIN" - | grep -q 'class A'
 
 WORKDIR /app
 

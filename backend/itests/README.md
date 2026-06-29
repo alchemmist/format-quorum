@@ -7,8 +7,9 @@ every endpoint plus the store internals the HTTP layer can't reach cheaply.
 
 ```bash
 cd backend
-python -m pip install -r requirements-dev.txt   # pytest + httpx
-python -m pytest
+python -m venv .venv
+.venv/bin/python -m pip install -r requirements-dev.txt   # pytest + httpx
+.venv/bin/python -m pytest
 ```
 
 The formatters must be runnable: `ruff` and `black` from the venv
