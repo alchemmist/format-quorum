@@ -48,7 +48,7 @@ class Formatter:
     label: str  # human label
     language: str  # the code language it formats (for editor highlighting)
     default: bool  # the default formatter for its language (alias target)
-    config: ConfigSpec | None  # None = the formatter takes no config (e.g. gofmt)
+    config: ConfigSpec | None  # None = the formatter takes no config (e.g. shfmt)
     # run(code, config_text_or_None, binary_or_None) -> formatted text
     run: Callable[[str, str | None, str | None], str]
     versioned: bool = False  # supports the version axis (matrix, shadows, versions)

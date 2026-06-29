@@ -1,5 +1,5 @@
 """Editable configs for the classic formatters that read one (prettier, rustfmt,
-taplo). gofmt, shfmt and google-java-format are config-less by design.
+taplo). shfmt and google-java-format are config-less by design.
 
 The format-honoring cases skip when the tool isn't installed locally; the config
 storage/keying assertions run everywhere.
