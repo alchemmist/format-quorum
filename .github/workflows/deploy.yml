@@ -19,6 +19,10 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           password: ${{ secrets.DEPLOY_PASSWORD }}
+          # the image now builds a full toolchain (JDK, Go, Rust, Node, formatters);
+          # the first cold build blows past the 10m default. Subsequent deploys hit
+          # the host's docker layer cache and finish in a few minutes.
+          command_timeout: 40m
           script: |
             set -euo pipefail
             APP_DIR=/opt/format-quorum
