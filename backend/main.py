@@ -218,8 +218,12 @@ def _init_configs() -> None:
         )
         configs.materialize(key)
     # every other already-installed version of a versioned formatter gets its own
-    # config, cloned once from that formatter's default
+    # config, cloned once from that formatter's default (skip configless formatters
+    # like prettier/shfmt — they have a version axis but no per-version config)
     for fid, mgr in version_mgrs.items():
+        f = registry.get(fid)
+        if f is None or f.config is None:
+            continue
         default_key = _config_key(fid, None)
         for v in mgr.state().get("versions", []):
             k = _config_key(fid, v)
