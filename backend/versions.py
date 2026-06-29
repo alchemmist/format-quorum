@@ -39,6 +39,14 @@ from pathlib import Path
 VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")
 
 INSTALL_TIMEOUT_SEC = 600
+DOWNLOAD_TIMEOUT_SEC = 120  # per-call ceiling so a stalled download can't hang an install
+
+
+def _download(url: str, dst: Path) -> None:
+    """Stream ``url`` to ``dst`` with a per-call timeout (urlretrieve has none)."""
+    with urllib.request.urlopen(url, timeout=DOWNLOAD_TIMEOUT_SEC) as resp:  # noqa: S310
+        with open(dst, "wb") as fh:
+            shutil.copyfileobj(resp, fh)
 
 
 # ── install strategies ────────────────────────────────────────────────────────
@@ -145,11 +153,17 @@ class PipInstall(InstallStrategy):
 
 
 def _machine_arch() -> str:
-    """This host's arch as the common release-asset token (amd64 / arm64)."""
+    """This host's arch as the common release-asset token (amd64 / arm64).
+
+    Unknown architectures return their raw token rather than masquerading as
+    amd64 — an unsupported host should miss availability, not download and try
+    to run an incompatible binary."""
     m = platform.machine().lower()
     if m in ("aarch64", "arm64"):
         return "arm64"
-    return "amd64"
+    if m in ("x86_64", "amd64"):
+        return "amd64"
+    return m
 
 
 class NpmInstall(InstallStrategy):
@@ -175,7 +189,9 @@ class NpmInstall(InstallStrategy):
         version_dir.mkdir(parents=True, exist_ok=True)
         try:
             proc = subprocess.run(
-                ["npm", "install", "--prefix", str(version_dir),
+                # --ignore-scripts: never run package lifecycle hooks — the version
+                # string is user-supplied, and prettier/@taplo/cli need no install hooks.
+                ["npm", "install", "--prefix", str(version_dir), "--ignore-scripts",
                  "--no-save", "--no-audit", "--no-fund", f"{self.package}@{version}"],
                 capture_output=True, text=True, timeout=INSTALL_TIMEOUT_SEC,
             )
@@ -224,7 +240,7 @@ class UrlBinaryInstall(InstallStrategy):
         dst = self.bin_path(version_dir)
         dst.parent.mkdir(parents=True, exist_ok=True)
         try:
-            urllib.request.urlretrieve(self._url(version), dst)  # noqa: S310
+            _download(self._url(version), dst)
             dst.chmod(0o755)
             return True, None
         except Exception as exc:  # noqa: BLE001
@@ -267,9 +283,7 @@ class JarInstall(InstallStrategy):
         jar = self._jar(version_dir)
         jar.parent.mkdir(parents=True, exist_ok=True)
         try:
-            urllib.request.urlretrieve(  # noqa: S310
-                self.url_template.format(version=version), jar
-            )
+            _download(self.url_template.format(version=version), jar)
         except Exception as exc:  # noqa: BLE001
             return False, str(exc)
         wrapper = self.bin_path(version_dir)
