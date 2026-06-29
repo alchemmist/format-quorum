@@ -1,0 +1,10 @@
+{
+  "id": "03fbb9d3c583",
+  "name": "if one-liner spacing",
+  "language": "shell",
+  "input": "if [ \"$x\" = 1 ];then echo hi;fi\n",
+  "expected": "if [ \"$x\" = 1 ]; then echo hi; fi\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T06:15:37.582918+00:00"
+}
