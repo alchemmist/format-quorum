@@ -1,0 +1,8 @@
+:root{--gap:8px;--brand:#36f;--radius:6px}
+*,*::before,*::after{box-sizing:border-box}
+.card{display:flex;flex-direction:column;gap:var(--gap);padding:16px;border:1px solid #ddd;border-radius:var(--radius)}
+.card h2,.card h3{margin:0;font-weight:600;line-height:1.2}
+a:hover,a:focus{color:var(--brand);text-decoration:underline}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:calc(var(--gap)*2)}
+@media (max-width:600px){.grid{grid-template-columns:1fr}.card{padding:8px}}
+@keyframes fade{from{opacity:0}to{opacity:1}}

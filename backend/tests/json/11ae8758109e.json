@@ -1,0 +1,10 @@
+{
+  "id": "11ae8758109e",
+  "name": "json: deep",
+  "language": "json",
+  "input": "{\"deep\":{\"a\":{\"b\":{\"c\":1}}}}\n",
+  "expected": "{ \"deep\": { \"a\": { \"b\": { \"c\": 1 } } } }\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:42.642779+00:00"
+}

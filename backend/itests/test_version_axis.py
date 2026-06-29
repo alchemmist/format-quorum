@@ -65,10 +65,8 @@ def test_versioned_classic_formatters_are_marked_versioned(appctx):
         assert fmts[fid]["versioned"] is True, fid
 
 
-def test_gofmt_and_rustfmt_stay_unversioned(appctx):
-    """gofmt (no standalone version) and rustfmt (toolchain-only) have no axis."""
+def test_rustfmt_stays_unversioned(appctx):
+    """rustfmt ships only inside a full Rust toolchain, so it has no version axis."""
     fmts = {f["id"]: f for f in appctx.client.get("/api/formatters").json()["formatters"]}
-    assert fmts["gofmt"]["versioned"] is False
     assert fmts["rustfmt"]["versioned"] is False
-    assert appctx.client.get("/api/formatters/gofmt/versions").status_code == 400
     assert appctx.client.get("/api/formatters/rustfmt/versions").status_code == 400

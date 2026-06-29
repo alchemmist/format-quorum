@@ -1,0 +1,10 @@
+{
+  "id": "4fba8488cc8d",
+  "name": "markdown: quote",
+  "language": "markdown",
+  "input": "> a quote\n",
+  "expected": "> a quote\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:45.152615+00:00"
+}

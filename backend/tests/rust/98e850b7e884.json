@@ -1,0 +1,10 @@
+{
+  "id": "98e850b7e884",
+  "name": "rust: generics",
+  "language": "rust",
+  "input": "fn first<T:Clone>(xs:&[T])->Option<T>{xs.first().cloned()}\n",
+  "expected": "fn first<T: Clone>(xs: &[T]) -> Option<T> {\n    xs.first().cloned()\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:39.081429+00:00"
+}

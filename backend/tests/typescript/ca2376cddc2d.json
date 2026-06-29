@@ -1,0 +1,10 @@
+{
+  "id": "ca2376cddc2d",
+  "name": "typescript: union type",
+  "language": "typescript",
+  "input": "type U=string|number|boolean\n",
+  "expected": "type U = string | number | boolean;\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:41.680529+00:00"
+}

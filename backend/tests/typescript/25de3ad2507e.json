@@ -1,0 +1,10 @@
+{
+  "id": "25de3ad2507e",
+  "name": "typescript: enum",
+  "language": "typescript",
+  "input": "enum E{A,B,C}\n",
+  "expected": "enum E {\n  A,\n  B,\n  C,\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:41.818245+00:00"
+}

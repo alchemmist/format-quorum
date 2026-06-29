@@ -1,0 +1,10 @@
+{
+  "id": "f413c3de4b80",
+  "name": "shell: if one-liner",
+  "language": "shell",
+  "input": "if [ \"$x\" = 1 ];then echo hi;fi\n",
+  "expected": "if [ \"$x\" = 1 ]; then echo hi; fi\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:45.815405+00:00"
+}

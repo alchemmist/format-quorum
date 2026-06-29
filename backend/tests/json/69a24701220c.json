@@ -1,0 +1,10 @@
+{
+  "id": "69a24701220c",
+  "name": "json: flat",
+  "language": "json",
+  "input": "{\"a\":1,\"b\":2}\n",
+  "expected": "{ \"a\": 1, \"b\": 2 }\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:42.093773+00:00"
+}

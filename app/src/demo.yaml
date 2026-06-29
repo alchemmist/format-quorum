@@ -1,0 +1,19 @@
+name:   format-quorum
+version:    1
+debug: true
+services:
+  - name:  web
+    port:   3000
+    env:    {DEBUG: true, LEVEL: info}
+  - name: db
+    port: 5432
+    replicas:   2
+nested:
+  list:
+    -   a
+    -   b
+    -   c
+  map:
+    key:   value
+    other:    42
+tags: [fmt,   quorum,   playground]

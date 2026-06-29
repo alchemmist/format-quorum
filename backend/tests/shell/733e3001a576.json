@@ -1,0 +1,10 @@
+{
+  "id": "733e3001a576",
+  "name": "shell: spacing",
+  "language": "shell",
+  "input": "echo   hello    world\n",
+  "expected": "echo hello world\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:45.824280+00:00"
+}

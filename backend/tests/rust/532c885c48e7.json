@@ -1,0 +1,10 @@
+{
+  "id": "532c885c48e7",
+  "name": "rust: trait",
+  "language": "rust",
+  "input": "trait Area{fn area(&self)->f64;}\nstruct C{r:f64}\nimpl Area for C{fn area(&self)->f64{3.14*self.r*self.r}}\n",
+  "expected": "trait Area {\n    fn area(&self) -> f64;\n}\nstruct C {\n    r: f64,\n}\nimpl Area for C {\n    fn area(&self) -> f64 {\n        3.14 * self.r * self.r\n    }\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:39.119722+00:00"
+}

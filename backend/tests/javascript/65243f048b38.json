@@ -1,0 +1,10 @@
+{
+  "id": "65243f048b38",
+  "name": "javascript: async",
+  "language": "javascript",
+  "input": "async function load(u){const r=await fetch(u);return r.json()}\n",
+  "expected": "async function load(u) {\n  const r = await fetch(u);\n  return r.json();\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:40.902605+00:00"
+}

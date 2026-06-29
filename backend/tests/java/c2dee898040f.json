@@ -1,0 +1,10 @@
+{
+  "id": "c2dee898040f",
+  "name": "java: method",
+  "language": "java",
+  "input": "public class B{public int sum(int a,int b){return a+b;}}\n",
+  "expected": "public class B {\n  public int sum(int a, int b) {\n    return a + b;\n  }\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:39.462757+00:00"
+}

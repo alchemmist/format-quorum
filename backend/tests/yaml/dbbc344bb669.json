@@ -1,0 +1,10 @@
+{
+  "id": "dbbc344bb669",
+  "name": "yaml: flow",
+  "language": "yaml",
+  "input": "flow: { a: 1, b: 2 }\n",
+  "expected": "flow: { a: 1, b: 2 }\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:45.679747+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "091647015808",
+  "name": "javascript: conditional",
+  "language": "javascript",
+  "input": "if(true){console.log('yes')}else{console.log('no')}\n",
+  "expected": "if (true) {\n  console.log(\"yes\");\n} else {\n  console.log(\"no\");\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:41.052798+00:00"
+}

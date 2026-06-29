@@ -1,0 +1,10 @@
+{
+  "id": "2c3b31b03b81",
+  "name": "yaml: list",
+  "language": "yaml",
+  "input": "list:\n-  x\n-  y\n",
+  "expected": "list:\n  - x\n  - y\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:45.420948+00:00"
+}

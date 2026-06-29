@@ -48,7 +48,7 @@ class Formatter:
     label: str  # human label
     language: str  # the code language it formats (for editor highlighting)
     default: bool  # the default formatter for its language (alias target)
-    config: ConfigSpec | None  # None = the formatter takes no config (e.g. gofmt)
+    config: ConfigSpec | None  # None = the formatter takes no config (e.g. shfmt)
     # run(code, config_text_or_None, binary_or_None) -> formatted text
     run: Callable[[str, str | None, str | None], str]
     versioned: bool = False  # supports the version axis (matrix, shadows, versions)
@@ -151,11 +151,10 @@ _register(
 # Each is that language's default. Those with a pluggable install strategy carry
 # a full version axis (install arbitrary versions, pick one, see them in the
 # matrix). Those that read a config file (prettier/rustfmt/taplo) get an editable
-# config; gofmt, shfmt and google-java-format are config-less by design (gofmt and
-# gjf are opinionated; shfmt is flag/.editorconfig driven).
-# gofmt and rustfmt stay unversioned: gofmt has no standalone version (it tracks
-# the Go release and has no --version), and rustfmt ships only inside a full Rust
-# toolchain — neither offers per-version binaries to install.
+# config; shfmt and google-java-format are config-less by design (gjf is
+# opinionated; shfmt is flag/.editorconfig driven).
+# rustfmt stays unversioned: it ships only inside a full Rust toolchain, so there
+# are no per-version binaries to install.
 
 # config files. materialize=False: these only ever receive their config as text
 # (via stdin in the run callable), so nothing is mirrored to a file on disk.
@@ -207,7 +206,6 @@ for _pid, _plang, _pext in _PRETTIER_LANGS:
 
 # (id, label, language, run, install-or-None, known_versions, config-or-None)
 _CLASSIC = [
-    ("gofmt", "gofmt", "go", _fmt.format_go, None, (), None),
     ("rustfmt", "rustfmt", "rust", _fmt.format_rust, None, (), _RUSTFMT_CFG),
     ("shfmt", "shfmt", "shell", _fmt.format_shell,
      UrlBinaryInstall(_SHFMT_URL, "shfmt", base_binary=_fmt.SHFMT_BIN), _SHFMT_KNOWN, None),

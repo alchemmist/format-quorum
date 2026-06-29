@@ -1,0 +1,10 @@
+{
+  "id": "6f695cbc7dab",
+  "name": "toml: array of tables",
+  "language": "toml",
+  "input": "[[items]]\nid=1\n",
+  "expected": "[[items]]\nid = 1\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:47.607330+00:00"
+}

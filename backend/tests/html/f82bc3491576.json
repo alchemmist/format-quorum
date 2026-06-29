@@ -1,0 +1,10 @@
+{
+  "id": "f82bc3491576",
+  "name": "html: table",
+  "language": "html",
+  "input": "<table><tr><td>1</td><td>2</td></tr></table>\n",
+  "expected": "<table>\n  <tr>\n    <td>1</td>\n    <td>2</td>\n  </tr>\n</table>\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:44.173748+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "fb3295287d58",
+  "name": "rust: function",
+  "language": "rust",
+  "input": "fn add(a:i32,b:i32)->i32{a+b}\n",
+  "expected": "fn add(a: i32, b: i32) -> i32 {\n    a + b\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:38.919863+00:00"
+}

@@ -110,7 +110,6 @@ def appctx(tmp_path, monkeypatch):
         "RUFF_BIN": _resolve_bin("ruff"),
         "BLACK_BIN": _resolve_bin("black"),
         # classic-language formatters (skipped in tests when their binary is absent)
-        "GOFMT_BIN": _resolve_bin("gofmt"),
         "RUSTFMT_BIN": _resolve_bin("rustfmt"),
         "PRETTIER_BIN": _resolve_bin("prettier"),
         "SHFMT_BIN": _resolve_bin("shfmt"),

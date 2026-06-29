@@ -1,0 +1,10 @@
+{
+  "id": "d0c83bedb91a",
+  "name": "java: collections",
+  "language": "java",
+  "input": "import java.util.*;class C{List<Integer> xs=new ArrayList<>();void add(int x){xs.add(x);}}\n",
+  "expected": "import java.util.*;\n\nclass C {\n  List<Integer> xs = new ArrayList<>();\n\n  void add(int x) {\n    xs.add(x);\n  }\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:39.625109+00:00"
+}

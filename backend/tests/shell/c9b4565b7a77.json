@@ -1,0 +1,10 @@
+{
+  "id": "c9b4565b7a77",
+  "name": "shell: for loop",
+  "language": "shell",
+  "input": "for i in 1 2 3;do echo $i;done\n",
+  "expected": "for i in 1 2 3; do echo $i; done\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:45.819871+00:00"
+}

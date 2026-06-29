@@ -1,0 +1,10 @@
+{
+  "id": "74a0da994d07",
+  "name": "yaml: map",
+  "language": "yaml",
+  "input": "map:\n  k:   v\n",
+  "expected": "map:\n  k: v\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:45.548856+00:00"
+}

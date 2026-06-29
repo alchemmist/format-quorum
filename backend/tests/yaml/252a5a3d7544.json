@@ -1,0 +1,10 @@
+{
+  "id": "252a5a3d7544",
+  "name": "yaml: nested",
+  "language": "yaml",
+  "input": "nested:\n  a:\n    b:   1\n",
+  "expected": "nested:\n  a:\n    b: 1\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:45.810363+00:00"
+}

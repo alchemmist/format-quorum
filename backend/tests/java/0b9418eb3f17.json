@@ -1,0 +1,10 @@
+{
+  "id": "0b9418eb3f17",
+  "name": "java: interface",
+  "language": "java",
+  "input": "interface Shape{double area();default String name(){return \"shape\";}}\n",
+  "expected": "interface Shape {\n  double area();\n\n  default String name() {\n    return \"shape\";\n  }\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:40.146957+00:00"
+}

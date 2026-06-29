@@ -1,0 +1,10 @@
+{
+  "id": "4a6ce5c8fc2b",
+  "name": "css: vars",
+  "language": "css",
+  "input": ":root{--c:#fff;--g:8px}\n",
+  "expected": ":root {\n  --c: #fff;\n  --g: 8px;\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:43.422555+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "4caad9181b42",
+  "name": "java: field",
+  "language": "java",
+  "input": "class A{int x=1;}\n",
+  "expected": "class A {\n  int x = 1;\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:39.288508+00:00"
+}

@@ -24,8 +24,7 @@ FROM python:3.12-slim AS runtime
 RUN pip install --no-cache-dir clang-format==18.1.8
 
 # ── classic-language formatter toolchains (issue #2) ──────────────────────────
-# gofmt (Go), rustfmt (Rust), prettier (Node), shfmt, taplo, google-java-format.
-ARG GO_VERSION=1.23.4
+# rustfmt (Rust), prettier (Node), shfmt, taplo, google-java-format.
 ARG SHFMT_VERSION=3.13.1
 ARG GJF_VERSION=1.25.2
 ARG NODE_MAJOR=22
@@ -34,7 +33,7 @@ ARG PRETTIER_VERSION=3.4.2
 ARG TAPLO_VERSION=0.7.0
 ARG RUST_VERSION=1.83.0
 
-# Go (for gofmt), shfmt static binary, JDK + google-java-format jar + wrapper.
+# shfmt static binary, JDK + google-java-format jar + wrapper.
 # google-java-format reaches into the JDK compiler internals, so it needs a full
 # JDK (not a JRE) plus --add-exports to open jdk.compiler on JDK 16+. JDK 21 is
 # pinned: GJF 1.25.x targets the compiler API up to 21 and breaks on 22+.
@@ -44,11 +43,10 @@ RUN set -eux; \
         curl ca-certificates openjdk-21-jdk-headless; \
     arch="$(dpkg --print-architecture)"; \
     case "$arch" in \
-        amd64) goa=amd64; sha=amd64 ;; \
-        arm64) goa=arm64; sha=arm64 ;; \
+        amd64) sha=amd64 ;; \
+        arm64) sha=arm64 ;; \
         *) echo "unsupported arch: $arch" >&2; exit 1 ;; \
     esac; \
-    curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${goa}.tar.gz" | tar -C /usr/local -xz; \
     curl -fsSL -o /usr/local/bin/shfmt \
         "https://github.com/mvdan/sh/releases/download/v${SHFMT_VERSION}/shfmt_v${SHFMT_VERSION}_linux_${sha}"; \
     chmod +x /usr/local/bin/shfmt; \
@@ -85,8 +83,7 @@ RUN set -eux; \
     rm -rf /var/lib/apt/lists/*
 
 # binary locations the backend resolves (overridable, like CLANG_FORMAT_BIN)
-ENV PATH="/usr/local/go/bin:/root/.cargo/bin:${PATH}" \
-    GOFMT_BIN=/usr/local/go/bin/gofmt \
+ENV PATH="/root/.cargo/bin:${PATH}" \
     RUSTFMT_BIN=/root/.cargo/bin/rustfmt \
     PRETTIER_BIN=prettier \
     SHFMT_BIN=/usr/local/bin/shfmt \
@@ -95,10 +92,9 @@ ENV PATH="/usr/local/go/bin:/root/.cargo/bin:${PATH}" \
 
 # fail the build early if any toolchain didn't land. taplo and google-java-format
 # are smoke-tested by actually formatting: their --version exit codes are
-# unreliable (taplo --version exits 1), and a real run also proves gofmt is
-# usable and the JDK/--add-exports wiring works.
+# unreliable (taplo --version exits 1), and a real run also proves the
+# JDK/--add-exports wiring works.
 RUN set -eux; \
-    test -x "$GOFMT_BIN"; \
     "$RUSTFMT_BIN" --version; \
     "$PRETTIER_BIN" --version; \
     "$SHFMT_BIN" --version; \

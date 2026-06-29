@@ -1,0 +1,10 @@
+{
+  "id": "a5c7bd0baa1c",
+  "name": "markdown: link",
+  "language": "markdown",
+  "input": "a [link](http://x.com) here\n",
+  "expected": "a [link](http://x.com) here\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:45.012190+00:00"
+}

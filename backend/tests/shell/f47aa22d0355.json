@@ -1,0 +1,10 @@
+{
+  "id": "f47aa22d0355",
+  "name": "shell: case",
+  "language": "shell",
+  "input": "case $x in\na) echo a;;\n*) echo other;;\nesac\n",
+  "expected": "case $x in\na) echo a ;;\n*) echo other ;;\nesac\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:45.832778+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "9ed8e7764f05",
+  "name": "json: array",
+  "language": "json",
+  "input": "[1,2,3,4,5]\n",
+  "expected": "[1, 2, 3, 4, 5]\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:42.505543+00:00"
+}

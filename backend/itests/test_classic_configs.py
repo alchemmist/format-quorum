@@ -1,5 +1,5 @@
 """Editable configs for the classic formatters that read one (prettier, rustfmt,
-taplo). gofmt, shfmt and google-java-format are config-less by design.
+taplo). shfmt and google-java-format are config-less by design.
 
 The format-honoring cases skip when the tool isn't installed locally; the config
 storage/keying assertions run everywhere.
@@ -21,7 +21,7 @@ def test_config_present_for_configurable_formatters(appctx):
 
 
 def test_configless_formatters_have_no_config(appctx):
-    for fid in ("gofmt", "shfmt", "google-java-format"):
+    for fid in ("shfmt", "google-java-format"):
         assert appctx.client.get(f"/api/config/{fid}").json()["filename"] is None
 
 

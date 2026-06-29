@@ -1,0 +1,10 @@
+{
+  "id": "7f97d2af5faf",
+  "name": "rust: struct + impl",
+  "language": "rust",
+  "input": "struct P{x:i32,y:i32}\nimpl P{fn new(x:i32,y:i32)->Self{Self{x,y}}}\n",
+  "expected": "struct P {\n    x: i32,\n    y: i32,\n}\nimpl P {\n    fn new(x: i32, y: i32) -> Self {\n        Self { x, y }\n    }\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:38.963894+00:00"
+}
