@@ -1,0 +1,10 @@
+{
+  "id": "518ba7e6bff3",
+  "name": "javascript: class",
+  "language": "javascript",
+  "input": "class Counter{constructor(n=0){this.n=n}inc(){return ++this.n}}\n",
+  "expected": "class Counter {\n  constructor(n = 0) {\n    this.n = n;\n  }\n  inc() {\n    return ++this.n;\n  }\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:40.755982+00:00"
+}

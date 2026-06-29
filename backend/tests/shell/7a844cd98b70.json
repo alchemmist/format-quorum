@@ -1,0 +1,10 @@
+{
+  "id": "7a844cd98b70",
+  "name": "shell: function",
+  "language": "shell",
+  "input": "f(){ echo hi; }\nf\n",
+  "expected": "f() { echo hi; }\nf\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:45.828632+00:00"
+}

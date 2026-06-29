@@ -1,0 +1,10 @@
+{
+  "id": "576b256118cd",
+  "name": "typescript: typed const",
+  "language": "typescript",
+  "input": "const x:number=1\n",
+  "expected": "const x: number = 1;\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:41.227078+00:00"
+}

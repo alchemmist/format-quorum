@@ -1,0 +1,10 @@
+{
+  "id": "aa7757581cb2",
+  "name": "typescript: arrow",
+  "language": "typescript",
+  "input": "const f=(a:number,b:number):number=>a+b\n",
+  "expected": "const f = (a: number, b: number): number => a + b;\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:41.954667+00:00"
+}

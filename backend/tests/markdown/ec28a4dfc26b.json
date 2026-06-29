@@ -1,0 +1,10 @@
+{
+  "id": "ec28a4dfc26b",
+  "name": "markdown: emphasis",
+  "language": "markdown",
+  "input": "**bold**   and *italic*\n",
+  "expected": "**bold** and _italic_\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:44.727896+00:00"
+}

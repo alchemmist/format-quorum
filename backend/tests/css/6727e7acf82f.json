@@ -1,0 +1,10 @@
+{
+  "id": "6727e7acf82f",
+  "name": "css: group",
+  "language": "css",
+  "input": "h1,h2{font-weight:bold}\n",
+  "expected": "h1,\nh2 {\n  font-weight: bold;\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:43.123952+00:00"
+}

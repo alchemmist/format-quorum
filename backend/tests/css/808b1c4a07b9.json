@@ -1,0 +1,10 @@
+{
+  "id": "808b1c4a07b9",
+  "name": "css: grid",
+  "language": "css",
+  "input": ".grid{display:grid;grid-template-columns:1fr 1fr}\n",
+  "expected": ".grid {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:43.583307+00:00"
+}

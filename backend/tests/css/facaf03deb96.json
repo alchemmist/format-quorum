@@ -1,0 +1,10 @@
+{
+  "id": "facaf03deb96",
+  "name": "css: media",
+  "language": "css",
+  "input": "@media(max-width:600px){.x{display:none}}\n",
+  "expected": "@media (max-width: 600px) {\n  .x {\n    display: none;\n  }\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:43.274507+00:00"
+}

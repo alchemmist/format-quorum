@@ -1,0 +1,10 @@
+{
+  "id": "224aa10cab4a",
+  "name": "toml: inline table",
+  "language": "toml",
+  "input": "a={b=1,c=2}\n",
+  "expected": "a = { b = 1, c = 2 }\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:46.280289+00:00"
+}

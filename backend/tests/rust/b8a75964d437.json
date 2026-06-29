@@ -1,0 +1,10 @@
+{
+  "id": "b8a75964d437",
+  "name": "rust: enum + match",
+  "language": "rust",
+  "input": "enum E{A,B(i32),C{x:i32}}\nfn f(e:E)->i32{match e{E::A=>0,E::B(n)=>n,E::C{x}=>x}}\n",
+  "expected": "enum E {\n    A,\n    B(i32),\n    C { x: i32 },\n}\nfn f(e: E) -> i32 {\n    match e {\n        E::A => 0,\n        E::B(n) => n,\n        E::C { x } => x,\n    }\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:39.043943+00:00"
+}

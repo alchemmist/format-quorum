@@ -1,0 +1,10 @@
+{
+  "id": "39a00656b104",
+  "name": "javascript: object",
+  "language": "javascript",
+  "input": "const x={a:1,b:2}\n",
+  "expected": "const x = { a: 1, b: 2 };\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:40.310517+00:00"
+}

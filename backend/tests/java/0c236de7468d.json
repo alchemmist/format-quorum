@@ -1,0 +1,10 @@
+{
+  "id": "0c236de7468d",
+  "name": "java: enum",
+  "language": "java",
+  "input": "enum Color{RED,GREEN,BLUE}\n",
+  "expected": "enum Color {\n  RED,\n  GREEN,\n  BLUE\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:39.791032+00:00"
+}

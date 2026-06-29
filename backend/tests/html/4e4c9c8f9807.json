@@ -1,0 +1,10 @@
+{
+  "id": "4e4c9c8f9807",
+  "name": "html: list",
+  "language": "html",
+  "input": "<ul><li>a</li><li>b</li></ul>\n",
+  "expected": "<ul>\n  <li>a</li>\n  <li>b</li>\n</ul>\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:43.893911+00:00"
+}

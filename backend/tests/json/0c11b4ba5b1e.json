@@ -1,0 +1,10 @@
+{
+  "id": "0c11b4ba5b1e",
+  "name": "json: nested",
+  "language": "json",
+  "input": "{\"list\":[1,2,3],\"nested\":{\"x\":true}}\n",
+  "expected": "{ \"list\": [1, 2, 3], \"nested\": { \"x\": true } }\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:42.232653+00:00"
+}

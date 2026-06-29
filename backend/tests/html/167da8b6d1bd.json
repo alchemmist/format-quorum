@@ -1,0 +1,10 @@
+{
+  "id": "167da8b6d1bd",
+  "name": "html: nav",
+  "language": "html",
+  "input": "<nav><a href=\"/\">home</a><a href=\"/x\">x</a></nav>\n",
+  "expected": "<nav><a href=\"/\">home</a><a href=\"/x\">x</a></nav>\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:44.310168+00:00"
+}

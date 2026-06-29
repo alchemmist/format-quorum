@@ -1,0 +1,10 @@
+{
+  "id": "0fa32713e52e",
+  "name": "markdown: list",
+  "language": "markdown",
+  "input": "-  one\n-  two\n",
+  "expected": "- one\n- two\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:44.589119+00:00"
+}

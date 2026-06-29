@@ -1,0 +1,10 @@
+{
+  "id": "cb3f596a0689",
+  "name": "javascript: array chain",
+  "language": "javascript",
+  "input": "const arr=[1,2,3].map(x=>x*2).filter(x=>x>2)\n",
+  "expected": "const arr = [1, 2, 3].map((x) => x * 2).filter((x) => x > 2);\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:40.609045+00:00"
+}

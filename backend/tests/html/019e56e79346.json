@@ -1,0 +1,10 @@
+{
+  "id": "019e56e79346",
+  "name": "html: section",
+  "language": "html",
+  "input": "<section><h1>T</h1><p>x</p></section>\n",
+  "expected": "<section>\n  <h1>T</h1>\n  <p>x</p>\n</section>\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-29T09:14:44.037346+00:00"
+}
