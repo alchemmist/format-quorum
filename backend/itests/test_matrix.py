@@ -1,4 +1,4 @@
-"""POST /api/tests/matrix — tests × versions (+ shadow configs) grid."""
+"""POST /api/tests/matrix — tests x versions (+ shadow configs) grid."""
 
 from conftest import CPP_MESSY, seed_passing_test
 
@@ -16,9 +16,11 @@ def test_matrix_base_only(appctx):
 def test_matrix_includes_installed_extra_version(appctx, install_version):
     seed_passing_test(appctx.client, "cpp", CPP_MESSY, name="m2")
     # a version distinct from the probed base, so it's a genuine extra column
-    install_version("clang-format", "14.0.6")
+    extra = "14.0.6"
+    assert extra != appctx.default_version("clang-format")  # else the check is vacuous
+    install_version("clang-format", extra)
     out = appctx.client.post("/api/tests/matrix", json={"formatter": "clang-format"}).json()
-    assert "14.0.6" in out["versions"]
+    assert extra in out["versions"]
 
 
 def test_matrix_includes_published_shadow(appctx):

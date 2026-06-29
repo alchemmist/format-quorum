@@ -36,10 +36,12 @@ def test_update_language_moves_record(appctx):
     r = appctx.client.put(f"/api/tests/{rec['id']}", json={"language": "python"})
     assert r.status_code == 200
     assert r.json()["language"] == "python"
-    # still exactly one record, now python
+    assert r.json()["id"] == rec["id"]  # moved in place, not deleted + recreated
+    # still exactly one record, now python, same id
     listed = appctx.client.get("/api/tests").json()
     assert len(listed) == 1
     assert listed[0]["language"] == "python"
+    assert listed[0]["id"] == rec["id"]
 
 
 def test_update_not_found_404(appctx):
