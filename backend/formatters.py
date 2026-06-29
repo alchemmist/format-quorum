@@ -29,15 +29,14 @@ BLACK_CONFIG = os.environ.get("BLACK_CONFIG", str(CONFIGS_DIR / "black.toml"))
 
 # Classic-language formatters, run from the image's toolchains. Binary paths are
 # overridable via env.
-GOFMT_BIN = os.environ.get("GOFMT_BIN", "gofmt")
 RUSTFMT_BIN = os.environ.get("RUSTFMT_BIN", "rustfmt")
 PRETTIER_BIN = os.environ.get("PRETTIER_BIN", "prettier")
 SHFMT_BIN = os.environ.get("SHFMT_BIN", "shfmt")
 TAPLO_BIN = os.environ.get("TAPLO_BIN", "taplo")
 GJF_BIN = os.environ.get("GJF_BIN", "google-java-format")
 
-# config files for the formatters that read one (gofmt, shfmt and
-# google-java-format are config-less by design, so they have none)
+# config files for the formatters that read one (shfmt and google-java-format
+# are config-less by design, so they have none)
 PRETTIER_CONFIG = os.environ.get("PRETTIER_CONFIG", str(CONFIGS_DIR / "prettierrc"))
 RUSTFMT_CONFIG = os.environ.get("RUSTFMT_CONFIG", str(CONFIGS_DIR / "rustfmt.toml"))
 TAPLO_CONFIG = os.environ.get("TAPLO_CONFIG", str(CONFIGS_DIR / "taplo.toml"))
@@ -171,11 +170,6 @@ def format_black(code: str, config: str | None = None, binary: str | None = None
 
 
 # ── classic-language formatters (stdin → stdout, canonical defaults) ───────────
-def format_go(code: str, config: str | None = None, binary: str | None = None) -> str:
-    """Format Go with gofmt. gofmt is opinionated and takes no config."""
-    return _run([binary or GOFMT_BIN], code)
-
-
 def format_rust(code: str, config: str | None = None, binary: str | None = None) -> str:
     """Format Rust with rustfmt. `config` is a rustfmt.toml passed via --config-path
     (the stored config when None); the edition is fixed on the CLI."""

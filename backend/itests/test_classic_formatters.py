@@ -1,4 +1,4 @@
-"""The classic-language formatters (gofmt, rustfmt, prettier, shfmt, taplo, gjf).
+"""The classic-language formatters (rustfmt, prettier, shfmt, taplo, gjf).
 
 Each test skips when its toolchain isn't installed locally — CI and the Docker
 image have them all, so coverage is complete there while staying green here.
@@ -10,7 +10,6 @@ from conftest import binary_present, seed_passing_test
 
 # (formatter id, binary, language, messy input, a token the formatted output must contain)
 CASES = [
-    ("gofmt", "gofmt", "go", "package main\nfunc main(){x:=1;_=x}\n", "func main()"),
     ("rustfmt", "rustfmt", "rust", "fn main(){let x=1;let _=x;}\n", "let x = 1;"),
     ("prettier-ts", "prettier", "typescript", "const x={a:1,b:2}\n", "const x = { a: 1, b: 2 };"),
     ("prettier-js", "prettier", "javascript", "const x=1\n", "const x = 1;"),
@@ -54,8 +53,8 @@ def test_each_classic_language_resolves_via_alias(appctx):
 
 
 def test_classic_formatter_runs_in_suite(appctx):
-    if not binary_present("gofmt"):
-        pytest.skip("gofmt not installed")
-    rec = seed_passing_test(appctx.client, "go", "package main\nfunc main(){x:=1;_=x}\n")
+    if not binary_present("rustfmt"):
+        pytest.skip("rustfmt not installed")
+    rec = seed_passing_test(appctx.client, "rust", "fn main(){let x=1;let _=x;}\n")
     out = appctx.client.post(f"/api/tests/{rec['id']}/run", json={}).json()
     assert out["status"] == "pass"

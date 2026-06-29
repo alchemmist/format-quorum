@@ -21,7 +21,7 @@ def test_config_present_for_configurable_formatters(appctx):
 
 
 def test_configless_formatters_have_no_config(appctx):
-    for fid in ("gofmt", "shfmt", "google-java-format"):
+    for fid in ("shfmt", "google-java-format"):
         assert appctx.client.get(f"/api/config/{fid}").json()["filename"] is None
 
 
