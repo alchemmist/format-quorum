@@ -24,6 +24,7 @@ a version, generate_dockerfile.py probing wheel availability) into the runtime.
 from __future__ import annotations
 
 import json
+import os
 import platform
 import re
 import shutil
@@ -47,6 +48,19 @@ def _download(url: str, dst: Path) -> None:
     with urllib.request.urlopen(url, timeout=DOWNLOAD_TIMEOUT_SEC) as resp:  # noqa: S310
         with open(dst, "wb") as fh:
             shutil.copyfileobj(resp, fh)
+
+
+def _probe_version(binary: str) -> str | None:
+    """Run ``<binary> --version`` and return the first X.Y.Z it prints, or None."""
+    try:
+        out = subprocess.run(
+            [binary, "--version"], capture_output=True, text=True, timeout=10
+        )
+    except Exception:  # noqa: BLE001
+        return None
+    # some tools print their version to stderr (e.g. google-java-format)
+    m = re.search(r"(\d+\.\d+\.\d+)", f"{out.stdout}\n{out.stderr}")
+    return m.group(1) if m else None
 
 
 # ── install strategies ────────────────────────────────────────────────────────
@@ -76,6 +90,13 @@ class InstallStrategy(ABC):
     def available(self, version: str) -> bool:
         """Cheap pre-check: is ``version`` installable on this platform? Used to
         filter quick-add suggestions. May be a best-effort guess."""
+
+    def default_version(self) -> str | None:
+        """The version of the built-in (``base_binary``) install. Defaults to
+        ``<base_binary> --version``; override when that binary reports something
+        other than the version axis's key (e.g. rustfmt prints its own version,
+        not the rust toolchain version the axis is keyed by)."""
+        return _probe_version(self.base_binary)
 
 
 class PipInstall(InstallStrategy):
@@ -304,6 +325,79 @@ class JarInstall(InstallStrategy):
             return False
 
 
+class ToolchainInstall(InstallStrategy):
+    """Install a formatter that ships only inside a language toolchain, by
+    installing the whole toolchain via its manager (rustup) into the version dir.
+
+    Unlike the other strategies a *version* here is the **toolchain** version
+    (e.g. rust ``1.83.0``), not the formatter's own version — rustfmt reports
+    ``1.9.0`` but is pinned to a rust release, so the axis is keyed by the rust
+    version and :meth:`default_version` probes ``version_binary`` (rustc) rather
+    than the rustfmt base binary.
+
+    ``rustup toolchain install <ver> --profile minimal --component <comp>`` with
+    ``RUSTUP_HOME=<version_dir>`` drops the toolchain under
+    ``<version_dir>/toolchains/<ver>-<triple>/`` and the real (non-proxy) binary
+    at ``…/bin/<binary_name>``."""
+
+    def __init__(self, manager_binary: str, component: str, binary_name: str, *,
+                 base_binary: str, version_binary: str, manifest_url: str):
+        self.manager_binary = manager_binary  # "rustup"
+        self.component = component  # "rustfmt"
+        self.binary_name = binary_name  # "rustfmt"
+        self.base_binary = base_binary  # the image's default rustfmt
+        self.version_binary = version_binary  # reports the toolchain version (rustc)
+        self.manifest_url = manifest_url  # {version} → a release-existence URL
+
+    def default_version(self) -> str | None:
+        return _probe_version(self.version_binary)
+
+    def bin_path(self, version_dir: Path) -> Path:
+        # A real rustup install drops the binary under a ``<ver>-<triple>``
+        # toolchain dir; this fixed location is what the offline test harness
+        # symlinks to. :meth:`installed_binary` globs for either layout.
+        return version_dir / "toolchains" / "installed" / "bin" / self.binary_name
+
+    def installed_binary(self, version_dir: Path) -> Path | None:
+        root = version_dir / "toolchains"
+        if not root.is_dir():
+            return None
+        for tc in sorted(root.iterdir()):
+            cand = tc / "bin" / self.binary_name
+            if cand.exists():
+                return cand
+        return None
+
+    def install(self, version: str, version_dir: Path) -> tuple[bool, str | None]:
+        version_dir.mkdir(parents=True, exist_ok=True)
+        env = dict(os.environ, RUSTUP_HOME=str(version_dir))
+        try:
+            proc = subprocess.run(
+                [self.manager_binary, "toolchain", "install", version,
+                 "--profile", "minimal", "--component", self.component,
+                 "--no-self-update"],
+                capture_output=True, text=True, timeout=INSTALL_TIMEOUT_SEC, env=env,
+            )
+            if proc.returncode != 0 or self.installed_binary(version_dir) is None:
+                return False, (proc.stderr.strip()[:400] or
+                               f"rustup toolchain install {version} failed")
+            return True, None
+        except subprocess.TimeoutExpired:
+            return False, "Installation timed out"
+        except Exception as exc:  # noqa: BLE001
+            return False, str(exc)
+
+    def available(self, version: str) -> bool:
+        req = urllib.request.Request(  # noqa: S310
+            self.manifest_url.format(version=version), method="HEAD"
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=8) as resp:  # noqa: S310
+                return resp.status == 200
+        except Exception:  # noqa: BLE001
+            return False
+
+
 # ── version manager ───────────────────────────────────────────────────────────
 class VersionManager:
     """Manages the installed versions of one formatter via an InstallStrategy."""
@@ -318,7 +412,7 @@ class VersionManager:
         self.dir = Path(versions_dir)
         self.dir.mkdir(parents=True, exist_ok=True)
         self.strategy = strategy
-        self.base_version = self._probe(strategy.base_binary)
+        self.base_version = strategy.default_version()
         self.known_versions = list(known_versions or [])
         self._lock = threading.Lock()
         self._installing: set[str] = set()
@@ -327,19 +421,6 @@ class VersionManager:
         self._suggest_lock = threading.Lock()
         self._installable: set[str] | None = None
         threading.Thread(target=self._warm_suggestions, daemon=True).start()
-
-    # ── probing ──────────────────────────────────────────────────────────────
-    @staticmethod
-    def _probe(binary: str) -> str | None:
-        try:
-            out = subprocess.run(
-                [binary, "--version"], capture_output=True, text=True, timeout=10
-            )
-        except Exception:
-            return None
-        # some tools print their version to stderr (e.g. google-java-format)
-        m = re.search(r"(\d+\.\d+\.\d+)", f"{out.stdout}\n{out.stderr}")
-        return m.group(1) if m else None
 
     # ── suggestion availability ──────────────────────────────────────────────
     def _warm_suggestions(self) -> None:

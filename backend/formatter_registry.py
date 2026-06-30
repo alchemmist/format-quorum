@@ -25,6 +25,7 @@ from versions import (
     JarInstall,
     NpmInstall,
     PipInstall,
+    ToolchainInstall,
     UrlBinaryInstall,
 )
 
@@ -153,8 +154,9 @@ _register(
 # matrix). Those that read a config file (prettier/rustfmt/taplo) get an editable
 # config; shfmt and google-java-format are config-less by design (gjf is
 # opinionated; shfmt is flag/.editorconfig driven).
-# rustfmt stays unversioned: it ships only inside a full Rust toolchain, so there
-# are no per-version binaries to install.
+# rustfmt's axis is keyed by the rust *toolchain* version (rustfmt ships only as a
+# rustup component): ToolchainInstall installs `rustup toolchain install <ver>`
+# into the version dir and runs that toolchain's rustfmt.
 
 # config files. materialize=False: these only ever receive their config as text
 # (via stdin in the run callable), so nothing is mirrored to a file on disk.
@@ -167,6 +169,28 @@ _PRETTIER_KNOWN = ("3.0.3", "3.1.1", "3.2.5", "3.3.3", "3.4.2", "3.5.3", "3.6.2"
 _TAPLO_KNOWN = ("0.4.1", "0.5.2", "0.6.0", "0.7.0")
 _SHFMT_KNOWN = ("3.7.0", "3.8.0", "3.9.0", "3.10.0", "3.11.0", "3.12.0", "3.13.1")
 _GJF_KNOWN = ("1.19.2", "1.21.0", "1.22.0", "1.23.0", "1.24.0", "1.25.0", "1.25.2")
+# rust *toolchain* versions (rustfmt is pinned to each); any valid X.Y.Z installs
+_RUSTFMT_KNOWN = ("1.79.0", "1.80.1", "1.81.0", "1.82.0", "1.83.0", "1.84.1", "1.85.1")
+# probed for existence before being suggested (200 = a real rust release)
+_RUST_MANIFEST_URL = "https://static.rust-lang.org/dist/channel-rust-{version}.toml"
+_rustfmt_strategy = ToolchainInstall(
+    _fmt.RUSTUP_BIN, "rustfmt", "rustfmt",
+    base_binary=_fmt.RUSTFMT_BIN, version_binary=_fmt.RUSTC_BIN,
+    manifest_url=_RUST_MANIFEST_URL,
+)
+_register(
+    Formatter(
+        id="rustfmt", label="rustfmt", language="rust", default=True,
+        config=_RUSTFMT_CFG, run=_fmt.format_rust, versioned=True,
+        install=_rustfmt_strategy, known_versions=_RUSTFMT_KNOWN,
+        description=(
+            "Versions are rust *toolchain* releases (rustfmt ships only as a "
+            "rustup component, so it's pinned to the rust version). Installing a "
+            "version fetches that whole toolchain via rustup — heavier than the "
+            "other formatters' single-binary installs."
+        ),
+    )
+)
 
 # google-java-format needs the compiler internals opened on JDK 16+ (mirrors the
 # image wrapper) so an installed version runs the same way the base one does.
@@ -206,7 +230,6 @@ for _pid, _plang, _pext in _PRETTIER_LANGS:
 
 # (id, label, language, run, install-or-None, known_versions, config-or-None)
 _CLASSIC = [
-    ("rustfmt", "rustfmt", "rust", _fmt.format_rust, None, (), _RUSTFMT_CFG),
     ("shfmt", "shfmt", "shell", _fmt.format_shell,
      UrlBinaryInstall(_SHFMT_URL, "shfmt", base_binary=_fmt.SHFMT_BIN), _SHFMT_KNOWN, None),
     ("taplo", "taplo", "toml", _fmt.format_toml,

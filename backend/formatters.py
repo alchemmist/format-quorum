@@ -30,6 +30,10 @@ BLACK_CONFIG = os.environ.get("BLACK_CONFIG", str(CONFIGS_DIR / "black.toml"))
 # Classic-language formatters, run from the image's toolchains. Binary paths are
 # overridable via env.
 RUSTFMT_BIN = os.environ.get("RUSTFMT_BIN", "rustfmt")
+# rustfmt's version axis is keyed by the rust *toolchain* version, which rustfmt
+# itself doesn't report — rustc does. rustup installs per-version toolchains.
+RUSTC_BIN = os.environ.get("RUSTC_BIN", "rustc")
+RUSTUP_BIN = os.environ.get("RUSTUP_BIN", "rustup")
 PRETTIER_BIN = os.environ.get("PRETTIER_BIN", "prettier")
 SHFMT_BIN = os.environ.get("SHFMT_BIN", "shfmt")
 TAPLO_BIN = os.environ.get("TAPLO_BIN", "taplo")
