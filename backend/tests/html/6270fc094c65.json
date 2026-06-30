@@ -1,0 +1,10 @@
+{
+  "id": "6270fc094c65",
+  "name": "html: figure",
+  "language": "html",
+  "input": "<figure><img src=\"a.jpg\"><figcaption>caption</figcaption></figure>\n",
+  "expected": "<figure>\n  <img src=\"a.jpg\" />\n  <figcaption>caption</figcaption>\n</figure>\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:49.323879+00:00"
+}

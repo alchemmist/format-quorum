@@ -1,0 +1,10 @@
+{
+  "id": "f6558fe618cf",
+  "name": "css: pseudo",
+  "language": "css",
+  "input": "a:hover{color:blue;text-decoration:underline}\n",
+  "expected": "a:hover {\n  color: blue;\n  text-decoration: underline;\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:48.070292+00:00"
+}

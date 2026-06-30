@@ -1,0 +1,10 @@
+{
+  "id": "f1d2cb66ce79",
+  "name": "css: nested selector",
+  "language": "css",
+  "input": ".card .title{font-size:18px;margin:0}\n",
+  "expected": ".card .title {\n  font-size: 18px;\n  margin: 0;\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:48.313153+00:00"
+}

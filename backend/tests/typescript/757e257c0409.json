@@ -1,0 +1,10 @@
+{
+  "id": "757e257c0409",
+  "name": "typescript: async typed",
+  "language": "typescript",
+  "input": "async function load(u:string):Promise<number>{const r=await fetch(u);return r.status}\n",
+  "expected": "async function load(u: string): Promise<number> {\n  const r = await fetch(u);\n  return r.status;\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:46.677815+00:00"
+}

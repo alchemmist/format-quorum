@@ -1,0 +1,10 @@
+{
+  "id": "0274a770c0f8",
+  "name": "typescript: record type",
+  "language": "typescript",
+  "input": "const m:Record<string,number>={a:1,b:2}\n",
+  "expected": "const m: Record<string, number> = { a: 1, b: 2 };\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:46.937134+00:00"
+}

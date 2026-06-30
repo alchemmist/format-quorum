@@ -1,0 +1,10 @@
+{
+  "id": "a43e7f2c3b55",
+  "name": "json: deep array",
+  "language": "json",
+  "input": "{\"matrix\":[[1,2],[3,4],[5,6]]}\n",
+  "expected": "{\n  \"matrix\": [\n    [1, 2],\n    [3, 4],\n    [5, 6]\n  ]\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:47.700443+00:00"
+}

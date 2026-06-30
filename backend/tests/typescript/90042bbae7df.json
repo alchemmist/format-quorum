@@ -1,0 +1,10 @@
+{
+  "id": "90042bbae7df",
+  "name": "typescript: mapped type",
+  "language": "typescript",
+  "input": "type Partial2<T>={[K in keyof T]?:T[K]}\n",
+  "expected": "type Partial2<T> = { [K in keyof T]?: T[K] };\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:46.424832+00:00"
+}

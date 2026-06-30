@@ -1,0 +1,10 @@
+{
+  "id": "5ad1388a1b99",
+  "name": "python: class",
+  "language": "python",
+  "input": "class Point:\n    def __init__(self,x,y):\n        self.x=x;self.y=y\n",
+  "expected": "class Point:\n    def __init__(self, x, y):\n        self.x = x\n        self.y = y\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:54.845706+00:00"
+}

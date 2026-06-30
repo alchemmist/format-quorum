@@ -1,0 +1,10 @@
+{
+  "id": "b2dac000c3b8",
+  "name": "toml: array of tables multi",
+  "language": "toml",
+  "input": "[[deps]]\nname=\"a\"\nver=\"1\"\n[[deps]]\nname=\"b\"\nver=\"2\"\n",
+  "expected": "[[deps]]\nname = \"a\"\nver = \"1\"\n[[deps]]\nname = \"b\"\nver = \"2\"\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:52.233551+00:00"
+}

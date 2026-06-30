@@ -1,0 +1,10 @@
+{
+  "id": "56aafdb26427",
+  "name": "json: mixed array",
+  "language": "json",
+  "input": "[{\"id\":1},{\"id\":2},{\"id\":3}]\n",
+  "expected": "[{ \"id\": 1 }, { \"id\": 2 }, { \"id\": 3 }]\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:47.060852+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "d5197094a682",
+  "name": "toml: datetime",
+  "language": "toml",
+  "input": "created=2026-01-01T00:00:00Z\n",
+  "expected": "created = 2026-01-01T00:00:00Z\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:53.990122+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "af592c29a92b",
+  "name": "markdown: hr + heading",
+  "language": "markdown",
+  "input": "## Section\n\n---\n\ntext\n",
+  "expected": "## Section\n\n---\n\ntext\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:50.197605+00:00"
+}

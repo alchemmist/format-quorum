@@ -1,0 +1,10 @@
+{
+  "id": "ec6912b745bd",
+  "name": "toml: mixed types",
+  "language": "toml",
+  "input": "name=\"q\"\nport=8080\ndebug=true\nratio=0.5\n",
+  "expected": "name = \"q\"\nport = 8080\ndebug = true\nratio = 0.5\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:52.670980+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "35d8a451e57b",
+  "name": "rust: derive struct",
+  "language": "rust",
+  "input": "#[derive(Debug,Clone)]struct Point{x:f64,y:f64,label:String}\n",
+  "expected": "#[derive(Debug, Clone)]\nstruct Point {\n    x: f64,\n    y: f64,\n    label: String,\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:43.301631+00:00"
+}

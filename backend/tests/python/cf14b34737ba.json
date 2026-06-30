@@ -1,0 +1,10 @@
+{
+  "id": "cf14b34737ba",
+  "name": "python: with + try",
+  "language": "python",
+  "input": "with open('f') as fh:\n    data=fh.read()\n",
+  "expected": "with open('f') as fh:\n    data = fh.read()\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:55.089443+00:00"
+}

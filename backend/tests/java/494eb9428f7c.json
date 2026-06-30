@@ -1,0 +1,10 @@
+{
+  "id": "494eb9428f7c",
+  "name": "java: record",
+  "language": "java",
+  "input": "record Point(int x,int y){}\n",
+  "expected": "record Point(int x, int y) {}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:43.963035+00:00"
+}

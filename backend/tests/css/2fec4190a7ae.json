@@ -1,0 +1,10 @@
+{
+  "id": "2fec4190a7ae",
+  "name": "css: flexbox",
+  "language": "css",
+  "input": ".row{display:flex;justify-content:space-between;align-items:center}\n",
+  "expected": ".row {\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:47.949135+00:00"
+}

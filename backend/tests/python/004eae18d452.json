@@ -1,0 +1,10 @@
+{
+  "id": "004eae18d452",
+  "name": "python: decorator",
+  "language": "python",
+  "input": "@property\ndef name(self):return self._name\n",
+  "expected": "@property\ndef name(self):\n    return self._name\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:54.970703+00:00"
+}

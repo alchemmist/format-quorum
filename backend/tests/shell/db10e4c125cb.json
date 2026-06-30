@@ -1,0 +1,10 @@
+{
+  "id": "db10e4c125cb",
+  "name": "shell: conditional &&",
+  "language": "shell",
+  "input": "[ -f /etc/hosts ]&&echo exists||echo missing\n",
+  "expected": "[ -f /etc/hosts ] && echo exists || echo missing\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:51.316144+00:00"
+}

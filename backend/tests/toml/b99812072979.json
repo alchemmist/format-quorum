@@ -1,0 +1,10 @@
+{
+  "id": "b99812072979",
+  "name": "toml: table with array",
+  "language": "toml",
+  "input": "[pkg]\nname=\"q\"\ntags=[\"a\",\"b\"]\n",
+  "expected": "[pkg]\nname = \"q\"\ntags = [\"a\", \"b\"]\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:54.441584+00:00"
+}

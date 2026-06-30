@@ -1,0 +1,10 @@
+{
+  "id": "b347427a032d",
+  "name": "markdown: table",
+  "language": "markdown",
+  "input": "|a|b|\n|-|-|\n|1|2|\n",
+  "expected": "| a   | b   |\n| --- | --- |\n| 1   | 2   |\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:49.831484+00:00"
+}

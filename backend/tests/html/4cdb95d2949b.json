@@ -1,0 +1,10 @@
+{
+  "id": "4cdb95d2949b",
+  "name": "html: dl",
+  "language": "html",
+  "input": "<dl><dt>term</dt><dd>definition</dd></dl>\n",
+  "expected": "<dl>\n  <dt>term</dt>\n  <dd>definition</dd>\n</dl>\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:49.445869+00:00"
+}

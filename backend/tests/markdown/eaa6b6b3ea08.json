@@ -1,0 +1,10 @@
+{
+  "id": "eaa6b6b3ea08",
+  "name": "markdown: image",
+  "language": "markdown",
+  "input": "![alt](http://x.com/i.png)\n",
+  "expected": "![alt](http://x.com/i.png)\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:50.317202+00:00"
+}

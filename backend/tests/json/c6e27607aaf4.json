@@ -1,0 +1,10 @@
+{
+  "id": "c6e27607aaf4",
+  "name": "json: empty containers",
+  "language": "json",
+  "input": "{\"obj\":{},\"arr\":[]}\n",
+  "expected": "{ \"obj\": {}, \"arr\": [] }\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:47.573838+00:00"
+}

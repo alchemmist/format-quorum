@@ -1,0 +1,10 @@
+{
+  "id": "71179bdc7e29",
+  "name": "javascript: for of",
+  "language": "javascript",
+  "input": "for(const item of items){console.log(item)}\n",
+  "expected": "for (const item of items) {\n  console.log(item);\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:45.638010+00:00"
+}

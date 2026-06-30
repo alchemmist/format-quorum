@@ -1,0 +1,10 @@
+{
+  "id": "ba51cdcd31ba",
+  "name": "rust: nested generics",
+  "language": "rust",
+  "input": "use std::collections::HashMap;fn m()->HashMap<String,Vec<i32>>{HashMap::new()}\n",
+  "expected": "use std::collections::HashMap;\nfn m() -> HashMap<String, Vec<i32>> {\n    HashMap::new()\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:43.266861+00:00"
+}

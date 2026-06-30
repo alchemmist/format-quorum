@@ -1,0 +1,10 @@
+{
+  "id": "5f6e6f687165",
+  "name": "shell: case multi",
+  "language": "shell",
+  "input": "case \"$1\" in\nstart) echo starting;;\nstop) echo stopping;;\n*) echo usage;;\nesac\n",
+  "expected": "case \"$1\" in\nstart) echo starting ;;\nstop) echo stopping ;;\n*) echo usage ;;\nesac\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:51.300161+00:00"
+}

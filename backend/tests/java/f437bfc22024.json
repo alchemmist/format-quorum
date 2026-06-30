@@ -1,0 +1,10 @@
+{
+  "id": "f437bfc22024",
+  "name": "java: try-catch",
+  "language": "java",
+  "input": "class T{void f(){try{int x=1/0;}catch(ArithmeticException e){System.out.println(e);}}}\n",
+  "expected": "class T {\n  void f() {\n    try {\n      int x = 1 / 0;\n    } catch (ArithmeticException e) {\n      System.out.println(e);\n    }\n  }\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:43.791816+00:00"
+}

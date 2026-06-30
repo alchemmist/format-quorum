@@ -1,0 +1,10 @@
+{
+  "id": "a514cadfdfad",
+  "name": "json: bool + null",
+  "language": "json",
+  "input": "{\"ok\":true,\"err\":null,\"n\":0}\n",
+  "expected": "{ \"ok\": true, \"err\": null, \"n\": 0 }\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:47.188368+00:00"
+}

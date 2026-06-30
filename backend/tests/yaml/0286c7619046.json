@@ -1,0 +1,10 @@
+{
+  "id": "0286c7619046",
+  "name": "yaml: list of maps",
+  "language": "yaml",
+  "input": "items:\n- name:   a\n  id: 1\n- name: b\n  id:   2\n",
+  "expected": "items:\n  - name: a\n    id: 1\n  - name: b\n    id: 2\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:50.556994+00:00"
+}

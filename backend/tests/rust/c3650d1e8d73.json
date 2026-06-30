@@ -1,0 +1,10 @@
+{
+  "id": "c3650d1e8d73",
+  "name": "rust: result fn",
+  "language": "rust",
+  "input": "fn parse(s:&str)->Result<i32,std::num::ParseIntError>{s.parse::<i32>()}\n",
+  "expected": "fn parse(s: &str) -> Result<i32, std::num::ParseIntError> {\n    s.parse::<i32>()\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:43.334664+00:00"
+}

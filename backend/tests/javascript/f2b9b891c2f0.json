@@ -1,0 +1,10 @@
+{
+  "id": "f2b9b891c2f0",
+  "name": "javascript: destructuring",
+  "language": "javascript",
+  "input": "const {a,b,...rest}=obj\n",
+  "expected": "const { a, b, ...rest } = obj;\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:45.018754+00:00"
+}

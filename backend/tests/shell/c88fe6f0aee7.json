@@ -1,0 +1,10 @@
+{
+  "id": "c88fe6f0aee7",
+  "name": "shell: array",
+  "language": "shell",
+  "input": "arr=(a b c)\nfor x in \"${arr[@]}\";do echo $x;done\n",
+  "expected": "arr=(a b c)\nfor x in \"${arr[@]}\"; do echo $x; done\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:51.326396+00:00"
+}

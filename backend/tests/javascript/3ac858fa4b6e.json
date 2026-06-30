@@ -1,0 +1,10 @@
+{
+  "id": "3ac858fa4b6e",
+  "name": "javascript: spread",
+  "language": "javascript",
+  "input": "const merged={...a,...b,extra:1}\n",
+  "expected": "const merged = { ...a, ...b, extra: 1 };\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:45.258998+00:00"
+}

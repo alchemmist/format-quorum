@@ -1,0 +1,10 @@
+{
+  "id": "e775710051a1",
+  "name": "rust: if let",
+  "language": "rust",
+  "input": "fn f(o:Option<i32>){if let Some(x)=o{println!(\"{}\",x);}else{println!(\"none\");}}\n",
+  "expected": "fn f(o: Option<i32>) {\n    if let Some(x) = o {\n        println!(\"{}\", x);\n    } else {\n        println!(\"none\");\n    }\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:43.199434+00:00"
+}

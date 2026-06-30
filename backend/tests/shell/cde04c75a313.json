@@ -1,0 +1,10 @@
+{
+  "id": "cde04c75a313",
+  "name": "shell: while loop",
+  "language": "shell",
+  "input": "i=0\nwhile [ $i -lt 3 ];do echo $i;i=$((i+1));done\n",
+  "expected": "i=0\nwhile [ $i -lt 3 ]; do\n\techo $i\n\ti=$((i + 1))\ndone\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:51.294783+00:00"
+}
