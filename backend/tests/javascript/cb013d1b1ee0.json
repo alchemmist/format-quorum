@@ -1,0 +1,10 @@
+{
+  "id": "cb013d1b1ee0",
+  "name": "javascript: promise chain",
+  "language": "javascript",
+  "input": "fetch(url).then(r=>r.json()).then(d=>console.log(d)).catch(e=>console.error(e))\n",
+  "expected": "fetch(url)\n  .then((r) => r.json())\n  .then((d) => console.log(d))\n  .catch((e) => console.error(e));\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:45.515292+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "60f12a97d833",
+  "name": "html: form",
+  "language": "html",
+  "input": "<form><input type=\"text\" name=\"q\"><button>go</button></form>\n",
+  "expected": "<form><input type=\"text\" name=\"q\" /><button>go</button></form>\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:48.813223+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "8cd079a2419a",
+  "name": "html: button group",
+  "language": "html",
+  "input": "<div class=\"actions\"><button>save</button><button>cancel</button></div>\n",
+  "expected": "<div class=\"actions\"><button>save</button><button>cancel</button></div>\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:49.581148+00:00"
+}

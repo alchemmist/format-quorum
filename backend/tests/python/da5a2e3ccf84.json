@@ -1,0 +1,10 @@
+{
+  "id": "da5a2e3ccf84",
+  "name": "python: comprehension",
+  "language": "python",
+  "input": "xs=[i*2 for i in range(10) if i%2==0]\n",
+  "expected": "xs = [i * 2 for i in range(10) if i % 2 == 0]\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:54.599629+00:00"
+}

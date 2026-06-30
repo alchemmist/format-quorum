@@ -1,0 +1,10 @@
+{
+  "id": "5b77d12c01a1",
+  "name": "css: transition",
+  "language": "css",
+  "input": ".btn{transition:all 0.2s ease-in-out;cursor:pointer}\n",
+  "expected": ".btn {\n  transition: all 0.2s ease-in-out;\n  cursor: pointer;\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:48.193173+00:00"
+}

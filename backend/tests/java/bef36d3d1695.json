@@ -1,0 +1,10 @@
+{
+  "id": "bef36d3d1695",
+  "name": "java: nested class",
+  "language": "java",
+  "input": "class Outer{class Inner{int v;Inner(int v){this.v=v;}}}\n",
+  "expected": "class Outer {\n  class Inner {\n    int v;\n\n    Inner(int v) {\n      this.v = v;\n    }\n  }\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:44.514019+00:00"
+}

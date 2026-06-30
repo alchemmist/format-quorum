@@ -1,0 +1,10 @@
+{
+  "id": "52dd10890995",
+  "name": "shell: var + quote",
+  "language": "shell",
+  "input": "name=world\necho \"hello $name\"\n",
+  "expected": "name=world\necho \"hello $name\"\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:51.310825+00:00"
+}

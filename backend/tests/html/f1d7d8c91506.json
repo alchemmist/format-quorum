@@ -1,0 +1,10 @@
+{
+  "id": "f1d7d8c91506",
+  "name": "html: select",
+  "language": "html",
+  "input": "<select><option value=\"1\">one</option><option value=\"2\">two</option></select>\n",
+  "expected": "<select>\n  <option value=\"1\">one</option>\n  <option value=\"2\">two</option>\n</select>\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:49.199294+00:00"
+}

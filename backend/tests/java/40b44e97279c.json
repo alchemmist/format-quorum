@@ -1,0 +1,10 @@
+{
+  "id": "40b44e97279c",
+  "name": "java: varargs",
+  "language": "java",
+  "input": "class V{int sum(int... ns){int s=0;for(int n:ns)s+=n;return s;}}\n",
+  "expected": "class V {\n  int sum(int... ns) {\n    int s = 0;\n    for (int n : ns) s += n;\n    return s;\n  }\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:44.895508+00:00"
+}

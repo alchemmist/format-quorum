@@ -1,0 +1,10 @@
+{
+  "id": "a17ef3e6c4c8",
+  "name": "yaml: multiline string",
+  "language": "yaml",
+  "input": "msg: |\n  line one\n  line two\n",
+  "expected": "msg: |\n  line one\n  line two\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:50.677079+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "846d8af7c280",
+  "name": "markdown: inline code",
+  "language": "markdown",
+  "input": "use the `format` command to run it\n",
+  "expected": "use the `format` command to run it\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:50.077849+00:00"
+}

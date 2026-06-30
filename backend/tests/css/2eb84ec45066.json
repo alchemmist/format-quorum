@@ -1,0 +1,10 @@
+{
+  "id": "2eb84ec45066",
+  "name": "css: keyframes",
+  "language": "css",
+  "input": "@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}\n",
+  "expected": "@keyframes spin {\n  from {\n    transform: rotate(0);\n  }\n  to {\n    transform: rotate(360deg);\n  }\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:48.437191+00:00"
+}

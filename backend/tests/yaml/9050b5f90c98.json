@@ -1,0 +1,10 @@
+{
+  "id": "9050b5f90c98",
+  "name": "yaml: bool variants",
+  "language": "yaml",
+  "input": "yes:   true\nno: false\nnull_val:   null\n",
+  "expected": "yes: true\nno: false\nnull_val: null\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:50.918960+00:00"
+}

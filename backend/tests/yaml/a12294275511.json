@@ -1,0 +1,10 @@
+{
+  "id": "a12294275511",
+  "name": "yaml: numbers",
+  "language": "yaml",
+  "input": "int:   42\nfloat: 3.14\n",
+  "expected": "int: 42\nfloat: 3.14\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:51.287125+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "fa9530025f03",
+  "name": "javascript: ternary chain",
+  "language": "javascript",
+  "input": "const r=x>0?'pos':x<0?'neg':'zero'\n",
+  "expected": "const r = x > 0 ? \"pos\" : x < 0 ? \"neg\" : \"zero\";\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:45.383425+00:00"
+}

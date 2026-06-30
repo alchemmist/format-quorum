@@ -1,0 +1,10 @@
+{
+  "id": "4248480ef8f8",
+  "name": "css: calc + var",
+  "language": "css",
+  "input": ".x{width:calc(100% - var(--gap))}\n",
+  "expected": ".x {\n  width: calc(100% - var(--gap));\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:48.561121+00:00"
+}

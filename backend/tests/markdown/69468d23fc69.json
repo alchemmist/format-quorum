@@ -1,0 +1,10 @@
+{
+  "id": "69468d23fc69",
+  "name": "markdown: nested list",
+  "language": "markdown",
+  "input": "- a\n  - a1\n  - a2\n- b\n",
+  "expected": "- a\n  - a1\n  - a2\n- b\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:49.957579+00:00"
+}

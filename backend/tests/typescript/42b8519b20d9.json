@@ -1,0 +1,10 @@
+{
+  "id": "42b8519b20d9",
+  "name": "typescript: decorator-less class",
+  "language": "typescript",
+  "input": "abstract class Shape{abstract area():number;name():string{return 'shape'}}\n",
+  "expected": "abstract class Shape {\n  abstract area(): number;\n  name(): string {\n    return \"shape\";\n  }\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:46.810402+00:00"
+}

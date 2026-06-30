@@ -1,0 +1,10 @@
+{
+  "id": "9fc9e499d407",
+  "name": "markdown: task list",
+  "language": "markdown",
+  "input": "- [ ] todo\n- [x] done\n",
+  "expected": "- [ ] todo\n- [x] done\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:50.434831+00:00"
+}

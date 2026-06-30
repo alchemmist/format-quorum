@@ -1,0 +1,10 @@
+{
+  "id": "4dba1f3d6038",
+  "name": "markdown: code fence",
+  "language": "markdown",
+  "input": "```js\nconst x=1\n```\n",
+  "expected": "```js\nconst x = 1;\n```\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:49.717620+00:00"
+}

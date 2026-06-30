@@ -1,0 +1,10 @@
+{
+  "id": "821aa15a7d57",
+  "name": "toml: multiline array",
+  "language": "toml",
+  "input": "list=[\"one\",\"two\",\"three\"]\n",
+  "expected": "list = [\"one\", \"two\", \"three\"]\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:53.543388+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "6b125bde440c",
+  "name": "json: numbers",
+  "language": "json",
+  "input": "{\"int\":42,\"float\":3.14,\"neg\":-7,\"exp\":1e3}\n",
+  "expected": "{ \"int\": 42, \"float\": 3.14, \"neg\": -7, \"exp\": 1e3 }\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:47.437384+00:00"
+}

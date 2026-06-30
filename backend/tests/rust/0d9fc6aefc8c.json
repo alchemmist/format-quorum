@@ -1,0 +1,10 @@
+{
+  "id": "0d9fc6aefc8c",
+  "name": "rust: const + static",
+  "language": "rust",
+  "input": "const MAX:u32=100;static NAME:&str=\"quorum\";\n",
+  "expected": "const MAX: u32 = 100;\nstatic NAME: &str = \"quorum\";\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:43.367287+00:00"
+}

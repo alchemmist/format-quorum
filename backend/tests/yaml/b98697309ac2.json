@@ -1,0 +1,10 @@
+{
+  "id": "b98697309ac2",
+  "name": "yaml: quoted keys",
+  "language": "yaml",
+  "input": "\"key one\":   1\n'key two':  2\n",
+  "expected": "\"key one\": 1\n\"key two\": 2\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:51.168065+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "f690ef81eb9d",
+  "name": "typescript: tuple type",
+  "language": "typescript",
+  "input": "const pair:[number,string]=[1,'a']\n",
+  "expected": "const pair: [number, string] = [1, \"a\"];\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:46.551472+00:00"
+}

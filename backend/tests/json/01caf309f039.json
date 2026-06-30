@@ -1,0 +1,10 @@
+{
+  "id": "01caf309f039",
+  "name": "json: string escapes",
+  "language": "json",
+  "input": "{\"path\":\"a/b/c\",\"quote\":\"say \\\"hi\\\"\"}\n",
+  "expected": "{ \"path\": \"a/b/c\", \"quote\": \"say \\\"hi\\\"\" }\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:47.310105+00:00"
+}

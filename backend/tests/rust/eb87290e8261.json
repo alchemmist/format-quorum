@@ -1,0 +1,10 @@
+{
+  "id": "eb87290e8261",
+  "name": "rust: vec of tuples",
+  "language": "rust",
+  "input": "fn pairs()->Vec<(i32,&'static str)>{vec![(1,\"a\"),(2,\"b\"),(3,\"c\")]}\n",
+  "expected": "fn pairs() -> Vec<(i32, &'static str)> {\n    vec![(1, \"a\"), (2, \"b\"), (3, \"c\")]\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:43.166460+00:00"
+}

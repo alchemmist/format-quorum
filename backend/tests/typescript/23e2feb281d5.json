@@ -1,0 +1,10 @@
+{
+  "id": "23e2feb281d5",
+  "name": "typescript: generic class",
+  "language": "typescript",
+  "input": "class Box<T>{constructor(private v:T){}get():T{return this.v}}\n",
+  "expected": "class Box<T> {\n  constructor(private v: T) {}\n  get(): T {\n    return this.v;\n  }\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:46.045555+00:00"
+}

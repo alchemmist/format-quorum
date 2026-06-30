@@ -1,0 +1,10 @@
+{
+  "id": "b05e4aecb5d7",
+  "name": "toml: dotted keys",
+  "language": "toml",
+  "input": "a.b.c=1\na.b.d=2\n",
+  "expected": "a.b.c = 1\na.b.d = 2\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:53.106613+00:00"
+}

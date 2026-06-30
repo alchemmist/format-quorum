@@ -1,0 +1,10 @@
+{
+  "id": "9f457abf83ca",
+  "name": "yaml: anchors",
+  "language": "yaml",
+  "input": "base: &b\n  a: 1\nuse:\n  <<: *b\n  b: 2\n",
+  "expected": "base: &b\n  a: 1\nuse:\n  <<: *b\n  b: 2\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:50.799436+00:00"
+}

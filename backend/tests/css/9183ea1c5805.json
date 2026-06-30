@@ -1,0 +1,10 @@
+{
+  "id": "9183ea1c5805",
+  "name": "css: shorthand",
+  "language": "css",
+  "input": ".b{margin:0 auto;padding:8px 16px;border:1px solid #ccc}\n",
+  "expected": ".b {\n  margin: 0 auto;\n  padding: 8px 16px;\n  border: 1px solid #ccc;\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:48.684283+00:00"
+}

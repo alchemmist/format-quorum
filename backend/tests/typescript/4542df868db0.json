@@ -1,0 +1,10 @@
+{
+  "id": "4542df868db0",
+  "name": "typescript: type guard",
+  "language": "typescript",
+  "input": "function isStr(x:unknown):x is string{return typeof x==='string'}\n",
+  "expected": "function isStr(x: unknown): x is string {\n  return typeof x === \"string\";\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:46.294268+00:00"
+}

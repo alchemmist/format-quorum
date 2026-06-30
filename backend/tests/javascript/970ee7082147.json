@@ -1,0 +1,10 @@
+{
+  "id": "970ee7082147",
+  "name": "javascript: export",
+  "language": "javascript",
+  "input": "export default function App(){return 42}\n",
+  "expected": "export default function App() {\n  return 42;\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:45.893341+00:00"
+}

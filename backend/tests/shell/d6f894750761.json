@@ -1,0 +1,10 @@
+{
+  "id": "d6f894750761",
+  "name": "shell: pipe chain",
+  "language": "shell",
+  "input": "cat file|grep foo|sort|uniq -c\n",
+  "expected": "cat file | grep foo | sort | uniq -c\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:51.305287+00:00"
+}

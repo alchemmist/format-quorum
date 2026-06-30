@@ -1,0 +1,10 @@
+{
+  "id": "772aeeeb97ef",
+  "name": "json: config-like",
+  "language": "json",
+  "input": "{\"name\":\"q\",\"version\":\"1.0.0\",\"deps\":{\"a\":\"^1\",\"b\":\"~2\"}}\n",
+  "expected": "{ \"name\": \"q\", \"version\": \"1.0.0\", \"deps\": { \"a\": \"^1\", \"b\": \"~2\" } }\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:47.827219+00:00"
+}

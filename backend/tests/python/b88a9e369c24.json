@@ -1,0 +1,10 @@
+{
+  "id": "b88a9e369c24",
+  "name": "python: dict comp",
+  "language": "python",
+  "input": "d={k:v for k,v in items}\n",
+  "expected": "d = {k: v for k, v in items}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:54.729467+00:00"
+}

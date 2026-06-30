@@ -1,0 +1,10 @@
+{
+  "id": "e22381059c7f",
+  "name": "toml: nested table",
+  "language": "toml",
+  "input": "[server.http]\nport=8080\nhost=\"0.0.0.0\"\n",
+  "expected": "[server.http]\nport = 8080\nhost = \"0.0.0.0\"\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:51.777473+00:00"
+}

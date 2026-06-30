@@ -1,0 +1,10 @@
+{
+  "id": "557112e7424d",
+  "name": "rust: closure capture",
+  "language": "rust",
+  "input": "fn main(){let n=10;let add=|x:i32|x+n;println!(\"{}\",add(5));}\n",
+  "expected": "fn main() {\n    let n = 10;\n    let add = |x: i32| x + n;\n    println!(\"{}\", add(5));\n}\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:43.132951+00:00"
+}

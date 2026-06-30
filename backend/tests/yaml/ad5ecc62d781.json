@@ -1,0 +1,10 @@
+{
+  "id": "ad5ecc62d781",
+  "name": "yaml: nested flow",
+  "language": "yaml",
+  "input": "data: {list: [1, 2, 3], ok: true}\n",
+  "expected": "data: { list: [1, 2, 3], ok: true }\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:51.044237+00:00"
+}

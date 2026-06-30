@@ -1,0 +1,10 @@
+{
+  "id": "3f348d005901",
+  "name": "python: f-string",
+  "language": "python",
+  "input": "msg=f'hi {name}, {count} items'\n",
+  "expected": "msg = f'hi {name}, {count} items'\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:55.205668+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "d71771cf9280",
+  "name": "javascript: template literal",
+  "language": "javascript",
+  "input": "const s=`hi ${name}, you have ${count} items`\n",
+  "expected": "const s = `hi ${name}, you have ${count} items`;\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:45.139356+00:00"
+}

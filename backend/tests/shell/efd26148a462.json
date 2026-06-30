@@ -1,0 +1,10 @@
+{
+  "id": "efd26148a462",
+  "name": "shell: function args",
+  "language": "shell",
+  "input": "greet(){ echo \"hi $1\"; }\ngreet alice\n",
+  "expected": "greet() { echo \"hi $1\"; }\ngreet alice\n",
+  "muted": false,
+  "note": "",
+  "created_at": "2026-06-30T08:10:51.321149+00:00"
+}
