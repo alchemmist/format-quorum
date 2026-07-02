@@ -4,6 +4,7 @@ import { ArrowRotateLeft, Sparkles } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import ClangVersionControl from './ClangVersionControl'
 import FormatterControl from './FormatterControl'
+import AddCustomFormatter from './AddCustomFormatter'
 import AppHeader, { type View } from './AppHeader'
 import { HeaderSlot } from './HeaderSlot'
 import TestsView from './TestsView'
@@ -239,6 +240,9 @@ export default function App() {
               </Select>
               {/* formatter picker — only appears when the language has >1 formatter */}
               <FormatterControl language={language} value={formatter} onChange={setFormatter} />
+              {/* upload your own binary as a custom formatter for this language
+                  (only when the backend allows uploads) */}
+              <AddCustomFormatter language={language} onCreated={setFormatter} />
               {/* the version selector follows the selected formatter: it shows that
                   formatter's own versions, and is hidden for an unversioned one
                   (ruff/black have no version axis) */}

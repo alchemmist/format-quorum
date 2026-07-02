@@ -26,6 +26,7 @@ from versions import (
     NpmInstall,
     PipInstall,
     ToolchainInstall,
+    UploadOnlyInstall,
     UrlBinaryInstall,
 )
 
@@ -61,6 +62,9 @@ class Formatter:
     # optional one-liner shown behind a "?" in the UI — what this formatter
     # actually does (e.g. ruff runs check --fix then format)
     description: str = ""
+    # user-defined formatter (uploaded binaries), not a built-in — removable, and
+    # its versions come only from uploads. See register_custom().
+    custom: bool = False
 
 
 # ── built-in formatters ───────────────────────────────────────────────────────
@@ -288,6 +292,7 @@ def public_list() -> list[dict]:
             "versioned": f.versioned,
             "patchable": f.patchable,
             "description": f.description,
+            "custom": f.custom,
             "config": (
                 {"filename": f.config.filename, "syntax": f.config.syntax}
                 if f.config
@@ -296,3 +301,37 @@ def public_list() -> list[dict]:
         }
         for f in FORMATTERS.values()
     ]
+
+
+# ── custom (user-defined) formatters ──────────────────────────────────────────
+def register_custom(formatter_id: str, label: str, language: str) -> Formatter:
+    """Register a user-defined formatter for ``language``, backed only by uploaded
+    binaries. It borrows the run/config semantics of that language's default
+    formatter (a custom C++ formatter is invoked like clang-format: binary +
+    config), so the uploaded binary must be a drop-in for that tool."""
+    base = default_for_language(language)
+    if base is None:
+        raise ValueError(f"no base formatter for language {language!r}")
+    cfg = None
+    if base.config is not None:
+        # borrow the base's config format, but never materialize — that would
+        # clobber the base formatter's shared on-disk config; the text is passed
+        # to the binary per-request instead.
+        cfg = ConfigSpec(
+            base.config.filename, base.config.syntax, base.config.seed_path,
+            materialize=False,
+        )
+    f = Formatter(
+        id=formatter_id, label=label, language=language, default=False,
+        config=cfg, run=base.run, versioned=True,
+        install=UploadOnlyInstall(formatter_id), known_versions=(),
+        patchable=base.patchable,
+        description=f"Custom formatter (uploaded binaries; runs like {base.label}).",
+        custom=True,
+    )
+    _register(f)
+    return f
+
+
+def unregister(formatter_id: str) -> None:
+    FORMATTERS.pop(formatter_id, None)

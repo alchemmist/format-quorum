@@ -14,6 +14,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import shutil
 import tempfile
 from pathlib import Path
 
@@ -31,7 +32,14 @@ from formatters import (
     format_code,
 )
 from test_store import TestStore, run_all, run_test
-from versions import CUSTOM_RE, VERSION_RE, VersionManager, custom_label_to_id
+from versions import (
+    LABEL_RE,
+    VERSION_RE,
+    VersionManager,
+    custom_formatter_id,
+    slugify,
+)
+from custom_formatter_store import CustomFormatterStore
 from config_store import ConfigStore
 from shadow_store import ShadowStore
 
@@ -67,17 +75,33 @@ configs = ConfigStore(CONFIG_HISTORY_DIR)
 # but carry their own config text. They surface as pseudo-versions.
 shadows = ShadowStore(CONFIG_HISTORY_DIR / "shadows.json")
 
+# user-defined formatters (uploaded binaries): definitions persist on the config
+# volume and are re-registered into the code-defined registry on startup, so they
+# behave like any other formatter (picker, versions, matrix, config).
+custom_formatters = CustomFormatterStore(CONFIG_HISTORY_DIR / "custom_formatters.json")
+for _cf in custom_formatters.list():
+    try:
+        registry.register_custom(_cf["id"], _cf["label"], _cf["language"])
+    except Exception:  # noqa: BLE001 - a broken definition shouldn't kill startup
+        pass
+
 # one VersionManager per *versioned* formatter, each driven by its formatter's
 # install strategy (pip today, anything later). clang-format keeps the existing
 # layout (rooted at VERSIONS_DIR) so its persisted volume is untouched; any other
-# versioned formatter gets its own subdir.
+# versioned formatter (incl. custom ones) gets its own subdir.
 version_mgrs: dict[str, VersionManager] = {}
+
+
+def _build_manager(f) -> VersionManager:
+    root = VERSIONS_DIR if f.id == "clang-format" else VERSIONS_DIR / f.id
+    mgr = VersionManager(root, f.install, known_versions=list(f.known_versions))
+    version_mgrs[f.id] = mgr
+    return mgr
+
+
 for _f in registry.FORMATTERS.values():
     if _f.versioned and _f.install:
-        _root = VERSIONS_DIR if _f.id == "clang-format" else VERSIONS_DIR / _f.id
-        version_mgrs[_f.id] = VersionManager(
-            _root, _f.install, known_versions=list(_f.known_versions)
-        )
+        _build_manager(_f)
 
 # the languages that have a config (derived from the registry)
 CONFIG_LANGS = tuple(sorted(registry.languages()))
@@ -146,13 +170,21 @@ def _resolve_binary(formatter_id: str, version: str | None):
         return None, JSONResponse(
             {"error": f"unknown formatter: {formatter_id}"}, status_code=400
         )
-    if not f.versioned or not version:
+    if not f.versioned:
+        return None, None
+    mgr = version_mgrs.get(formatter_id)
+    # a formatter with a system default (on PATH) uses it when no version is
+    # picked; a custom (upload-only) one has none, so it must resolve to an
+    # uploaded binary even without an explicit version (its newest).
+    base_less = bool(mgr and mgr.base_version is None)
+    if not version and not base_less:
         return None, None
     binary = _formatter_bin(formatter_id, version)
     if binary is None:
-        return None, JSONResponse(
-            {"error": f"{f.label} {version} is not installed"}, status_code=400
+        detail = f"{f.label} {version} is not installed" if version else (
+            f"{f.label} has no uploaded binary yet"
         )
+        return None, JSONResponse({"error": detail}, status_code=400)
     return binary, None
 
 
@@ -298,8 +330,7 @@ def _versions_state(formatter_id: str) -> dict:
     state = (
         mgr.state()
         if mgr
-        else {"versions": [], "default": None, "installing": [],
-              "suggestions": [], "uploads": []}
+        else {"versions": [], "default": None, "installing": [], "suggestions": []}
     )
     sh = [s for s in shadows.list() if s.get("formatter", "clang-format") == formatter_id]
     return {**state, "shadows": sh}
@@ -347,63 +378,132 @@ def api_formatter_remove_version(formatter_id: str, version: str):
     ok, error = mgr.remove_version(version)
     if not ok:
         return JSONResponse({"error": error}, status_code=400)
-    # a removed custom build never comes back, so forget its config too; a real
-    # X.Y.Z can be reinstalled, so its config history is kept (matches shadows).
-    if CUSTOM_RE.match(version):
+    # a custom formatter's versions are uploads that never come back, so forget
+    # their config too; a real X.Y.Z can be reinstalled, so its config is kept.
+    f = registry.get(formatter_id)
+    if f is not None and f.custom:
         configs.drop(_config_key(formatter_id, version))
     return _versions_state(formatter_id)
 
 
-class UploadBuildRequest(BaseModel):
-    label: str  # free-form; becomes a `custom-<slug>` build id
+# ── custom (user-defined) formatters: upload your own binary as a formatter ────
+class CustomFormatterRequest(BaseModel):
+    language: str  # the code language it formats (must have a built-in default)
+    name: str  # human name → its id (cf-<slug>) and label
+    version: str | None = None  # optional version label for this binary
+    config: str | None = None  # optional config text (for languages that take one)
     content_b64: str  # the binary (or jar), base64-encoded
     filename: str | None = None  # original name, for display only
 
 
-@app.post("/api/formatters/{formatter_id}/uploads")
-def api_formatter_upload(formatter_id: str, req: UploadBuildRequest):
-    """Register a user-uploaded custom (patched) binary as a build on the
-    formatter's version axis. Gated behind ALLOW_BINARY_UPLOAD — it runs an
-    arbitrary uploaded executable server-side."""
+def _decode_upload(content_b64: str):
+    """Decode a base64 upload to bytes, or return (None, error_response)."""
+    try:
+        blob = base64.b64decode(content_b64, validate=True)
+    except (ValueError, TypeError):
+        return None, JSONResponse({"error": "content is not valid base64"}, status_code=400)
+    if not blob:
+        return None, JSONResponse({"error": "uploaded file is empty"}, status_code=400)
+    if len(blob) > MAX_UPLOAD_BYTES:
+        return None, JSONResponse({"error": "uploaded file is too large"}, status_code=413)
+    return blob, None
+
+
+@app.get("/api/custom-formatters")
+def api_custom_formatters():
+    return {"formatters": custom_formatters.list(), "enabled": ALLOW_BINARY_UPLOAD}
+
+
+@app.post("/api/custom-formatters")
+def api_custom_formatter_upload(req: CustomFormatterRequest):
+    """Create (or add a version to) a user-defined formatter from an uploaded
+    binary. It shows up as its own formatter for the chosen language, alongside
+    the built-in ones, with its own version axis and config. Gated behind
+    ALLOW_BINARY_UPLOAD — it runs an arbitrary uploaded executable server-side."""
     if not ALLOW_BINARY_UPLOAD:
         return JSONResponse(
             {"error": "custom binary uploads are disabled on this deployment"},
             status_code=403,
         )
-    mgr = version_mgrs.get(formatter_id)
-    if mgr is None:
+    if registry.default_for_language(req.language) is None:
         return JSONResponse(
-            {"error": f"formatter {formatter_id} has no version axis"}, status_code=400
+            {"error": f"no built-in formatter for language {req.language!r} to base on"},
+            status_code=400,
         )
-    version_id = custom_label_to_id(req.label)
-    if version_id is None:
+    fid = custom_formatter_id(req.name)
+    if fid is None:
+        return JSONResponse({"error": "name must contain a letter or digit"}, status_code=400)
+    # a version label the user picked, or a default that doesn't collide
+    if req.version:
+        version = slugify(req.version)
+        if version is None or not LABEL_RE.match(version):
+            return JSONResponse({"error": "invalid version label"}, status_code=400)
+    else:
+        version = "v1"
+
+    existing = registry.get(fid)
+    if existing is not None and (not existing.custom or existing.language != req.language):
         return JSONResponse(
-            {"error": "label must contain a letter or digit"}, status_code=400
+            {"error": f"formatter id {fid} already exists for another formatter"},
+            status_code=400,
         )
-    try:
-        blob = base64.b64decode(req.content_b64, validate=True)
-    except (ValueError, TypeError):
-        return JSONResponse({"error": "content is not valid base64"}, status_code=400)
-    if not blob:
-        return JSONResponse({"error": "uploaded file is empty"}, status_code=400)
-    if len(blob) > MAX_UPLOAD_BYTES:
-        return JSONResponse({"error": "uploaded file is too large"}, status_code=413)
+
+    blob, err = _decode_upload(req.content_b64)
+    if err:
+        return err
+
+    # register the formatter (idempotent) + its manager the first time we see it
+    if existing is None:
+        base = registry.default_for_language(req.language)
+        registry.register_custom(fid, req.name.strip(), req.language)
+        custom_formatters.upsert(fid, req.name.strip(), req.language, base.id)
+        # seed its default config from the base formatter's, so per-version
+        # configs have something to clone (this runs after startup's _init_configs)
+        newf = registry.get(fid)
+        if newf.config is not None:
+            configs.ensure_seeded(
+                _config_key(fid, None), seed_from_key=_config_key(base.id, None)
+            )
+    mgr = version_mgrs.get(fid) or _build_manager(registry.get(fid))
 
     fd, name = tempfile.mkstemp()
     tmp_path = Path(name)
     try:
         with os.fdopen(fd, "wb") as fh:  # closes the fd even if write() raises
             fh.write(blob)
-        ok, error = mgr.add_upload(version_id, tmp_path)
+        ok, error = mgr.add_upload(version, tmp_path)
     finally:
         tmp_path.unlink(missing_ok=True)
     if not ok:
+        # nothing installed yet and creation just failed → roll the definition back
+        if existing is None and not mgr.state()["versions"]:
+            registry.unregister(fid)
+            version_mgrs.pop(fid, None)
+            custom_formatters.delete(fid)
         return JSONResponse({"error": error}, status_code=400)
-    # give the custom build its own config, copied once from the default version
-    configs.ensure_seeded(
-        _config_key(formatter_id, version_id), seed_from_key=_config_key(formatter_id, None)
-    )
-    return {**_versions_state(formatter_id), "added": version_id}
+
+    # seed this version's config, then apply the user's config text if given
+    f = registry.get(fid)
+    if f.config is not None:
+        key = _ensure_config(fid, version)
+        if req.config is not None:
+            configs.record(key, req.config, message="custom formatter config")
+    return {**_versions_state(fid), "formatter": custom_formatters.get(fid), "added": version}
+
+
+@app.delete("/api/custom-formatters/{formatter_id}")
+def api_custom_formatter_delete(formatter_id: str):
+    f = registry.get(formatter_id)
+    if f is None or not f.custom:
+        return JSONResponse({"error": "not a custom formatter"}, status_code=404)
+    registry.unregister(formatter_id)
+    version_mgrs.pop(formatter_id, None)
+    custom_formatters.delete(formatter_id)
+    configs.drop(_config_key(formatter_id, None))
+    root = VERSIONS_DIR / formatter_id
+    if root.exists():
+        shutil.rmtree(root, ignore_errors=True)
+    return {"ok": True, "formatters": custom_formatters.list()}
 
 
 # legacy aliases — clang-format version management

@@ -35,6 +35,7 @@ _BACKEND_MODULES = (
     "shadow_store",
     "test_store",
     "versions",
+    "custom_formatter_store",
 )
 
 

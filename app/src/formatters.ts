@@ -16,6 +16,7 @@ export interface FormatterInfo {
   patchable: boolean // top-level key patch (whatif) applies
   config: { filename: string; syntax: string } | null
   description?: string // what this formatter does (shown behind a "?" hint)
+  custom?: boolean // user-defined formatter (uploaded binaries), removable
 }
 
 let _formatters: FormatterInfo[] = []

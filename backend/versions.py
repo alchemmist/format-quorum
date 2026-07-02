@@ -38,17 +38,25 @@ from pathlib import Path
 
 # Strictly three dot-separated numbers, e.g. 22.1.5.
 VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")
-# A user-uploaded custom build reuses the version axis under its own namespace, so
-# it never collides with an X.Y.Z release and is easy to tell apart everywhere.
-CUSTOM_RE = re.compile(r"^custom-[a-z0-9][a-z0-9._-]*$")
+# A safe, filesystem-usable slug for a version label or a custom-formatter id.
+LABEL_RE = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
+# Custom (user-defined) formatters live under this id namespace so they never
+# collide with the built-in registry ids.
+CUSTOM_FORMATTER_PREFIX = "cf-"
 
 
-def custom_label_to_id(label: str) -> str | None:
-    """Turn a free-form label ("my patch", "fork#1") into a safe ``custom-<slug>``
-    id, or None if there's nothing usable in it."""
-    slug = re.sub(r"[^a-z0-9._-]+", "-", label.strip().lower())
+def slugify(text: str) -> str | None:
+    """Turn free-form text ("My Patch #1", "clang v2") into a safe slug matching
+    :data:`LABEL_RE`, or None if there's nothing usable in it."""
+    slug = re.sub(r"[^a-z0-9._-]+", "-", text.strip().lower())
     slug = re.sub(r"-{2,}", "-", slug).strip("-.")
-    return f"custom-{slug}" if slug else None
+    return slug or None
+
+
+def custom_formatter_id(name: str) -> str | None:
+    """The formatter id for a custom formatter named ``name`` (``cf-<slug>``)."""
+    slug = slugify(name)
+    return f"{CUSTOM_FORMATTER_PREFIX}{slug}" if slug else None
 
 INSTALL_TIMEOUT_SEC = 600
 DOWNLOAD_TIMEOUT_SEC = 120  # per-call ceiling so a stalled download can't hang an install
@@ -370,6 +378,35 @@ class JarInstall(InstallStrategy):
             return False
 
 
+class UploadOnlyInstall(InstallStrategy):
+    """A formatter that exists ONLY through user-uploaded binaries — no fetchable
+    releases and no system default on PATH. Used by custom (user-defined)
+    formatters: every version is a binary the user uploaded, placed at
+    ``<version_dir>/bin/<binary_name>`` and run directly (``install_upload`` is
+    the inherited default). There is no base version, so :meth:`default_version`
+    is None and the newest upload is used when no version is picked."""
+
+    def __init__(self, binary_name: str):
+        self.binary_name = binary_name
+        self.base_binary = ""  # nothing on PATH
+
+    def bin_path(self, version_dir: Path) -> Path:
+        return version_dir / "bin" / self.binary_name
+
+    def installed_binary(self, version_dir: Path) -> Path | None:
+        p = self.bin_path(version_dir)
+        return p if p.exists() else None
+
+    def install(self, version: str, version_dir: Path) -> tuple[bool, str | None]:
+        return False, "this formatter only accepts uploaded binaries"
+
+    def available(self, version: str) -> bool:
+        return False
+
+    def default_version(self) -> str | None:
+        return None  # no built-in/system version — versions come only from uploads
+
+
 class ToolchainInstall(InstallStrategy):
     """Install a formatter that ships only inside a language toolchain, by
     installing the whole toolchain via its manager (rustup) into the version dir.
@@ -496,7 +533,15 @@ class VersionManager:
 
     def get_binary(self, version: str | None) -> str | None:
         """Resolve a version string to a binary path, or None."""
-        if not version or version == self.base_version:
+        if not version:
+            if self.base_version:
+                return self.strategy.base_binary
+            # no system default (upload-only formatter): use the newest upload
+            installed = self._installed()
+            version = installed[-1] if installed else None
+            if version is None:
+                return None
+        elif version == self.base_version:
             return self.strategy.base_binary
         bin_path = self.strategy.installed_binary(self.dir / version)
         return str(bin_path) if bin_path else None
@@ -514,16 +559,11 @@ class VersionManager:
             else [v for v in self.known_versions if v in installable]
         )
         suggestions = [v for v in pool if v not in installed]
-        # uploaded custom builds live on the same axis (so format/matrix/config
-        # treat them as versions) but are surfaced separately so the UI can label
-        # them and tell them apart from fetched X.Y.Z releases.
-        uploads = [v for v in installed if CUSTOM_RE.match(v)]
         return {
             "versions": installed,
             "default": self.base_version,
             "installing": installing,
             "suggestions": suggestions,
-            "uploads": uploads,
         }
 
     # ── mutations ────────────────────────────────────────────────────────────
@@ -553,11 +593,12 @@ class VersionManager:
             shutil.rmtree(target, ignore_errors=True)
         return ok, error
 
-    def add_upload(self, version_id: str, src: Path) -> tuple[bool, str | None]:
-        """Register a user-uploaded prebuilt binary as the custom build
-        ``version_id`` (``custom-<slug>``), replacing any build under that id."""
-        if not CUSTOM_RE.match(version_id):
-            return False, "Invalid custom build id"
+    def add_upload(self, version_label: str, src: Path) -> tuple[bool, str | None]:
+        """Register a user-uploaded binary as the version ``version_label``,
+        replacing any binary already under that label."""
+        if not LABEL_RE.match(version_label):
+            return False, "Invalid version label"
+        version_id = version_label
         with self._lock:
             if version_id in self._installing:
                 return False, "This build is already being installed"
