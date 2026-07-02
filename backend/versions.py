@@ -37,6 +37,17 @@ from pathlib import Path
 
 # Strictly three dot-separated numbers, e.g. 22.1.5.
 VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")
+# A user-uploaded custom build reuses the version axis under its own namespace, so
+# it never collides with an X.Y.Z release and is easy to tell apart everywhere.
+CUSTOM_RE = re.compile(r"^custom-[a-z0-9][a-z0-9._-]*$")
+
+
+def custom_label_to_id(label: str) -> str | None:
+    """Turn a free-form label ("my patch", "fork#1") into a safe ``custom-<slug>``
+    id, or None if there's nothing usable in it."""
+    slug = re.sub(r"[^a-z0-9._-]+", "-", label.strip().lower())
+    slug = re.sub(r"-{2,}", "-", slug).strip("-.")
+    return f"custom-{slug}" if slug else None
 
 INSTALL_TIMEOUT_SEC = 600
 DOWNLOAD_TIMEOUT_SEC = 120  # per-call ceiling so a stalled download can't hang an install
@@ -76,6 +87,20 @@ class InstallStrategy(ABC):
     def available(self, version: str) -> bool:
         """Cheap pre-check: is ``version`` installable on this platform? Used to
         filter quick-add suggestions. May be a best-effort guess."""
+
+    def install_upload(self, src: Path, version_dir: Path) -> tuple[bool, str | None]:
+        """Place a user-uploaded prebuilt binary as a custom 'version'. Default:
+        copy it to where :meth:`installed_binary` looks and mark it executable, so
+        it's invoked exactly like a fetched build. Strategies whose runnable
+        artifact isn't a bare executable (a jar) override this."""
+        try:
+            dst = self.bin_path(version_dir)  # type: ignore[attr-defined]
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src, dst)
+            dst.chmod(0o755)
+            return True, None
+        except Exception as exc:  # noqa: BLE001
+            return False, str(exc)
 
 
 class PipInstall(InstallStrategy):
@@ -279,6 +304,15 @@ class JarInstall(InstallStrategy):
         p = self.bin_path(version_dir)
         return p if p.exists() and self._jar(version_dir).exists() else None
 
+    def _write_wrapper(self, version_dir: Path) -> None:
+        wrapper = self.bin_path(version_dir)
+        wrapper.parent.mkdir(parents=True, exist_ok=True)
+        flags = " ".join(self.java_args)
+        wrapper.write_text(
+            f'#!/bin/sh\nexec java {flags} -jar "{self._jar(version_dir)}" "$@"\n'
+        )
+        wrapper.chmod(0o755)
+
     def install(self, version: str, version_dir: Path) -> tuple[bool, str | None]:
         jar = self._jar(version_dir)
         jar.parent.mkdir(parents=True, exist_ok=True)
@@ -286,11 +320,18 @@ class JarInstall(InstallStrategy):
             _download(self.url_template.format(version=version), jar)
         except Exception as exc:  # noqa: BLE001
             return False, str(exc)
-        wrapper = self.bin_path(version_dir)
-        wrapper.parent.mkdir(parents=True, exist_ok=True)
-        flags = " ".join(self.java_args)
-        wrapper.write_text(f'#!/bin/sh\nexec java {flags} -jar "{jar}" "$@"\n')
-        wrapper.chmod(0o755)
+        self._write_wrapper(version_dir)
+        return True, None
+
+    def install_upload(self, src: Path, version_dir: Path) -> tuple[bool, str | None]:
+        # the uploaded artifact is a jar: place it and (re)generate the launcher
+        jar = self._jar(version_dir)
+        jar.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            shutil.copyfile(src, jar)
+        except Exception as exc:  # noqa: BLE001
+            return False, str(exc)
+        self._write_wrapper(version_dir)
         return True, None
 
     def available(self, version: str) -> bool:
@@ -386,11 +427,16 @@ class VersionManager:
             else [v for v in self.known_versions if v in installable]
         )
         suggestions = [v for v in pool if v not in installed]
+        # uploaded custom builds live on the same axis (so format/matrix/config
+        # treat them as versions) but are surfaced separately so the UI can label
+        # them and tell them apart from fetched X.Y.Z releases.
+        uploads = [v for v in installed if CUSTOM_RE.match(v)]
         return {
             "versions": installed,
             "default": self.base_version,
             "installing": installing,
             "suggestions": suggestions,
+            "uploads": uploads,
         }
 
     # ── mutations ────────────────────────────────────────────────────────────
@@ -419,6 +465,27 @@ class VersionManager:
         if not ok:
             shutil.rmtree(target, ignore_errors=True)
         return ok, error
+
+    def add_upload(self, version_id: str, src: Path) -> tuple[bool, str | None]:
+        """Register a user-uploaded prebuilt binary as the custom build
+        ``version_id`` (``custom-<slug>``), replacing any build under that id."""
+        if not CUSTOM_RE.match(version_id):
+            return False, "Invalid custom build id"
+        with self._lock:
+            if version_id in self._installing:
+                return False, "This build is already being installed"
+            self._installing.add(version_id)
+        try:
+            target = self.dir / version_id
+            if target.exists():
+                shutil.rmtree(target, ignore_errors=True)
+            ok, error = self.strategy.install_upload(src, target)
+            if not ok:
+                shutil.rmtree(target, ignore_errors=True)
+            return ok, error
+        finally:
+            with self._lock:
+                self._installing.discard(version_id)
 
     def remove_version(self, version: str) -> tuple[bool, str | None]:
         if version == self.base_version:

@@ -11,8 +11,10 @@ aliases (cpp→clang-format, python→ruff) so existing clients keep working.
 
 from __future__ import annotations
 
+import base64
 import json
 import os
+import tempfile
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -29,7 +31,7 @@ from formatters import (
     format_code,
 )
 from test_store import TestStore, run_all, run_test
-from versions import VERSION_RE, VersionManager
+from versions import CUSTOM_RE, VERSION_RE, VersionManager, custom_label_to_id
 from config_store import ConfigStore
 from shadow_store import ShadowStore
 
@@ -48,6 +50,15 @@ TESTS_DIR = Path(os.environ.get("TESTS_DIR", str(BACKEND_DIR / "tests")))
 CONFIG_HISTORY_DIR = Path(
     os.environ.get("CONFIG_HISTORY_DIR", str(BACKEND_DIR / "config_history"))
 )
+
+# Uploading a custom (patched) formatter binary runs an arbitrary user-supplied
+# executable server-side — remote code execution. It's OFF by default so the
+# public, auth-less deployment stays safe; a trusted/local deployment opts in with
+# ALLOW_BINARY_UPLOAD=1. See issue #15.
+ALLOW_BINARY_UPLOAD = os.environ.get("ALLOW_BINARY_UPLOAD", "").lower() in (
+    "1", "true", "yes", "on",
+)
+MAX_UPLOAD_BYTES = 200 * 1024 * 1024  # generous ceiling for a compiled formatter
 
 app = FastAPI(title="format-quorum", version="0.9.0")
 tests = TestStore(TESTS_DIR)
@@ -287,7 +298,8 @@ def _versions_state(formatter_id: str) -> dict:
     state = (
         mgr.state()
         if mgr
-        else {"versions": [], "default": None, "installing": [], "suggestions": []}
+        else {"versions": [], "default": None, "installing": [],
+              "suggestions": [], "uploads": []}
     )
     sh = [s for s in shadows.list() if s.get("formatter", "clang-format") == formatter_id]
     return {**state, "shadows": sh}
@@ -296,7 +308,7 @@ def _versions_state(formatter_id: str) -> dict:
 @app.get("/api/formatters")
 def api_formatters():
     """The formatter registry — what the frontend builds its pickers from."""
-    return {"formatters": registry.public_list()}
+    return {"formatters": registry.public_list(), "uploads_enabled": ALLOW_BINARY_UPLOAD}
 
 
 @app.get("/api/formatters/{formatter_id}/versions")
@@ -335,7 +347,62 @@ def api_formatter_remove_version(formatter_id: str, version: str):
     ok, error = mgr.remove_version(version)
     if not ok:
         return JSONResponse({"error": error}, status_code=400)
+    # a removed custom build never comes back, so forget its config too; a real
+    # X.Y.Z can be reinstalled, so its config history is kept (matches shadows).
+    if CUSTOM_RE.match(version):
+        configs.drop(_config_key(formatter_id, version))
     return _versions_state(formatter_id)
+
+
+class UploadBuildRequest(BaseModel):
+    label: str  # free-form; becomes a `custom-<slug>` build id
+    content_b64: str  # the binary (or jar), base64-encoded
+    filename: str | None = None  # original name, for display only
+
+
+@app.post("/api/formatters/{formatter_id}/uploads")
+def api_formatter_upload(formatter_id: str, req: UploadBuildRequest):
+    """Register a user-uploaded custom (patched) binary as a build on the
+    formatter's version axis. Gated behind ALLOW_BINARY_UPLOAD — it runs an
+    arbitrary uploaded executable server-side."""
+    if not ALLOW_BINARY_UPLOAD:
+        return JSONResponse(
+            {"error": "custom binary uploads are disabled on this deployment"},
+            status_code=403,
+        )
+    mgr = version_mgrs.get(formatter_id)
+    if mgr is None:
+        return JSONResponse(
+            {"error": f"formatter {formatter_id} has no version axis"}, status_code=400
+        )
+    version_id = custom_label_to_id(req.label)
+    if version_id is None:
+        return JSONResponse(
+            {"error": "label must contain a letter or digit"}, status_code=400
+        )
+    try:
+        blob = base64.b64decode(req.content_b64, validate=True)
+    except (ValueError, TypeError):
+        return JSONResponse({"error": "content is not valid base64"}, status_code=400)
+    if not blob:
+        return JSONResponse({"error": "uploaded file is empty"}, status_code=400)
+    if len(blob) > MAX_UPLOAD_BYTES:
+        return JSONResponse({"error": "uploaded file is too large"}, status_code=413)
+
+    tmp = tempfile.NamedTemporaryFile(delete=False)
+    try:
+        tmp.write(blob)
+        tmp.close()
+        ok, error = mgr.add_upload(version_id, Path(tmp.name))
+    finally:
+        Path(tmp.name).unlink(missing_ok=True)
+    if not ok:
+        return JSONResponse({"error": error}, status_code=400)
+    # give the custom build its own config, copied once from the default version
+    configs.ensure_seeded(
+        _config_key(formatter_id, version_id), seed_from_key=_config_key(formatter_id, None)
+    )
+    return {**_versions_state(formatter_id), "added": version_id}
 
 
 # legacy aliases — clang-format version management
