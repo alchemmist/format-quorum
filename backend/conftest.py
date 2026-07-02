@@ -124,7 +124,7 @@ def appctx(tmp_path, monkeypatch):
     for mod in _BACKEND_MODULES:
         sys.modules.pop(mod, None)
     versions = importlib.import_module("versions")
-    for _cls in ("PipInstall", "NpmInstall", "UrlBinaryInstall", "JarInstall"):
+    for _cls in ("PipInstall", "NpmInstall", "UrlBinaryInstall", "JarInstall", "ToolchainInstall"):
         monkeypatch.setattr(getattr(versions, _cls), "available", lambda self, v: True)
     main = importlib.import_module("main")
 
