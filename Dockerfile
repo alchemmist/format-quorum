@@ -85,6 +85,8 @@ RUN set -eux; \
 # binary locations the backend resolves (overridable, like CLANG_FORMAT_BIN)
 ENV PATH="/root/.cargo/bin:${PATH}" \
     RUSTFMT_BIN=/root/.cargo/bin/rustfmt \
+    RUSTC_BIN=/root/.cargo/bin/rustc \
+    RUSTUP_BIN=/root/.cargo/bin/rustup \
     PRETTIER_BIN=prettier \
     SHFMT_BIN=/usr/local/bin/shfmt \
     TAPLO_BIN=taplo \
