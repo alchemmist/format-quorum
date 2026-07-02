@@ -32,6 +32,11 @@ ARG NODE_MAJOR=22
 ARG PRETTIER_VERSION=3.4.2
 ARG TAPLO_VERSION=0.7.0
 ARG RUST_VERSION=1.83.0
+# rustup fetches rustup-init and the toolchain from these. Override to a reachable
+# mirror if static.rust-lang.org is blocked/throttled on the build network, e.g.
+# --build-arg RUSTUP_UPDATE_ROOT=<mirror>/rustup --build-arg RUSTUP_DIST_SERVER=<mirror>
+ARG RUSTUP_DIST_SERVER=https://static.rust-lang.org
+ARG RUSTUP_UPDATE_ROOT=https://static.rust-lang.org/rustup
 
 # shfmt static binary, JDK + google-java-format jar + wrapper.
 # google-java-format reaches into the JDK compiler internals, so it needs a full
@@ -74,12 +79,23 @@ RUN set -eux; \
     npm install -g "prettier@${PRETTIER_VERSION}" "@taplo/cli@${TAPLO_VERSION}"; \
     rm -rf /var/lib/apt/lists/* /root/.npm
 
-# rustfmt via rustup (minimal toolchain + the rustfmt component)
+# rustfmt via rustup (minimal toolchain + the rustfmt component).
+# Retried with a short connect timeout so a flaky/slow network fails fast and
+# tries again instead of hanging ~75s per attempt; the mirror args above let a
+# blocked static.rust-lang.org be swapped out entirely.
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends curl ca-certificates; \
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
-        sh -s -- -y --profile minimal --default-toolchain "${RUST_VERSION}" --component rustfmt; \
+    export RUSTUP_DIST_SERVER="${RUSTUP_DIST_SERVER}" RUSTUP_UPDATE_ROOT="${RUSTUP_UPDATE_ROOT}"; \
+    curl --proto '=https' --tlsv1.2 --connect-timeout 15 --retry 3 --retry-connrefused \
+        -sSf https://sh.rustup.rs -o /tmp/rustup-init.sh; \
+    for attempt in 1 2 3 4 5; do \
+        if sh /tmp/rustup-init.sh -y --profile minimal \
+            --default-toolchain "${RUST_VERSION}" --component rustfmt; then break; fi; \
+        echo "rustup install attempt ${attempt} failed; retrying" >&2; sleep 5; \
+    done; \
+    test -x /root/.cargo/bin/rustfmt; \
+    rm -f /tmp/rustup-init.sh; \
     rm -rf /var/lib/apt/lists/*
 
 # binary locations the backend resolves (overridable, like CLANG_FORMAT_BIN)

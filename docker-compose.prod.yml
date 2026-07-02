@@ -9,6 +9,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # override to a reachable mirror if static.rust-lang.org is blocked on the
+      # build host (the image is built here over SSH during deploy)
+      args:
+        RUSTUP_DIST_SERVER: ${RUSTUP_DIST_SERVER:-https://static.rust-lang.org}
+        RUSTUP_UPDATE_ROOT: ${RUSTUP_UPDATE_ROOT:-https://static.rust-lang.org/rustup}
     image: format-quorum:latest
     restart: unless-stopped
     environment:
