@@ -37,6 +37,10 @@ function fileToBase64(file: File): Promise<string> {
 /** A custom build id (`custom-my-patch`) shown without the namespace prefix. */
 const customName = (id: string) => id.replace(/^custom-/, '')
 
+// mirrors the backend MAX_UPLOAD_BYTES — reject oversized files before reading
+// the whole thing into memory / base64-encoding it.
+const MAX_UPLOAD_BYTES = 200 * 1024 * 1024
+
 interface Props {
   /** Currently selected version (undefined = backend default) */
   value: string | undefined
@@ -117,6 +121,10 @@ export default function ClangVersionControl({
   const uploadBinary = useCallback(
     async (file: File, label: string) => {
       setError(null)
+      if (file.size > MAX_UPLOAD_BYTES) {
+        setError(`File is too large (max ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB)`)
+        return
+      }
       const name = label.trim() || file.name
       setUploading(true)
       try {
@@ -163,8 +171,10 @@ export default function ClangVersionControl({
   )
 
   const allVersions = state?.versions ?? []
-  const uploads = state?.uploads ?? []
-  const versions = allVersions.filter((v) => !uploads.includes(v)) // real X.Y.Z only
+  const rawUploads = state?.uploads ?? []
+  // when uploads are disabled, don't surface custom builds at all (matches the gate)
+  const uploads = canUpload ? rawUploads : []
+  const versions = allVersions.filter((v) => !rawUploads.includes(v)) // real X.Y.Z only
   const shadows = useShadows(state?.shadows ?? [])
   const selected = value ?? state?.default ?? undefined
 
@@ -184,7 +194,7 @@ export default function ClangVersionControl({
         onUpdate={(v) => onChange(v[0])}
         size="s"
         width={160}
-        disabled={allVersions.length === 0}
+        disabled={versions.length === 0 && uploads.length === 0 && shadows.length === 0}
         placeholder="version"
         title={`${label} version to format with`}
         renderSelectedOption={(opt) => <span>{renderVersion(String(opt.value))}</span>}

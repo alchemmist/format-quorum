@@ -37,6 +37,7 @@ export async function loadFormatters(): Promise<FormatterInfo[]> {
     _uploadsEnabled = Boolean(d.uploads_enabled)
   } catch {
     _formatters = []
+    _uploadsEnabled = false // fail closed: don't leave upload UI on after a failed refresh
   }
   _loaded = true
   emit()

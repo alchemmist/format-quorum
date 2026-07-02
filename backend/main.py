@@ -389,13 +389,14 @@ def api_formatter_upload(formatter_id: str, req: UploadBuildRequest):
     if len(blob) > MAX_UPLOAD_BYTES:
         return JSONResponse({"error": "uploaded file is too large"}, status_code=413)
 
-    tmp = tempfile.NamedTemporaryFile(delete=False)
+    fd, name = tempfile.mkstemp()
+    tmp_path = Path(name)
     try:
-        tmp.write(blob)
-        tmp.close()
-        ok, error = mgr.add_upload(version_id, Path(tmp.name))
+        with os.fdopen(fd, "wb") as fh:  # closes the fd even if write() raises
+            fh.write(blob)
+        ok, error = mgr.add_upload(version_id, tmp_path)
     finally:
-        Path(tmp.name).unlink(missing_ok=True)
+        tmp_path.unlink(missing_ok=True)
     if not ok:
         return JSONResponse({"error": error}, status_code=400)
     # give the custom build its own config, copied once from the default version

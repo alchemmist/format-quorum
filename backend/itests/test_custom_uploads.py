@@ -109,6 +109,26 @@ def test_upload_replaces_same_label(appctx):
     assert second["uploads"].count("custom-patched") == 1
 
 
+def test_failed_reupload_keeps_previous_build(appctx):
+    """A re-upload that fails to install must not destroy the working build under
+    the same id (it stages first, swaps only on success)."""
+    fid = UPLOADABLE[0]
+    if not binary_present(fid):
+        pytest.skip(f"{fid} not installed")
+    _enable(appctx)
+    _upload(appctx, fid, "patched", _base_bytes(appctx, fid))
+    mgr = appctx.main.version_mgrs[fid]
+    assert mgr.get_binary("custom-patched") is not None
+
+    # make the next install fail, then re-upload under the same id
+    mgr.strategy.install_upload = lambda src, vdir: (False, "boom")
+    r = _upload(appctx, fid, "patched", b"whatever")
+    assert r.status_code == 400
+    # the original build is still installed and runnable
+    assert mgr.get_binary("custom-patched") is not None
+    assert "custom-patched" in appctx.client.get(f"/api/formatters/{fid}/versions").json()["uploads"]
+
+
 def test_uploads_enabled_flag_in_registry(appctx):
     assert appctx.client.get("/api/formatters").json()["uploads_enabled"] is False
     _enable(appctx)

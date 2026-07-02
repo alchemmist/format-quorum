@@ -329,8 +329,12 @@ class JarInstall(InstallStrategy):
         wrapper = self.bin_path(version_dir)
         wrapper.parent.mkdir(parents=True, exist_ok=True)
         flags = " ".join(self.java_args)
+        # resolve the jar relative to the wrapper at runtime (bin/<name> → ../app.jar)
+        # so the version dir stays relocatable (e.g. a staged install renamed in).
         wrapper.write_text(
-            f'#!/bin/sh\nexec java {flags} -jar "{self._jar(version_dir)}" "$@"\n'
+            '#!/bin/sh\n'
+            'here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\n'
+            f'exec java {flags} -jar "$here/../app.jar" "$@"\n'
         )
         wrapper.chmod(0o755)
 
@@ -482,6 +486,8 @@ class VersionManager:
             found.append(self.base_version)
         if self.dir.exists():
             for child in sorted(self.dir.iterdir()):
+                if child.name.startswith("."):
+                    continue  # hidden (e.g. a .staging-* dir mid-upload)
                 if child.is_dir() and self.strategy.installed_binary(child):
                     found.append(child.name)
         # de-dupe, preserve order
@@ -557,13 +563,18 @@ class VersionManager:
                 return False, "This build is already being installed"
             self._installing.add(version_id)
         try:
+            # install into a staging dir first and only swap it in on success, so
+            # a failed re-upload never destroys the working build under this id.
             target = self.dir / version_id
-            if target.exists():
-                shutil.rmtree(target, ignore_errors=True)
-            ok, error = self.strategy.install_upload(src, target)
+            staging = self.dir / f".staging-{version_id}"  # hidden → never listed
+            shutil.rmtree(staging, ignore_errors=True)
+            ok, error = self.strategy.install_upload(src, staging)
             if not ok:
-                shutil.rmtree(target, ignore_errors=True)
-            return ok, error
+                shutil.rmtree(staging, ignore_errors=True)
+                return False, error
+            shutil.rmtree(target, ignore_errors=True)
+            staging.rename(target)
+            return True, None
         finally:
             with self._lock:
                 self._installing.discard(version_id)
