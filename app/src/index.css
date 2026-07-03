@@ -1089,3 +1089,16 @@ body {
   background: #ffbe5c;
   border-radius: 4px;
 }
+
+/* Add-custom-formatter dialog: evenly spaced fields, and breathing room before
+   the "Choose binary" button so it isn't glued to the config field. */
+.cf-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.cf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}

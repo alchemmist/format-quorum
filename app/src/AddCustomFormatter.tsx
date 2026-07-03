@@ -126,34 +126,36 @@ export default function AddCustomFormatter({ language, onCreated }: Props) {
       <Dialog open={open} onClose={() => setOpen(false)} size="s">
         <Dialog.Header caption={`Custom formatter for ${language}`} />
         <Dialog.Body>
-          <div className="cf-field">
-            <Text variant="caption-2" color="secondary">Name</Text>
-            <TextInput value={name} onUpdate={setName} placeholder="e.g. my-clang" size="m" disabled={busy} />
-          </div>
-          <div className="cf-field">
-            <Text variant="caption-2" color="secondary">Version (optional)</Text>
-            <TextInput value={version} onUpdate={setVersion} placeholder="e.g. 1.0 or patched-2" size="m" disabled={busy} />
-          </div>
-          <div className="cf-field">
-            <Text variant="caption-2" color="secondary">Config (optional)</Text>
-            <TextArea value={config} onUpdate={setConfig} placeholder="config text for this formatter" minRows={3} disabled={busy} />
-          </div>
+          <div className="cf-form">
+            <div className="cf-field">
+              <Text variant="caption-2" color="secondary">Name</Text>
+              <TextInput value={name} onUpdate={setName} placeholder="e.g. my-clang" size="m" disabled={busy} />
+            </div>
+            <div className="cf-field">
+              <Text variant="caption-2" color="secondary">Version (optional)</Text>
+              <TextInput value={version} onUpdate={setVersion} placeholder="e.g. 1.0 or patched-2" size="m" disabled={busy} />
+            </div>
+            <div className="cf-field">
+              <Text variant="caption-2" color="secondary">Config (optional)</Text>
+              <TextArea value={config} onUpdate={setConfig} placeholder="config text for this formatter" minRows={3} disabled={busy} />
+            </div>
 
-          <input
-            ref={fileRef}
-            type="file"
-            style={{ display: 'none' }}
-            onChange={(e) => {
-              const f = e.target.files?.[0]
-              if (f) submit(f)
-              e.target.value = ''
-            }}
-          />
-          <Button view="action" size="m" onClick={() => fileRef.current?.click()} disabled={busy}>
-            {busy ? 'Uploading…' : 'Choose binary & create'}
-          </Button>
+            <input
+              ref={fileRef}
+              type="file"
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) submit(f)
+                e.target.value = ''
+              }}
+            />
+            <Button view="action" size="m" onClick={() => fileRef.current?.click()} disabled={busy}>
+              {busy ? 'Uploading…' : 'Choose binary & create'}
+            </Button>
 
-          {error && <Text color="danger" className="version-error">{error}</Text>}
+            {error && <Text color="danger" className="version-error">{error}</Text>}
+          </div>
 
           {mine.length > 0 && (
             <div className="version-list">
