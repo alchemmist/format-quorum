@@ -44,13 +44,33 @@ export default function App() {
   // which formatter the playground uses for the current language (only matters
   // when a language has more than one). Kept valid as language/registry change.
   const [formatter, setFormatter] = useState<string>('')
+  // seed the formatter from ?formatter= once (so a shared link opens on the right
+  // one, incl. a custom/patched formatter), then keep it valid as language changes
+  const formatterSeeded = useRef(false)
   useEffect(() => {
+    if (formatters.length === 0) return // wait for the registry
     const cur = formatterById(formatter)
-    if (!cur || cur.language !== language) {
-      const d = defaultFormatter(language)
-      if (d) setFormatter(d.id)
+    if (cur && cur.language === language) return // current pick is valid, keep it
+    let next: string | undefined
+    if (!formatterSeeded.current) {
+      formatterSeeded.current = true
+      const fromUrl = getQueryParam('formatter')
+      const f = fromUrl ? formatterById(fromUrl) : undefined
+      if (f && f.language === language) next = f.id
     }
+    if (!next) next = defaultFormatter(language)?.id
+    if (next) setFormatter(next)
   }, [language, formatters, formatter])
+
+  // mirror the chosen formatter to the URL — only when it isn't the language's
+  // default, so plain links stay clean but a non-default/custom one is shareable.
+  // Guarded until seeding ran, else the first render (formatter still "") would
+  // wipe a shared ?formatter= before the seed effect above can read it.
+  useEffect(() => {
+    if (!formatterSeeded.current) return
+    const f = formatterById(formatter)
+    setQueryParam('formatter', f && !f.default ? f.id : null)
+  }, [formatter, formatters])
   const [inputCode, setInputCode] = useState<string>(() => languageDemo(langFromPath()))
   const [outputCode, setOutputCode] = useState<string>('')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
@@ -96,8 +116,10 @@ export default function App() {
     if (v) setVersionFor(formatter, v)
   }, [formatter, setVersionFor])
 
-  // mirror the active formatter's version to the URL so a link is shareable
+  // mirror the active formatter's version to the URL so a link is shareable.
+  // Guarded until the version seed ran (same reason as ?formatter= above).
   useEffect(() => {
+    if (!versionSeeded.current) return
     setQueryParam('version', version ?? null)
   }, [version])
 
