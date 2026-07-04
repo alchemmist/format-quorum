@@ -14,6 +14,7 @@ import { LayoutCells, Magnifier, Pencil, PlayFill, Plus, TrashBin } from '@gravi
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
 import ClangVersionControl from './ClangVersionControl'
 import FormatterControl from './FormatterControl'
+import AddCustomFormatter from './AddCustomFormatter'
 import { HeaderSlot } from './HeaderSlot'
 import { languageLabel } from './languages'
 import { availableLanguages, useFormatters, formatterById } from './formatters'
@@ -374,6 +375,9 @@ export default function TestsView({
         </Select>
         {/* formatter picker — only appears when the language has >1 formatter */}
         <FormatterControl language={language} value={formatter} onChange={onFormatterChange} />
+        {/* upload your own binary as a custom formatter for this language
+            (only when the backend allows uploads) */}
+        <AddCustomFormatter language={language} onCreated={onFormatterChange} />
         {formatterById(formatter)?.versioned && (
           <ClangVersionControl
             formatterId={formatter}
