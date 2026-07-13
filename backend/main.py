@@ -506,6 +506,28 @@ def api_custom_formatter_delete(formatter_id: str):
     return {"ok": True, "formatters": custom_formatters.list()}
 
 
+@app.get("/api/custom-formatters/{formatter_id}/versions/{version}/binary")
+def api_custom_formatter_download(formatter_id: str, version: str):
+    """Download the exact binary uploaded for a custom formatter version, so a
+    user can retrieve the executable they (or a teammate) uploaded. Restricted to
+    custom formatters — built-in ones are installed from public sources anyway."""
+    f = registry.get(formatter_id)
+    if f is None or not f.custom:
+        return JSONResponse({"error": "not a custom formatter"}, status_code=404)
+    mgr = version_mgrs.get(formatter_id)
+    # match against installed versions exactly — also stops path traversal via {version}
+    if mgr is None or version not in mgr.state().get("versions", []):
+        return JSONResponse({"error": "version not found"}, status_code=404)
+    binary = mgr.get_binary(version)
+    if not binary or not Path(binary).exists():
+        return JSONResponse({"error": "version not found"}, status_code=404)
+    return FileResponse(
+        binary,
+        media_type="application/octet-stream",
+        filename=f"{formatter_id}-{version}",
+    )
+
+
 # legacy aliases — clang-format version management
 @app.get("/api/clang-versions")
 def api_list_versions():

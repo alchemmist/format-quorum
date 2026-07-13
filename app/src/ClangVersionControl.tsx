@@ -10,7 +10,7 @@ import {
   Text,
   TextInput,
 } from '@gravity-ui/uikit'
-import { Layers } from '@gravity-ui/icons'
+import { ArrowDownToLine, Layers } from '@gravity-ui/icons'
 import { useShadows, deleteShadow, type ShadowMeta } from './draftStore'
 import { ShadowLabel } from './ShadowLabel'
 import { formatterById } from './formatters'
@@ -118,6 +118,10 @@ export default function ClangVersionControl({
   const versions = state?.versions ?? []
   const shadows = useShadows(state?.shadows ?? [])
   const selected = value ?? state?.default ?? undefined
+  // custom formatters are backed by user-uploaded binaries — offer to download
+  // the exact binary for the selected (installed) version
+  const isCustom = formatterById(formatterId)?.custom ?? false
+  const canDownload = isCustom && selected !== undefined && versions.includes(selected)
 
   // a real version renders as its number; a shadow as the ghost icon + name
   const renderVersion = (v: string) => {
@@ -143,6 +147,24 @@ export default function ClangVersionControl({
           </Select.Option>
         ))}
       </Select>
+
+      {canDownload && (
+        <ActionTooltip
+          title="Download this binary"
+          description="Download the exact binary uploaded for the selected version of this custom formatter."
+        >
+          <Button
+            view="outlined"
+            size="s"
+            href={`/api/custom-formatters/${formatterId}/versions/${encodeURIComponent(
+              selected!,
+            )}/binary`}
+            aria-label="Download this formatter binary"
+          >
+            <Icon data={ArrowDownToLine} size={16} />
+          </Button>
+        </ActionTooltip>
+      )}
 
       <ActionTooltip
         title={`${label} versions`}
