@@ -1,0 +1,72 @@
+[
+    {
+        "CreatedAt": "2026-06-24T12:55:57+03:00",
+        "Driver": "local",
+        "Labels": {
+            "com.docker.compose.config-hash": "64f1a46df6186bfa7a4167384bd7365fe1d118e37f015b06878abac70cbeca2b",
+            "com.docker.compose.project": "format-quorum",
+            "com.docker.compose.version": "5.2.0",
+            "com.docker.compose.volume": "caddy_config"
+        },
+        "Mountpoint": "/var/lib/docker/volumes/format-quorum_caddy_config/_data",
+        "Name": "format-quorum_caddy_config",
+        "Options": null,
+        "Scope": "local"
+    },
+    {
+        "CreatedAt": "2026-06-24T12:55:57+03:00",
+        "Driver": "local",
+        "Labels": {
+            "com.docker.compose.config-hash": "9763df00175e1768865baccf8f6103a1df081d4a64cbb014a2f3982fb1318f4a",
+            "com.docker.compose.project": "format-quorum",
+            "com.docker.compose.version": "5.2.0",
+            "com.docker.compose.volume": "caddy_data"
+        },
+        "Mountpoint": "/var/lib/docker/volumes/format-quorum_caddy_data/_data",
+        "Name": "format-quorum_caddy_data",
+        "Options": null,
+        "Scope": "local"
+    },
+    {
+        "CreatedAt": "2026-06-24T12:55:56+03:00",
+        "Driver": "local",
+        "Labels": {
+            "com.docker.compose.config-hash": "5bb17c4432c77ded062ef5875ed96deef7ad907605560df6285712fbb51b2b72",
+            "com.docker.compose.project": "format-quorum",
+            "com.docker.compose.version": "5.2.0",
+            "com.docker.compose.volume": "clang_versions"
+        },
+        "Mountpoint": "/var/lib/docker/volumes/format-quorum_clang_versions/_data",
+        "Name": "format-quorum_clang_versions",
+        "Options": null,
+        "Scope": "local"
+    },
+    {
+        "CreatedAt": "2026-06-26T12:20:25+03:00",
+        "Driver": "local",
+        "Labels": {
+            "com.docker.compose.config-hash": "976715b0cad3bab9bfdb38827a8c3ae28d11a88961f028817b947b3493ba6262",
+            "com.docker.compose.project": "format-quorum",
+            "com.docker.compose.version": "5.2.0",
+            "com.docker.compose.volume": "config_data"
+        },
+        "Mountpoint": "/var/lib/docker/volumes/format-quorum_config_data/_data",
+        "Name": "format-quorum_config_data",
+        "Options": null,
+        "Scope": "local"
+    },
+    {
+        "CreatedAt": "2026-06-24T17:26:20+03:00",
+        "Driver": "local",
+        "Labels": {
+            "com.docker.compose.config-hash": "6764338fb05fcbe2fa257e13e539f72e36485817597acf0d58b276ddd696e06d",
+            "com.docker.compose.project": "format-quorum",
+            "com.docker.compose.version": "5.2.0",
+            "com.docker.compose.volume": "tests_data"
+        },
+        "Mountpoint": "/var/lib/docker/volumes/format-quorum_tests_data/_data",
+        "Name": "format-quorum_tests_data",
+        "Options": null,
+        "Scope": "local"
+    }
+]

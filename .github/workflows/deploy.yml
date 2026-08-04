@@ -1,4 +1,4 @@
-name: Deploy
+name: Deploy to laba
 
 on:
   push:
@@ -13,24 +13,29 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy over SSH
+      - name: Deploy to laba over SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           password: ${{ secrets.DEPLOY_PASSWORD }}
-          # the image now builds a full toolchain (JDK, Go, Rust, Node, formatters);
-          # the first cold build blows past the 10m default. Subsequent deploys hit
-          # the host's docker layer cache and finish in a few minutes.
           command_timeout: 40m
           script: |
             set -euo pipefail
-            APP_DIR=/opt/format-quorum
+            APP_DIR=/home/www/format-quorum
+            REPO=https://github.com/alchemmist/format-quorum.git
+
+            # The first manual deployment may already have populated APP_DIR
+            # without a .git directory. Attach git to that directory in place;
+            # Docker volumes are independent and remain untouched.
+            mkdir -p "$APP_DIR"
             if [ ! -d "$APP_DIR/.git" ]; then
-              git clone https://github.com/alchemmist/format-quorum.git "$APP_DIR"
+              git -C "$APP_DIR" init
+              git -C "$APP_DIR" remote add origin "$REPO"
             fi
+            git -C "$APP_DIR" fetch --depth=1 origin main
+            git -C "$APP_DIR" reset --hard FETCH_HEAD
+
             cd "$APP_DIR"
-            git fetch --all
-            git reset --hard origin/main
-            docker compose -f docker-compose.prod.yml up -d --build
+            FORMAT_QUORUM_PORT=30001 docker compose up -d --build --force-recreate
             docker image prune -f

@@ -4,3 +4,4 @@ app/.env*
 *.log
 .git
 .gitignore
+backups

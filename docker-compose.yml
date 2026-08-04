@@ -1,8 +1,13 @@
 services:
   app:
+    # Production formatter binaries (including cf-my-patch) are x86_64.
+    # Keep the local image on the same ABI when running on Apple Silicon.
+    platform: linux/amd64
     build:
       context: .
       dockerfile: Dockerfile
+      platforms:
+        - linux/amd64
       # override to a reachable mirror if static.rust-lang.org is blocked on the
       # build network: RUSTUP_DIST_SERVER=… RUSTUP_UPDATE_ROOT=…/rustup make run
       args:
@@ -12,7 +17,7 @@ services:
     container_name: format-quorum
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${FORMAT_QUORUM_PORT:-3000}:3000"
     environment:
       PORT: "3000"
       FRONTEND_DIST: /app/frontend
@@ -22,13 +27,21 @@ services:
       RUFF_CONFIG: /app/configs/ruff.toml
       VERSIONS_DIR: /app/clang_versions
       TESTS_DIR: /app/tests
+      CONFIG_HISTORY_DIR: /app/config_history
     volumes:
       # persist dynamically-installed clang-format versions across restarts
-      - clang_versions:/app/clang_versions
-      # tests are git-backed: bind-mount the repo dir so UI edits land in git
-      - ./backend/tests:/app/tests
+      - local_clang_versions:/app/clang_versions
+      # restore the current production tests, including UI edits
+      - local_tests_data:/app/tests
+      # restore published configs, history, shadows and custom formatter metadata
+      - local_config_data:/app/config_history
       # configs are git-backed too: editing them in the UI writes to the repo
       - ./backend/configs:/app/configs
 
 volumes:
-  clang_versions:
+  local_clang_versions:
+    name: format-quorum-local_clang_versions
+  local_tests_data:
+    name: format-quorum-local_tests_data
+  local_config_data:
+    name: format-quorum-local_config_data
