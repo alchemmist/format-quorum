@@ -37,5 +37,5 @@ jobs:
             git -C "$APP_DIR" reset --hard FETCH_HEAD
 
             cd "$APP_DIR"
-            FORMAT_QUORUM_PORT=30001 docker compose up -d --build --force-recreate
+            PUBLISH_ENABLED=0 FORMAT_QUORUM_PORT=30001 docker compose up -d --build --force-recreate
             docker image prune -f

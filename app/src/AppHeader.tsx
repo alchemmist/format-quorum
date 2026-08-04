@@ -19,6 +19,7 @@ interface Props {
   // universal draft bar — shown for any tab whenever there are local edits
   draftCount: number
   publishing: boolean
+  publishingEnabled: boolean
   onPublish: () => void
   onDiscard: () => void
 }
@@ -34,6 +35,7 @@ export default function AppHeader({
   onOpenConfig,
   draftCount,
   publishing,
+  publishingEnabled,
   onPublish,
   onDiscard,
 }: Props) {
@@ -83,7 +85,13 @@ export default function AppHeader({
         {draftCount > 0 && (
           <div className="draft-bar" title="Local unsaved changes (config + tests)">
             <span className="draft-count">{draftCount} unsaved</span>
-            <Button view="action" size="s" onClick={onPublish} disabled={publishing}>
+            <Button
+              view="action"
+              size="s"
+              onClick={onPublish}
+              disabled={publishing || !publishingEnabled}
+              title={publishingEnabled ? undefined : 'Publishing is disabled on production'}
+            >
               {publishing ? (
                 <span className="btn-spin">
                   <Spin size="xs" />

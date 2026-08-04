@@ -28,6 +28,7 @@ services:
       VERSIONS_DIR: /app/clang_versions
       TESTS_DIR: /app/tests
       CONFIG_HISTORY_DIR: /app/config_history
+      PUBLISH_ENABLED: "${PUBLISH_ENABLED:-1}"
     volumes:
       # persist dynamically-installed clang-format versions across restarts
       - local_clang_versions:/app/clang_versions

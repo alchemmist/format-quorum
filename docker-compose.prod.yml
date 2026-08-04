@@ -30,6 +30,7 @@ services:
       VERSIONS_DIR: /app/clang_versions
       TESTS_DIR: /app/tests
       CONFIG_HISTORY_DIR: /app/config_history
+      PUBLISH_ENABLED: "0"
     volumes:
       # installed clang-format versions persist across deploys
       - clang_versions:/app/clang_versions

@@ -18,6 +18,7 @@ import {
   loadFormatters,
   availableLanguages,
   useFormatters,
+  publishingEnabled,
   defaultFormatter,
   formatterById,
 } from './formatters'
@@ -36,6 +37,7 @@ function langFromPath(): Language {
 export default function App() {
   // load the backend formatter registry once; pickers below re-render when ready
   const formatters = useFormatters()
+  const canPublish = publishingEnabled()
   useEffect(() => {
     loadFormatters()
   }, [])
@@ -208,6 +210,7 @@ export default function App() {
   }, [language])
 
   const handlePublish = useCallback(async () => {
+    if (!publishingEnabled()) return
     setPublishing(true)
     try {
       const { ok, errors } = await publishDraft()
@@ -240,6 +243,7 @@ export default function App() {
           onOpenConfig={() => setConfigOpen(true)}
           draftCount={draftCount}
           publishing={publishing}
+          publishingEnabled={canPublish}
           onPublish={handlePublish}
           onDiscard={discardAll}
         />

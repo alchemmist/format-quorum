@@ -24,6 +24,7 @@ let _loaded = false
 // whether this deployment allows uploading custom (patched) formatter binaries —
 // off on the public instance, on for a trusted/local one (backend ALLOW_BINARY_UPLOAD)
 let _uploadsEnabled = false
+let _publishingEnabled = true
 const listeners = new Set<() => void>()
 
 function emit() {
@@ -36,9 +37,11 @@ export async function loadFormatters(): Promise<FormatterInfo[]> {
     const d = await r.json()
     _formatters = (d.formatters ?? []) as FormatterInfo[]
     _uploadsEnabled = Boolean(d.uploads_enabled)
+    _publishingEnabled = d.publishing_enabled !== false
   } catch {
     _formatters = []
     _uploadsEnabled = false // fail closed: don't leave upload UI on after a failed refresh
+    _publishingEnabled = false // fail closed: never enable writes when capability is unknown
   }
   _loaded = true
   emit()
@@ -48,6 +51,7 @@ export async function loadFormatters(): Promise<FormatterInfo[]> {
 export const allFormatters = (): FormatterInfo[] => _formatters
 export const formattersLoaded = (): boolean => _loaded
 export const uploadsEnabled = (): boolean => _uploadsEnabled
+export const publishingEnabled = (): boolean => _publishingEnabled
 
 export const formatterById = (id: string | undefined): FormatterInfo | undefined =>
   id ? _formatters.find((f) => f.id === id) : undefined

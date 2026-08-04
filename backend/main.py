@@ -66,7 +66,21 @@ CONFIG_HISTORY_DIR = Path(
 ALLOW_BINARY_UPLOAD = os.environ.get("ALLOW_BINARY_UPLOAD", "").lower() in (
     "1", "true", "yes", "on",
 )
+# Production can expose the current state while rejecting every operation that
+# changes configs, tests, versions or uploaded formatters. Local runs stay
+# writable by default.
+PUBLISH_ENABLED = os.environ.get("PUBLISH_ENABLED", "1").lower() in (
+    "1", "true", "yes", "on",
+)
 MAX_UPLOAD_BYTES = 200 * 1024 * 1024  # generous ceiling for a compiled formatter
+
+
+def _publish_blocked() -> JSONResponse | None:
+    if not PUBLISH_ENABLED:
+        return JSONResponse(
+            {"error": "publishing is disabled on this deployment"}, status_code=403
+        )
+    return None
 
 app = FastAPI(title="format-quorum", version="0.9.0")
 tests = TestStore(TESTS_DIR)
@@ -339,7 +353,11 @@ def _versions_state(formatter_id: str) -> dict:
 @app.get("/api/formatters")
 def api_formatters():
     """The formatter registry — what the frontend builds its pickers from."""
-    return {"formatters": registry.public_list(), "uploads_enabled": ALLOW_BINARY_UPLOAD}
+    return {
+        "formatters": registry.public_list(),
+        "uploads_enabled": ALLOW_BINARY_UPLOAD,
+        "publishing_enabled": PUBLISH_ENABLED,
+    }
 
 
 @app.get("/api/formatters/{formatter_id}/versions")
@@ -353,6 +371,9 @@ def api_formatter_versions(formatter_id: str):
 
 @app.post("/api/formatters/{formatter_id}/versions")
 def api_formatter_add_version(formatter_id: str, req: AddVersionRequest):
+    blocked = _publish_blocked()
+    if blocked:
+        return blocked
     mgr = version_mgrs.get(formatter_id)
     if mgr is None:
         return JSONResponse(
@@ -370,6 +391,9 @@ def api_formatter_add_version(formatter_id: str, req: AddVersionRequest):
 
 @app.delete("/api/formatters/{formatter_id}/versions/{version}")
 def api_formatter_remove_version(formatter_id: str, version: str):
+    blocked = _publish_blocked()
+    if blocked:
+        return blocked
     mgr = version_mgrs.get(formatter_id)
     if mgr is None:
         return JSONResponse(
@@ -420,6 +444,9 @@ def api_custom_formatter_upload(req: CustomFormatterRequest):
     binary. It shows up as its own formatter for the chosen language, alongside
     the built-in ones, with its own version axis and config. Gated behind
     ALLOW_BINARY_UPLOAD — it runs an arbitrary uploaded executable server-side."""
+    blocked = _publish_blocked()
+    if blocked:
+        return blocked
     if not ALLOW_BINARY_UPLOAD:
         return JSONResponse(
             {"error": "custom binary uploads are disabled on this deployment"},
@@ -493,6 +520,9 @@ def api_custom_formatter_upload(req: CustomFormatterRequest):
 
 @app.delete("/api/custom-formatters/{formatter_id}")
 def api_custom_formatter_delete(formatter_id: str):
+    blocked = _publish_blocked()
+    if blocked:
+        return blocked
     f = registry.get(formatter_id)
     if f is None or not f.custom:
         return JSONResponse({"error": "not a custom formatter"}, status_code=404)
@@ -558,6 +588,9 @@ def api_shadow_create(body: ShadowCreate):
     """Register a shadow config and seed its config text. The id is client-chosen
     (so an unpublished draft and its publish refer to the same shadow); it must
     look like a shadow id, not a real version."""
+    blocked = _publish_blocked()
+    if blocked:
+        return blocked
     sid = body.id.strip()
     if not sid.startswith("shadow-") or VERSION_RE.match(sid):
         return JSONResponse({"error": "invalid shadow id"}, status_code=400)
@@ -580,6 +613,9 @@ def api_shadow_create(body: ShadowCreate):
 
 @app.delete("/api/shadow-configs/{shadow_id}")
 def api_shadow_delete(shadow_id: str):
+    blocked = _publish_blocked()
+    if blocked:
+        return blocked
     sh = shadows.get(shadow_id)
     if not shadows.delete(shadow_id):
         return JSONResponse({"error": "shadow config not found"}, status_code=404)
@@ -623,6 +659,9 @@ def api_tests_list():
 
 @app.post("/api/tests")
 def api_tests_create(body: TestIn):
+    blocked = _publish_blocked()
+    if blocked:
+        return blocked
     try:
         return tests.create(body.model_dump())
     except ValueError as exc:
@@ -631,6 +670,9 @@ def api_tests_create(body: TestIn):
 
 @app.put("/api/tests/{test_id}")
 def api_tests_update(test_id: str, body: TestPatch):
+    blocked = _publish_blocked()
+    if blocked:
+        return blocked
     try:
         rec = tests.update(test_id, body.model_dump())
     except ValueError as exc:
@@ -642,6 +684,9 @@ def api_tests_update(test_id: str, body: TestPatch):
 
 @app.delete("/api/tests/{test_id}")
 def api_tests_delete(test_id: str):
+    blocked = _publish_blocked()
+    if blocked:
+        return blocked
     if not tests.delete(test_id):
         return JSONResponse({"error": "test not found"}, status_code=404)
     return {"ok": True}
@@ -927,6 +972,9 @@ def api_get_config(key: str, version: str | None = None):
 @app.put("/api/config/{key}")
 def api_put_config(key: str, body: ConfigBody):
     """Record the config as a new version (and materialize it for the formatter)."""
+    blocked = _publish_blocked()
+    if blocked:
+        return blocked
     fmt = registry.resolve(key)
     if fmt is None:
         return JSONResponse({"error": f"unknown config: {key}"}, status_code=400)
@@ -975,6 +1023,9 @@ def api_config_version(key: str, seq: int, version: str | None = None):
 
 @app.post("/api/config/{key}/rollback")
 def api_config_rollback(key: str, body: RollbackBody):
+    blocked = _publish_blocked()
+    if blocked:
+        return blocked
     fmt = registry.resolve(key)
     if fmt is None:
         return JSONResponse({"error": f"unknown config: {key}"}, status_code=400)
