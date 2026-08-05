@@ -24,7 +24,7 @@ fmt-py: ## Print formatted Python file (FILE_PY=path override)
 	$(RUFF) format --config $(RUFF_CFG) --diff $(FILE_PY)
 
 # ── containers ────────────────────────────────────────────────────────────────
-run: ## Build and (re)start the app in a container at http://localhost:3000
+up: ## Build and (re)start the app in a container at http://localhost:3000
 	$(COMPOSE) up --build --force-recreate
 
 down: ## Stop and remove the app container
