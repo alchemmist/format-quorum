@@ -583,6 +583,7 @@ export default function TestsView({
             <Button
               view="outlined"
               size="m"
+              className="grab-playground-btn"
               onClick={() =>
                 setForm((f) => ({
                   ...f,

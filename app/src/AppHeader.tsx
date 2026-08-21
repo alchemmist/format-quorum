@@ -53,7 +53,7 @@ export default function AppHeader({
               onClick={() => onChangeView(tab.key)}
             >
               <Icon data={tab.icon} size={15} />
-              {tab.label}
+              <span className="view-toggle-label">{tab.label}</span>
             </Button>
           ))}
         </div>
