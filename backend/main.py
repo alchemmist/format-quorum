@@ -73,6 +73,13 @@ PUBLISH_ENABLED = os.environ.get("PUBLISH_ENABLED", "1").lower() in (
     "1", "true", "yes", "on",
 )
 MAX_UPLOAD_BYTES = 200 * 1024 * 1024  # generous ceiling for a compiled formatter
+CORS_ORIGINS = tuple(
+    origin.strip()
+    for origin in os.environ.get(
+        "CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+    ).split(",")
+    if origin.strip()
+)
 
 
 def _publish_blocked() -> JSONResponse | None:
@@ -173,7 +180,22 @@ def _ensure_config(formatter_id: str, version: str | None = None) -> str:
 def _resolve_request(formatter: str | None, language: str | None = None):
     """The Formatter a request targets: explicit `formatter` id wins, else the
     legacy `language` alias (cpp→clang-format, python→ruff)."""
-    return registry.resolve(formatter) or registry.default_for_language(language)
+    if formatter:
+        return registry.resolve(formatter)
+    return registry.default_for_language(language)
+
+
+def _request_error(formatter: str | None, language: str | None):
+    fmt = _resolve_request(formatter, language)
+    if fmt is None:
+        return None, JSONResponse(
+            {"error": "unknown formatter/language"}, status_code=400
+        )
+    if formatter and language and fmt.language != language:
+        return None, JSONResponse(
+            {"error": f"formatter {fmt.id} does not support {language}"}, status_code=400
+        )
+    return fmt, None
 
 
 def _resolve_binary(formatter_id: str, version: str | None):
@@ -208,6 +230,25 @@ def _resolved_version(fmt, version: str | None) -> str | None:
     if not fmt.versioned:
         return None
     return version or _default_version(fmt.id)
+
+
+def _config_target(key: str, version: str | None):
+    fmt = registry.resolve(key)
+    if fmt is None:
+        return None, None, JSONResponse(
+            {"error": f"unknown config: {key}"}, status_code=400
+        )
+    if version is not None:
+        sh = shadows.get(version)
+        shadow_matches = sh is not None and sh.get("formatter", "clang-format") == fmt.id
+        mgr = version_mgrs.get(fmt.id)
+        installed = mgr is not None and version in mgr.state().get("versions", [])
+        if not fmt.versioned or not (shadow_matches or installed):
+            return None, None, JSONResponse(
+                {"error": f"version {version} is not available for {fmt.id}"},
+                status_code=400,
+            )
+    return fmt, _ensure_config(fmt.id, version), None
 
 
 # ── one-time data migration: language-keyed history → formatter-keyed ──────────
@@ -296,7 +337,7 @@ _init_configs()
 # Allow the Vite dev server (localhost:5173) to call the API directly.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=list(CORS_ORIGINS),
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -307,7 +348,7 @@ class FormatRequest(BaseModel):
     code: str
     # primary: which formatter to use. `language` is the legacy alias.
     formatter: str | None = None
-    language: str = "cpp"
+    language: str | None = None
     version: str | None = None
     clang_version: str | None = None  # legacy alias for `version`
     # Optional ad-hoc style config to use instead of the stored one (lets the
@@ -317,9 +358,10 @@ class FormatRequest(BaseModel):
 
 @app.post("/api/format")
 def api_format(req: FormatRequest):
-    fmt = _resolve_request(req.formatter, req.language)
-    if fmt is None:
-        return JSONResponse({"error": "unknown formatter/language"}, status_code=400)
+    language = req.language or (None if req.formatter else "cpp")
+    fmt, err = _request_error(req.formatter, language)
+    if err:
+        return err
     version = req.version or req.clang_version
     binary, err = _resolve_binary(fmt.id, version)
     if err:
@@ -592,9 +634,22 @@ def api_shadow_create(body: ShadowCreate):
     if blocked:
         return blocked
     sid = body.id.strip()
-    if not sid.startswith("shadow-") or VERSION_RE.match(sid):
+    if (
+        not sid.startswith("shadow-")
+        or LABEL_RE.fullmatch(sid) is None
+        or VERSION_RE.fullmatch(sid)
+    ):
         return JSONResponse({"error": "invalid shadow id"}, status_code=400)
-    fmt = registry.get(body.formatter) or registry.get("clang-format")
+    fmt = registry.get(body.formatter)
+    if fmt is None:
+        return JSONResponse(
+            {"error": f"unknown formatter: {body.formatter}"}, status_code=400
+        )
+    if not fmt.versioned or fmt.config is None:
+        return JSONResponse(
+            {"error": f"formatter {fmt.id} does not support shadow configs"},
+            status_code=400,
+        )
     mgr = version_mgrs.get(fmt.id)
     if mgr is None or mgr.get_binary(body.base) is None:
         return JSONResponse(
@@ -693,14 +748,14 @@ def api_tests_delete(test_id: str):
 
 
 def _run_context(formatter: str | None, language: str | None, version: str | None):
-    """Resolve (Formatter|None, binary, error, config-or-None) for a run request.
+    """Resolve (Formatter|None, binary, error) for a run request.
     A formatter is only resolved when one is implied (explicit, or a language
     filter); otherwise each test self-resolves its default formatter."""
     if not formatter and not language:
         return None, None, None
-    fmt = _resolve_request(formatter, language)
-    if fmt is None:
-        return None, None, None
+    fmt, err = _request_error(formatter, language)
+    if err:
+        return None, None, err
     binary, err = _resolve_binary(fmt.id, version)
     return fmt, binary, err
 
@@ -716,7 +771,7 @@ def api_tests_run(body: RunRequest):
         config = configs.current(_ensure_config(fmt.id, version))
     return run_all(
         tests,
-        language=body.language,
+        language=(fmt.language if fmt else body.language),
         formatter=(fmt.id if fmt else None),
         binary=binary,
         config=config,
@@ -729,11 +784,15 @@ def api_tests_run_one(test_id: str, body: RunRequest):
     if rec is None:
         return JSONResponse({"error": "test not found"}, status_code=404)
     version = body.version or body.clang_version
-    fmt = _resolve_request(body.formatter, body.language) or registry.default_for_language(
-        rec["language"]
-    )
-    if fmt is None:
-        return JSONResponse({"error": "unknown formatter/language"}, status_code=400)
+    requested_language = body.language or rec["language"]
+    fmt, err = _request_error(body.formatter, requested_language)
+    if err:
+        return err
+    if fmt.language != rec["language"]:
+        return JSONResponse(
+            {"error": f"formatter {fmt.id} does not support {rec['language']}"},
+            status_code=400,
+        )
     binary, err = _resolve_binary(fmt.id, version)
     if err:
         return err
@@ -895,6 +954,17 @@ def api_tests_matrix(body: MatrixRequest):
         for s in body.shadows or []:
             if s.id in shadow_meta:
                 continue
+            if (
+                s.formatter != fmt.id
+                or not s.id.startswith("shadow-")
+                or LABEL_RE.fullmatch(s.id) is None
+            ):
+                return JSONResponse({"error": "invalid draft shadow"}, status_code=400)
+            if mgr.get_binary(s.base) is None:
+                return JSONResponse(
+                    {"error": f"base {fmt.label} {s.base} is not installed"},
+                    status_code=400,
+                )
             shadow_meta[s.id] = {"id": s.id, "base": s.base, "name": s.name}
             col_specs.append((s.id, mgr.get_binary(s.base), s.content))
 
@@ -956,10 +1026,9 @@ class RollbackBody(BaseModel):
 @app.get("/api/config/{key}")
 def api_get_config(key: str, version: str | None = None):
     """`key` is a formatter id (or a legacy language: cpp/python)."""
-    fmt = registry.resolve(key)
-    if fmt is None:
-        return JSONResponse({"error": f"unknown config: {key}"}, status_code=400)
-    ck = _ensure_config(fmt.id, version)
+    fmt, ck, err = _config_target(key, version)
+    if err:
+        return err
     return {
         "language": fmt.language,
         "formatter": fmt.id,
@@ -975,10 +1044,9 @@ def api_put_config(key: str, body: ConfigBody):
     blocked = _publish_blocked()
     if blocked:
         return blocked
-    fmt = registry.resolve(key)
-    if fmt is None:
-        return JSONResponse({"error": f"unknown config: {key}"}, status_code=400)
-    ck = _ensure_config(fmt.id, body.version)
+    fmt, ck, err = _config_target(key, body.version)
+    if err:
+        return err
     try:
         result = configs.record(
             ck, body.content, author=body.author or "", message=body.message or ""
@@ -990,10 +1058,9 @@ def api_put_config(key: str, body: ConfigBody):
 
 @app.get("/api/config/{key}/history")
 def api_config_history(key: str, version: str | None = None):
-    fmt = registry.resolve(key)
-    if fmt is None:
-        return JSONResponse({"error": f"unknown config: {key}"}, status_code=400)
-    ck = _ensure_config(fmt.id, version)
+    fmt, ck, err = _config_target(key, version)
+    if err:
+        return err
     return {
         "language": fmt.language,
         "formatter": fmt.id,
@@ -1005,10 +1072,9 @@ def api_config_history(key: str, version: str | None = None):
 
 @app.get("/api/config/{key}/history/{seq}")
 def api_config_version(key: str, seq: int, version: str | None = None):
-    fmt = registry.resolve(key)
-    if fmt is None:
-        return JSONResponse({"error": f"unknown config: {key}"}, status_code=400)
-    ck = _ensure_config(fmt.id, version)
+    fmt, ck, err = _config_target(key, version)
+    if err:
+        return err
     content = configs.get_version(ck, seq)
     if content is None:
         return JSONResponse({"error": f"no version {seq}"}, status_code=404)
@@ -1026,10 +1092,9 @@ def api_config_rollback(key: str, body: RollbackBody):
     blocked = _publish_blocked()
     if blocked:
         return blocked
-    fmt = registry.resolve(key)
-    if fmt is None:
-        return JSONResponse({"error": f"unknown config: {key}"}, status_code=400)
-    ck = _ensure_config(fmt.id, body.version)
+    fmt, ck, err = _config_target(key, body.version)
+    if err:
+        return err
     result = configs.rollback(
         ck, body.seq, author=body.author or "", message=body.message or ""
     )

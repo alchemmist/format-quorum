@@ -47,6 +47,24 @@ def test_matrix_adhoc_unpublished_shadow_column(appctx):
     assert "shadow-draft" in out["versions"]
 
 
+def test_matrix_rejects_uninstalled_draft_shadow_base(appctx):
+    r = appctx.client.post(
+        "/api/tests/matrix",
+        json={
+            "formatter": "clang-format",
+            "shadows": [
+                {
+                    "id": "shadow-draft",
+                    "base": "99.9.9",
+                    "name": "draft",
+                    "content": "BasedOnStyle: LLVM\n",
+                }
+            ],
+        },
+    )
+    assert r.status_code == 400
+
+
 def test_matrix_python(appctx):
     rec = seed_passing_test(appctx.client, "python", "x=1\n", name="pm")
     base = appctx.default_version("ruff")

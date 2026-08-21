@@ -4,6 +4,8 @@ cheaply: pure helpers, the wheel probe, append-only history semantics."""
 import io
 import json
 
+import pytest
+
 import config_store
 import shadow_store
 import test_store
@@ -78,6 +80,12 @@ def test_config_store_ensure_seeded_and_migrate(tmp_path):
     # migrate moves history to a new key, keeping the old as a backup
     assert store.migrate("a", "c") is True
     assert store.current("c") == "x"
+
+
+def test_config_store_rejects_unsafe_keys(tmp_path):
+    store = config_store.ConfigStore(tmp_path)
+    with pytest.raises(ValueError, match="invalid config key"):
+        store.ensure_seeded("../../escaped", seed_text="x")
 
 
 # ── ShadowStore ───────────────────────────────────────────────────────────────

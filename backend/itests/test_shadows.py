@@ -41,6 +41,31 @@ def test_invalid_shadow_id_400(appctx):
     assert "invalid shadow id" in r.json()["error"]
 
 
+def test_shadow_id_cannot_escape_config_directory(appctx):
+    r = appctx.client.post(
+        "/api/shadow-configs",
+        json={
+            "id": "shadow-../../escaped",
+            "base": _base(appctx),
+            "content": "x",
+        },
+    )
+    assert r.status_code == 400
+
+
+def test_unknown_shadow_formatter_is_400(appctx):
+    r = appctx.client.post(
+        "/api/shadow-configs",
+        json={
+            "id": "shadow-x",
+            "base": _base(appctx),
+            "content": "x",
+            "formatter": "missing",
+        },
+    )
+    assert r.status_code == 400
+
+
 def test_shadow_base_not_installed_400(appctx):
     r = appctx.client.post(
         "/api/shadow-configs",

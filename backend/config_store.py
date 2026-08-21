@@ -39,9 +39,13 @@ from __future__ import annotations
 
 import difflib
 import json
+import re
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
+
+
+KEY_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._@-]*$")
 
 
 def _now() -> str:
@@ -58,6 +62,8 @@ class ConfigStore:
 
     # ── persistence ──────────────────────────────────────────────────────────
     def _hist_path(self, key: str) -> Path:
+        if KEY_RE.fullmatch(key) is None:
+            raise ValueError(f"invalid config key: {key}")
         return self.dir / f"{key}.json"
 
     def _load(self, key: str) -> dict:

@@ -23,6 +23,13 @@ def test_get_config_unknown_400(appctx):
     assert r.status_code == 400
 
 
+def test_config_rejects_uninstalled_and_unsafe_versions(appctx):
+    for version in ("99.9.9", "../../escaped"):
+        r = appctx.client.get("/api/config/clang-format", params={"version": version})
+        assert r.status_code == 400
+    assert not (appctx.tmp / "escaped.json").exists()
+
+
 def test_put_records_and_materializes(appctx):
     new = "BasedOnStyle: LLVM\nColumnLimit: 100\n"
     r = appctx.client.put("/api/config/clang-format", json={"content": new, "author": "me"})

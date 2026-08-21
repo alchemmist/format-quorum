@@ -60,6 +60,21 @@ def test_unknown_language_is_400(appctx):
     assert "error" in r.json()
 
 
+def test_explicit_unknown_formatter_does_not_fall_back(appctx):
+    r = appctx.client.post(
+        "/api/format", json={"code": CPP_MESSY, "formatter": "missing"}
+    )
+    assert r.status_code == 400
+
+
+def test_formatter_language_mismatch_is_400(appctx):
+    r = appctx.client.post(
+        "/api/format",
+        json={"code": CPP_MESSY, "formatter": "ruff", "language": "cpp"},
+    )
+    assert r.status_code == 400
+
+
 def test_uninstalled_version_is_400(appctx):
     r = appctx.client.post(
         "/api/format", json={"code": PY_MESSY, "formatter": "ruff", "version": "0.0.1"}

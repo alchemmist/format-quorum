@@ -115,13 +115,12 @@ def run_test(
     binary/config never leaks into a python test on a mixed run)."""
     lang = rec["language"]
     fmt = registry.resolve(formatter) if formatter else registry.default_for_language(lang)
-    if fmt is None or fmt.language != lang:
-        fmt = registry.default_for_language(lang)
-        binary, config = None, None
     error: str | None = None
     try:
         if fmt is None:
             raise FormatError(f"no formatter for language: {lang}")
+        if fmt.language != lang:
+            raise FormatError(f"formatter {fmt.id} does not support {lang}")
         actual = format_code(rec["input"], fmt.id, binary=binary, config=config)
     except FormatError as exc:
         actual = ""

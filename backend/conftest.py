@@ -117,6 +117,9 @@ def appctx(tmp_path, monkeypatch):
         "TAPLO_BIN": _resolve_bin("taplo"),
         "GJF_BIN": _resolve_bin("google-java-format"),
         "PATH": f"{VENV_BIN}{os.pathsep}{os.environ.get('PATH', '')}",
+        "CORS_ORIGINS": "http://localhost:5173,http://127.0.0.1:5173",
+        "PUBLISH_ENABLED": "1",
+        "ALLOW_BINARY_UPLOAD": "0",
     }
     for k, v in env.items():
         monkeypatch.setenv(k, v)

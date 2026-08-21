@@ -40,6 +40,14 @@ def test_run_uninstalled_version_400(appctx):
     assert r.status_code == 400
 
 
+def test_run_rejects_formatter_language_mismatch(appctx):
+    seed_passing_test(appctx.client, "cpp", CPP_MESSY)
+    r = appctx.client.post(
+        "/api/tests/run", json={"formatter": "ruff", "language": "cpp"}
+    )
+    assert r.status_code == 400
+
+
 def test_run_one_found(appctx):
     rec = seed_passing_test(appctx.client, "python", "x=1\n", name="solo")
     out = appctx.client.post(f"/api/tests/{rec['id']}/run", json={}).json()
@@ -59,3 +67,11 @@ def test_run_one_explicit_formatter(appctx):
         f"/api/tests/{rec['id']}/run", json={"formatter": "black"}
     ).json()
     assert out["status"] == "pass"
+
+
+def test_run_one_rejects_wrong_formatter(appctx):
+    rec = seed_passing_test(appctx.client, "cpp", CPP_MESSY)
+    r = appctx.client.post(
+        f"/api/tests/{rec['id']}/run", json={"formatter": "ruff"}
+    )
+    assert r.status_code == 400
