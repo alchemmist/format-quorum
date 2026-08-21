@@ -24,6 +24,12 @@ body {
   background: #1a1a1f;
 }
 
+.view-loading {
+  display: grid;
+  flex: 1;
+  place-items: center;
+}
+
 .app-header {
   display: grid;
   grid-template-columns: 1fr auto 1fr;

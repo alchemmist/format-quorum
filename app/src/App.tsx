@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import { lazy, Suspense, useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { ThemeProvider, Button, Spin, Select, Checkbox, Icon } from '@gravity-ui/uikit'
 import { ArrowRotateLeft, Sparkles } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
@@ -6,9 +6,6 @@ import ClangVersionControl from './ClangVersionControl'
 import FormatterControl from './FormatterControl'
 import AddCustomFormatter from './AddCustomFormatter'
 import AppHeader, { type View } from './AppHeader'
-import TestsView from './TestsView'
-import ConfigDrawer from './ConfigDrawer'
-import MatrixDrawer from './MatrixDrawer'
 import { computeDiff } from './useDiff'
 import { getQueryParam, languageFromPath, setLanguagePath, setQueryParam } from './url'
 import { useDraftCount, publishDraft, discardAll, formatOverrides } from './draftStore'
@@ -27,6 +24,10 @@ type Status =
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
   | { kind: 'done' }
+
+const TestsView = lazy(() => import('./TestsView'))
+const ConfigDrawer = lazy(() => import('./ConfigDrawer'))
+const MatrixDrawer = lazy(() => import('./MatrixDrawer'))
 
 function langFromPath(): Language {
   return languageFromPath(window.location.pathname, bundledLanguages())
@@ -303,17 +304,19 @@ export default function App() {
         />
 
         {view === 'tests' ? (
-          <TestsView
-            language={language}
-            formatter={formatter}
-            playgroundInput={inputCode}
-            playgroundOutput={outputCode}
-            versionByFmt={versionByFmt}
-            refreshKey={refreshKey}
-            onOpenMatrix={() => setMatrixOpen(true)}
-            focusTest={focusTest}
-            focusSeq={focusSeq}
-          />
+          <Suspense fallback={<div className="view-loading"><Spin size="m" /></div>}>
+            <TestsView
+              language={language}
+              formatter={formatter}
+              playgroundInput={inputCode}
+              playgroundOutput={outputCode}
+              versionByFmt={versionByFmt}
+              refreshKey={refreshKey}
+              onOpenMatrix={() => setMatrixOpen(true)}
+              focusTest={focusTest}
+              focusSeq={focusSeq}
+            />
+          </Suspense>
         ) : (
         <div className="editors-container">
           <div className="editor-pane">
@@ -372,25 +375,31 @@ export default function App() {
           😤
         </a>
 
-        <ConfigDrawer
-          open={configOpen}
-          initialFormatter={formatter || language}
-          initialVersion={version}
-          onClose={() => setConfigOpen(false)}
-          onSaved={() => {
-            // reflect the new config in the playground right away, like a
-            // test run refreshes its "Actual" column
-            if (outputCode) handleFormat()
-          }}
-        />
+        {configOpen && (
+          <Suspense fallback={null}>
+            <ConfigDrawer
+              open
+              initialFormatter={formatter || language}
+              initialVersion={version}
+              onClose={() => setConfigOpen(false)}
+              onSaved={() => {
+                if (outputCode) handleFormat()
+              }}
+            />
+          </Suspense>
+        )}
 
-        <MatrixDrawer
-          open={matrixOpen}
-          language={language}
-          formatter={formatter}
-          onClose={() => setMatrixOpen(false)}
-          onPickTest={pickTest}
-        />
+        {matrixOpen && (
+          <Suspense fallback={null}>
+            <MatrixDrawer
+              open
+              language={language}
+              formatter={formatter}
+              onClose={() => setMatrixOpen(false)}
+              onPickTest={pickTest}
+            />
+          </Suspense>
+        )}
       </div>
     </ThemeProvider>
   )
