@@ -12,12 +12,8 @@ import {
 } from '@gravity-ui/uikit'
 import { LayoutCells, Magnifier, Pencil, PlayFill, Plus, TrashBin } from '@gravity-ui/icons'
 import CodeMirrorEditor, { type Language } from './CodeMirrorEditor'
-import ClangVersionControl from './ClangVersionControl'
-import FormatterControl from './FormatterControl'
-import AddCustomFormatter from './AddCustomFormatter'
-import { HeaderSlot } from './HeaderSlot'
 import { languageLabel } from './languages'
-import { availableLanguages, useFormatters, formatterById } from './formatters'
+import { availableLanguages, useFormatters } from './formatters'
 import { getQueryParam, setQueryParam, testShareUrl } from './url'
 import { computeDiff } from './useDiff'
 import type { TestCase } from './types'
@@ -48,15 +44,12 @@ type Display = 'pass' | 'fail' | 'muted' | 'unknown'
 interface Props {
   /** the selected language — tests are scoped to it (shared with the playground) */
   language: Language
-  onLanguageChange: (lang: string) => void
   /** the selected formatter for that language; the suite runs against it */
   formatter: string
-  onFormatterChange: (formatterId: string) => void
   playgroundInput: string
   playgroundOutput: string
   /** selected version per formatter, shared with the playground tab */
   versionByFmt: Record<string, string | undefined>
-  onVersionChange: (formatterId: string, version: string | undefined) => void
   /** bumped after a Publish so the server tests reload */
   refreshKey?: number
   /** open the tests×versions matrix drawer */
@@ -98,13 +91,10 @@ const emptyForm = (lang: Language): Omit<TestCase, 'id'> => ({
 
 export default function TestsView({
   language,
-  onLanguageChange,
   formatter,
-  onFormatterChange,
   playgroundInput,
   playgroundOutput,
   versionByFmt,
-  onVersionChange,
   refreshKey,
   onOpenMatrix,
   focusTest,
@@ -112,9 +102,9 @@ export default function TestsView({
 }: Props) {
   useFormatters() // re-render when the formatter registry loads (language options)
   const [serverTests, setServerTests] = useState<TestCase[]>([])
-  const draft = useDraft()
+  useDraft()
   // what the UI shows: server tests with the local draft overlaid
-  const tests = useMemo(() => effectiveTests(serverTests), [serverTests, draft])
+  const tests = effectiveTests(serverTests)
   const [results, setResults] = useState<Record<string, RunResult>>({})
   const [running, setRunning] = useState(false)
   const [runningId, setRunningId] = useState<string | null>(null)
@@ -136,21 +126,22 @@ export default function TestsView({
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState(emptyForm(language))
 
-  const loadTests = useCallback(async () => {
-    const res = await fetch('/api/tests')
-    setServerTests(await res.json())
-  }, [])
-
-  // reload server tests after a Publish (refreshKey bump); drop stale results
   useEffect(() => {
-    if (refreshKey === undefined) return
-    loadTests()
-    setResults({})
-  }, [refreshKey, loadTests])
-
-  useEffect(() => {
-    loadTests()
-  }, [loadTests])
+    let cancelled = false
+    fetch('/api/tests')
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return
+        setServerTests(data)
+        setResults({})
+      })
+      .catch((cause) => {
+        if (!cancelled) setError(String(cause))
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [refreshKey])
 
   // keep the status filter in the URL so the link is shareable (the language
   // lives in the path, shared with the playground)
@@ -293,7 +284,8 @@ export default function TestsView({
   const toggleExpand = useCallback((id: string) => {
     setExpanded((prev) => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }, [])
@@ -357,36 +349,6 @@ export default function TestsView({
 
   return (
     <div className="tests-view">
-      {/* the tests view contributes the same language + formatter + version
-          pickers as the playground into the shared header. The suite runs on the
-          selected language's tests, formatted by the selected formatter@version. */}
-      <HeaderSlot slot="center">
-        <Select
-          value={[language]}
-          onUpdate={(v) => onLanguageChange(v[0])}
-          size="s"
-          width={120}
-        >
-          {availableLanguages().map((l) => (
-            <Select.Option key={l} value={l}>
-              {languageLabel(l)}
-            </Select.Option>
-          ))}
-        </Select>
-        {/* formatter picker — only appears when the language has >1 formatter */}
-        <FormatterControl language={language} value={formatter} onChange={onFormatterChange} />
-        {/* upload your own binary as a custom formatter for this language
-            (only when the backend allows uploads) */}
-        <AddCustomFormatter language={language} onCreated={onFormatterChange} />
-        {formatterById(formatter)?.versioned && (
-          <ClangVersionControl
-            formatterId={formatter}
-            value={versionByFmt[formatter]}
-            onChange={(v) => onVersionChange(formatter, v)}
-          />
-        )}
-      </HeaderSlot>
-
       <div className="tests-toolbar">
         <Button view="action" size="m" onClick={runAll} disabled={running}>
           {running ? (

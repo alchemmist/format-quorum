@@ -1,11 +1,9 @@
 import { ActionTooltip, Button, Icon, Spin, type IconData } from '@gravity-ui/uikit'
 import { ArrowUpFromLine, Code, Flask, Gear, TrashBin } from '@gravity-ui/icons'
-import { HEADER_SLOT_IDS } from './HeaderSlot'
+import type { ReactNode } from 'react'
 
-// The set of top-level tabs. Adding a new tab is just another entry here — the
-// header chrome (toggle + slots) adapts; the new view contributes its own
-// controls via <HeaderSlot>.
-export const TABS = [
+// The set of top-level tabs. Adding a new tab is just another entry here.
+const TABS = [
   { key: 'playground', label: 'Playground', icon: Code },
   { key: 'tests', label: 'Tests', icon: Flask },
 ] as const satisfies ReadonlyArray<{ key: string; label: string; icon: IconData }>
@@ -22,12 +20,12 @@ interface Props {
   publishingEnabled: boolean
   onPublish: () => void
   onDiscard: () => void
+  center: ReactNode
+  actions?: ReactNode
 }
 
 /**
- * The single header shared by every tab. It renders only the universal chrome —
- * the title, the tab toggle, the Config button and the draft bar — plus two
- * empty slots (`center`, `right`) that the active view fills via {@link HeaderSlot}.
+ * The single header shared by every tab.
  */
 export default function AppHeader({
   view,
@@ -38,6 +36,8 @@ export default function AppHeader({
   publishingEnabled,
   onPublish,
   onDiscard,
+  center,
+  actions,
 }: Props) {
   return (
     <header className="app-header">
@@ -74,12 +74,10 @@ export default function AppHeader({
         </ActionTooltip>
       </div>
 
-      {/* the active view portals its language/version pickers here */}
-      <div className="app-header-center" id={HEADER_SLOT_IDS.center} />
+      <div className="app-header-center">{center}</div>
 
       <div className="app-header-right">
-        {/* the active view portals its own actions (Format, Reset, …) here */}
-        <div className="app-header-actions" id={HEADER_SLOT_IDS.right} />
+        <div className="app-header-actions">{actions}</div>
 
         {/* the draft plate stays the right-most thing in the header on every tab */}
         {draftCount > 0 && (

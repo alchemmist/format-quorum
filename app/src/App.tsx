@@ -6,14 +6,13 @@ import ClangVersionControl from './ClangVersionControl'
 import FormatterControl from './FormatterControl'
 import AddCustomFormatter from './AddCustomFormatter'
 import AppHeader, { type View } from './AppHeader'
-import { HeaderSlot } from './HeaderSlot'
 import TestsView from './TestsView'
 import ConfigDrawer from './ConfigDrawer'
 import MatrixDrawer from './MatrixDrawer'
 import { computeDiff } from './useDiff'
-import { getQueryParam, setQueryParam } from './url'
+import { getQueryParam, languageFromPath, setLanguagePath, setQueryParam } from './url'
 import { useDraftCount, publishDraft, discardAll, formatOverrides } from './draftStore'
-import { languageDemo, languageLabel } from './languages'
+import { bundledLanguages, languageDemo, languageLabel } from './languages'
 import {
   loadFormatters,
   availableLanguages,
@@ -30,8 +29,7 @@ type Status =
   | { kind: 'done' }
 
 function langFromPath(): Language {
-  const seg = window.location.pathname.replace(/^\//, '')
-  return seg === 'python' ? 'python' : 'cpp'
+  return languageFromPath(window.location.pathname, bundledLanguages())
 }
 
 export default function App() {
@@ -145,7 +143,7 @@ export default function App() {
   useEffect(() => {
     const path = `/${language}`
     if (window.location.pathname !== path) {
-      window.history.pushState(null, '', path)
+      setLanguagePath(language)
     }
   }, [language])
 
@@ -214,11 +212,11 @@ export default function App() {
     setPublishing(true)
     try {
       const { ok, errors } = await publishDraft()
+      setRefreshKey((k) => k + 1)
       if (!ok) {
         setStatus({ kind: 'error', message: `Publish failed: ${errors.join('; ')}` })
         return
       }
-      setRefreshKey((k) => k + 1) // reload server tests in TestsView
       if (outputCode) handleFormat() // playground now reflects the published config
     } finally {
       setPublishing(false)
@@ -246,12 +244,8 @@ export default function App() {
           publishingEnabled={canPublish}
           onPublish={handlePublish}
           onDiscard={discardAll}
-        />
-
-        {/* the playground contributes its own pickers + actions to the shared header */}
-        {view === 'playground' && (
-          <>
-            <HeaderSlot slot="center">
+          center={
+            <>
               <Select
                 value={[language]}
                 onUpdate={(val) => handleLanguageChange(val[0])}
@@ -264,23 +258,20 @@ export default function App() {
                   </Select.Option>
                 ))}
               </Select>
-              {/* formatter picker — only appears when the language has >1 formatter */}
               <FormatterControl language={language} value={formatter} onChange={setFormatter} />
-              {/* upload your own binary as a custom formatter for this language
-                  (only when the backend allows uploads) */}
               <AddCustomFormatter language={language} onCreated={setFormatter} />
-              {/* the version selector follows the selected formatter: it shows that
-                  formatter's own versions, and is hidden for an unversioned one
-                  (ruff/black have no version axis) */}
               {formatterById(formatter)?.versioned && (
                 <ClangVersionControl
+                  key={formatter}
                   formatterId={formatter}
                   value={version}
                   onChange={(v) => setVersionFor(formatter, v)}
                 />
               )}
-            </HeaderSlot>
-            <HeaderSlot slot="right">
+            </>
+          }
+          actions={view === 'playground' ? (
+            <>
               <label className="diff-toggle">
                 <Checkbox checked={showDiff} onUpdate={setShowDiff} size="m" />
                 <span className="diff-toggle-label">Diff</span>
@@ -307,20 +298,17 @@ export default function App() {
                   </>
                 )}
               </Button>
-            </HeaderSlot>
-          </>
-        )}
+            </>
+          ) : undefined}
+        />
 
         {view === 'tests' ? (
           <TestsView
             language={language}
-            onLanguageChange={handleLanguageChange}
             formatter={formatter}
-            onFormatterChange={setFormatter}
             playgroundInput={inputCode}
             playgroundOutput={outputCode}
             versionByFmt={versionByFmt}
-            onVersionChange={setVersionFor}
             refreshKey={refreshKey}
             onOpenMatrix={() => setMatrixOpen(true)}
             focusTest={focusTest}

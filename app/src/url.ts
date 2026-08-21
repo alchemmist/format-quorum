@@ -19,6 +19,16 @@ export function setQueryParam(key: string, value: string | null | undefined) {
   window.history.replaceState(null, '', url)
 }
 
+export function languageFromPath(pathname: string, supported: string[]): string {
+  const segment = pathname.replace(/^\//, '').split('/')[0]
+  return supported.includes(segment) ? segment : 'cpp'
+}
+
+export function setLanguagePath(language: string) {
+  const url = `/${language}${window.location.search}${window.location.hash}`
+  window.history.pushState(null, '', url)
+}
+
 /** Absolute, shareable link to a specific test on the Tests tab. */
 export function testShareUrl(id: string): string {
   const params = new URLSearchParams(window.location.search)

@@ -56,14 +56,12 @@ export default function ClangVersionControl({
     } catch {
       /* ignore — header just won't show versions */
     }
-  }, [value, onChange])
+  }, [value, onChange, versionsApi])
 
   useEffect(() => {
     // reload whenever the formatter changes — each formatter has its own versions
-    setState(null)
     load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [versionsApi])
+  }, [load])
 
   const addVersion = useCallback(
     async (version: string) => {
@@ -93,7 +91,7 @@ export default function ClangVersionControl({
         setAdding(false)
       }
     },
-    [onChange],
+    [onChange, versionsApi],
   )
 
   const removeVersion = useCallback(
@@ -112,7 +110,7 @@ export default function ClangVersionControl({
         setError(String(e))
       }
     },
-    [value, onChange],
+    [value, onChange, versionsApi],
   )
 
   const versions = state?.versions ?? []

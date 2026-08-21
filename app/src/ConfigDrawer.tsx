@@ -32,6 +32,8 @@ interface Props {
 const filenameFor = (fid: string) => formatterById(fid)?.config?.filename ?? ''
 const isVersioned = (fid: string) => !!formatterById(fid)?.versioned
 const langOf = (fid: string): Language => formatterById(fid)?.language ?? 'cpp'
+const configSyntaxOf = (fid: string): Language =>
+  formatterById(fid)?.config?.syntax ?? 'text'
 
 interface Impact {
   nowPass: string[] // were failing on the live config, pass on this draft
@@ -116,8 +118,10 @@ export default function ConfigDrawer({
   const [expandedSeq, setExpandedSeq] = useState<number | null>(null)
 
   // the real clang-format version a selection runs on (a shadow → its base)
-  const baseOf = (ver: string | undefined) =>
-    shadows.find((s) => s.id === ver)?.base ?? ver
+  const baseOf = useCallback(
+    (ver: string | undefined) => shadows.find((s) => s.id === ver)?.base ?? ver,
+    [shadows],
+  )
   // a real version renders as its number; a shadow as the ghost icon + name
   const renderVersion = (v: string) => {
     const sh = shadows.find((s) => s.id === v)
@@ -139,7 +143,6 @@ export default function ConfigDrawer({
       setVersion(initialVersion)
       setShowHistory(false) // always reopen on the editor, not the history panel
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialFormatter, initialVersion])
 
   // normalize the selected formatter to a real id (initialFormatter may be a
@@ -252,8 +255,7 @@ export default function ConfigDrawer({
     setShadowSaved(true)
     window.setTimeout(() => setShadowSaved(false), 2000)
     onSaved?.()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shadowName, version, content, shadows, onSaved])
+  }, [shadowName, version, content, baseOf, onSaved])
 
   const changed = content !== serverContent
 
@@ -378,7 +380,7 @@ export default function ConfigDrawer({
     } finally {
       setChecking(false)
     }
-  }, [formatterId, version, content])
+  }, [formatterId, version, content, baseOf])
 
   return (
     <>
@@ -568,8 +570,7 @@ export default function ConfigDrawer({
             <CodeMirrorEditor
               key={`${formatterId}@${version ?? ''}`}
               value={content}
-              language={langOf(formatterId)}
-              plainText
+              language={configSyntaxOf(formatterId)}
               onChange={onChange}
             />
           )}

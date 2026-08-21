@@ -48,7 +48,24 @@ const empty = (): Draft => ({
 function load(): Draft {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return { ...empty(), ...JSON.parse(raw) }
+    if (!raw) return empty()
+    const parsed: unknown = JSON.parse(raw)
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return empty()
+    const value = parsed as Partial<Draft>
+    const record = <T>(candidate: unknown): Record<string, T> =>
+      typeof candidate === 'object' && candidate !== null && !Array.isArray(candidate)
+        ? candidate as Record<string, T>
+        : {}
+    const strings = (candidate: unknown): string[] =>
+      Array.isArray(candidate) ? candidate.filter((item): item is string => typeof item === 'string') : []
+    return {
+      configs: record<string>(value.configs),
+      created: record<TestCase>(value.created),
+      updated: record<Partial<TestCase>>(value.updated),
+      deleted: strings(value.deleted),
+      shadowsCreated: record<ShadowDraft>(value.shadowsCreated),
+      shadowsDeleted: strings(value.shadowsDeleted),
+    }
   } catch {
     /* ignore corrupt drafts */
   }
@@ -243,6 +260,22 @@ export async function publishDraft(): Promise<{ ok: boolean; errors: string[] }>
   const fail = async (label: string, r: Response) =>
     errors.push(`${label}: ${(await r.json().catch(() => ({}))).error ?? r.status}`)
 
+  const clearRecord = <K extends 'configs' | 'created' | 'updated' | 'shadowsCreated'>(
+    field: K,
+    key: string,
+    published: Draft[K][string],
+  ) => {
+    if (state[field][key] !== published) return
+    const next = { ...state[field] }
+    delete next[key]
+    commit({ ...state, [field]: next })
+  }
+
+  const clearList = (field: 'deleted' | 'shadowsDeleted', id: string) => {
+    if (!state[field].includes(id)) return
+    commit({ ...state, [field]: state[field].filter((item) => item !== id) })
+  }
+
   // shadow configs first, so their config key exists before any config edit of
   // a published shadow lands; the create call carries the shadow's content
   for (const sh of Object.values(s.shadowsCreated)) {
@@ -251,6 +284,7 @@ export async function publishDraft(): Promise<{ ok: boolean; errors: string[] }>
       body: JSON.stringify({ id: sh.id, base: sh.base, name: sh.name, content: sh.content }),
     })
     if (!r.ok) await fail(`shadow "${sh.name}"`, r)
+    else clearRecord('shadowsCreated', sh.id, sh)
   }
   for (const key of Object.keys(s.configs)) {
     const { formatter, version } = parseConfigKey(key)
@@ -259,27 +293,38 @@ export async function publishDraft(): Promise<{ ok: boolean; errors: string[] }>
       body: JSON.stringify({ content: s.configs[key], ...(version ? { version } : {}) }),
     })
     if (!r.ok) await fail(`config ${key}`, r)
+    else clearRecord('configs', key, s.configs[key])
   }
   for (const id of s.deleted) {
     const r = await fetch(`/api/tests/${id}`, { method: 'DELETE' })
     if (!r.ok && r.status !== 404) await fail(`delete ${id}`, r)
+    else clearList('deleted', id)
   }
   for (const id of Object.keys(s.updated)) {
     const r = await fetch(`/api/tests/${id}`, {
       method: 'PUT', headers: JSON_H, body: JSON.stringify(s.updated[id]),
     })
     if (!r.ok) await fail(`update ${id}`, r)
+    else clearRecord('updated', id, s.updated[id])
   }
   for (const t of Object.values(s.created)) {
-    const { id: _drop, ...body } = t
+    const body = {
+      name: t.name,
+      language: t.language,
+      input: t.input,
+      expected: t.expected,
+      muted: t.muted,
+      note: t.note,
+    }
     const r = await fetch('/api/tests', { method: 'POST', headers: JSON_H, body: JSON.stringify(body) })
     if (!r.ok) await fail(`create "${t.name}"`, r)
+    else clearRecord('created', t.id, t)
   }
   for (const id of s.shadowsDeleted) {
     const r = await fetch(`/api/shadow-configs/${id}`, { method: 'DELETE' })
     if (!r.ok && r.status !== 404) await fail(`delete shadow ${id}`, r)
+    else clearList('shadowsDeleted', id)
   }
-  if (errors.length === 0) discardAll()
   return { ok: errors.length === 0, errors }
 }
 
