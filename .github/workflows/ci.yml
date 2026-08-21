@@ -76,6 +76,14 @@ jobs:
       - run: npm ci
         working-directory: app
 
+      - name: Lint
+        run: npm run lint
+        working-directory: app
+
+      - name: Run unit tests
+        run: npm run test
+        working-directory: app
+
       - name: Type-check + build (tsc -b && vite build)
         run: npm run build
         working-directory: app

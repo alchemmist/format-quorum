@@ -1,4 +1,4 @@
-fastapi==0.115.6
-uvicorn[standard]==0.34.0
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
 ruff==0.15.15
 black==26.5.1
