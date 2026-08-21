@@ -36,6 +36,7 @@ _BACKEND_MODULES = (
     "test_store",
     "versions",
     "custom_formatter_store",
+    "persistence",
 )
 
 

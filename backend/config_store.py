@@ -44,6 +44,8 @@ import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
+from persistence import atomic_write_json, atomic_write_text
+
 
 KEY_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._@-]*$")
 
@@ -76,9 +78,7 @@ class ConfigStore:
         return {"base": None, "versions": []}
 
     def _save(self, key: str, data: dict) -> None:
-        self._hist_path(key).write_text(
-            json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-        )
+        atomic_write_json(self._hist_path(key), data)
 
     # ── materialization ──────────────────────────────────────────────────────
     def set_materialize(self, key: str, path: Path | str) -> None:
@@ -88,7 +88,7 @@ class ConfigStore:
     def _materialize(self, key: str) -> None:
         path = self._materialize_paths.get(key)
         if path is not None:
-            path.write_text(self.current(key), encoding="utf-8")
+            atomic_write_text(path, self.current(key))
 
     def materialize(self, key: str) -> None:
         """Public re-materialize (call on startup so a deploy that reset the
@@ -138,7 +138,7 @@ class ConfigStore:
         with self._lock:
             old, new = self._hist_path(old_key), self._hist_path(new_key)
             if old.exists() and not new.exists():
-                new.write_text(old.read_text(encoding="utf-8"), encoding="utf-8")
+                atomic_write_text(new, old.read_text(encoding="utf-8"))
                 return True
         return False
 

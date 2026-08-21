@@ -7,6 +7,7 @@ import json
 import pytest
 
 import config_store
+import persistence
 import shadow_store
 import test_store
 import versions
@@ -86,6 +87,20 @@ def test_config_store_rejects_unsafe_keys(tmp_path):
     store = config_store.ConfigStore(tmp_path)
     with pytest.raises(ValueError, match="invalid config key"):
         store.ensure_seeded("../../escaped", seed_text="x")
+
+
+def test_atomic_write_keeps_previous_file_when_replace_fails(tmp_path, monkeypatch):
+    path = tmp_path / "data.json"
+    path.write_text("old", encoding="utf-8")
+
+    def fail_replace(source, destination):
+        raise OSError("replace failed")
+
+    monkeypatch.setattr(persistence.os, "replace", fail_replace)
+    with pytest.raises(OSError, match="replace failed"):
+        persistence.atomic_write_text(path, "new")
+    assert path.read_text(encoding="utf-8") == "old"
+    assert list(tmp_path.iterdir()) == [path]
 
 
 # ── ShadowStore ───────────────────────────────────────────────────────────────

@@ -42,6 +42,7 @@ from versions import (
 from custom_formatter_store import CustomFormatterStore
 from config_store import ConfigStore
 from shadow_store import ShadowStore
+from persistence import atomic_write_json, atomic_write_text
 
 BACKEND_DIR = Path(__file__).resolve().parent
 # Where the built frontend lives. Set FRONTEND_DIST in Docker.
@@ -274,7 +275,7 @@ def _migrate_legacy_keys() -> None:
         dst = d / new
         if dst.exists():
             continue
-        dst.write_text(p.read_text(encoding="utf-8"), encoding="utf-8")
+        atomic_write_text(dst, p.read_text(encoding="utf-8"))
         p.rename(p.with_name(p.name + ".bak"))
     # tag existing shadows with their formatter (all legacy shadows are clang-format)
     sp = d / "shadows.json"
@@ -288,10 +289,7 @@ def _migrate_legacy_keys() -> None:
                         s["formatter"] = "clang-format"
                         changed = True
                 if changed:
-                    sp.write_text(
-                        json.dumps(items, indent=2, ensure_ascii=False) + "\n",
-                        encoding="utf-8",
-                    )
+                    atomic_write_json(sp, items)
         except (json.JSONDecodeError, OSError):
             pass
 

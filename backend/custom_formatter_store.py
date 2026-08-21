@@ -16,6 +16,8 @@ import json
 import threading
 from pathlib import Path
 
+from persistence import atomic_write_json
+
 
 class CustomFormatterStore:
     def __init__(self, path: Path):
@@ -33,10 +35,7 @@ class CustomFormatterStore:
                 self._items = {}
 
     def _save(self) -> None:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(
-            json.dumps(list(self._items.values()), indent=2), encoding="utf-8"
-        )
+        atomic_write_json(self.path, list(self._items.values()), trailing_newline=False)
 
     def list(self) -> list[dict]:
         return list(self._items.values())

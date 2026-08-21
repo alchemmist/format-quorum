@@ -23,6 +23,8 @@ import json
 import threading
 from pathlib import Path
 
+from persistence import atomic_write_json
+
 
 class ShadowStore:
     def __init__(self, path: Path | str):
@@ -41,9 +43,7 @@ class ShadowStore:
         return []
 
     def _save(self, items: list[dict]) -> None:
-        self.path.write_text(
-            json.dumps(items, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-        )
+        atomic_write_json(self.path, items)
 
     # ── reads ────────────────────────────────────────────────────────────────
     def list(self) -> list[dict]:

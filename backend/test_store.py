@@ -15,6 +15,7 @@ from pathlib import Path
 
 import formatter_registry as registry
 from formatters import FormatError, format_code
+from persistence import atomic_write_json
 
 # the code languages we accept, derived from the registered formatters
 LANGUAGES = registry.languages()
@@ -58,9 +59,7 @@ class TestStore:
     def _write(self, rec: dict) -> None:
         path = self._path(rec["language"], rec["id"])
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
-            json.dumps(rec, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-        )
+        atomic_write_json(path, rec)
 
     def create(self, data: dict) -> dict:
         language = data.get("language", "cpp")
