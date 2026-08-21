@@ -28,10 +28,19 @@ Typical loop:
   cfprobe.py try  --target P5 --version 18.1.8 --set Cpp11BracedListStyle=false --show
 """
 from __future__ import annotations
-import argparse, json, os, sys, time, urllib.error, urllib.request
+import argparse
+import json
+import os
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from typing import Any
 
 FQ_BASE = os.environ.get("FQ_BASE", "http://localhost:3000").rstrip("/")
+if urllib.parse.urlsplit(FQ_BASE).scheme not in {"http", "https"}:
+    sys.exit("FQ_BASE must use http or https")
 
 
 def _req(method, path, payload=None, tolerant=False) -> Any:

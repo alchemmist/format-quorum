@@ -27,12 +27,15 @@ Run against a running instance:  python3 scripts/seed_baseline_tests.py
 import json
 import sys
 import urllib.request
+import urllib.parse
 
 import os
 
 # Target instance. Defaults to the local dev server; point at prod with
 #   FQ_BASE=https://fq.alchemmist.xyz python3 scripts/seed_baseline_tests.py
 BASE = os.environ.get("FQ_BASE", "http://localhost:3000").rstrip("/")
+if urllib.parse.urlsplit(BASE).scheme not in {"http", "https"}:
+    sys.exit("FQ_BASE must use http or https")
 LOGS5799 = "https://st.yandex-team.ru/LOGS-5799"
 LOGS4271 = "https://st.yandex-team.ru/LOGS-4271"
 PR = "https://a.yandex-team.ru/review/13704587"

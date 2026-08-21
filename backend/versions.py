@@ -32,6 +32,7 @@ import subprocess
 import sys
 import threading
 import urllib.request
+import urllib.parse
 import venv
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -64,6 +65,8 @@ DOWNLOAD_TIMEOUT_SEC = 120  # per-call ceiling so a stalled download can't hang 
 
 def _download(url: str, dst: Path) -> None:
     """Stream ``url`` to ``dst`` with a per-call timeout (urlretrieve has none)."""
+    if urllib.parse.urlsplit(url).scheme not in {"http", "https"}:
+        raise ValueError("unsupported download URL")
     with urllib.request.urlopen(url, timeout=DOWNLOAD_TIMEOUT_SEC) as resp:  # noqa: S310
         with open(dst, "wb") as fh:
             shutil.copyfileobj(resp, fh)

@@ -17,9 +17,12 @@ import json
 import os
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 
 BASE = os.environ.get("FQ_BASE", "http://localhost:3000").rstrip("/")
+if urllib.parse.urlsplit(BASE).scheme not in {"http", "https"}:
+    sys.exit("FQ_BASE must use http or https")
 
 
 def _req(method: str, path: str, payload=None):
