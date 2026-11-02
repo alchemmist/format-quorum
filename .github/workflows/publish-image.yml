@@ -20,7 +20,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v6
+      - id: image
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile
@@ -28,3 +29,9 @@ jobs:
           tags: |
             ghcr.io/alchemmist/format-quorum:latest
             ghcr.io/alchemmist/format-quorum:${{ github.sha }}
+
+      - name: Deploy to Socrat
+        uses: alchemmist/deploy-to-socrat@v1
+        with:
+          token: ${{ secrets.HOMELAB_DEPLOY_KEY }}
+          image_version: ${{ steps.image.outputs.digest }}
