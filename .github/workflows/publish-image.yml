@@ -20,6 +20,12 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Log in to Harbor
+        uses: docker/login-action@v3
+        with:
+          registry: harbor.socrat.alchemmist.xyz
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
       - id: image
         uses: docker/build-push-action@v6
         with:
@@ -28,7 +34,9 @@ jobs:
           push: true
           tags: |
             ghcr.io/alchemmist/format-quorum:latest
+            harbor.socrat.alchemmist.xyz/homelab/format-quorum:latest
             ghcr.io/alchemmist/format-quorum:${{ github.sha }}
+            harbor.socrat.alchemmist.xyz/homelab/format-quorum:${{ github.sha }}
 
       - name: Deploy to Socrat
         uses: alchemmist/deploy-to-socrat@v1
